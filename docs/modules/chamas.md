@@ -1,14 +1,16 @@
 # chamas
 
-Phase 0 holds only what the ledger needs to point at.
+- `Chama`: name, type, state, mode (`records_only` until officials are verified, then
+  `money_out`), member-code prefix, the draft rules during setup, and setup dates.
+- `Membership`: a person in a chama, with member code (`JC-4821-017`), role, state,
+  whether they are a founding member, when they joined and confirmed the rules.
+- `Invite`: a 6-letter code, optionally tied to one phone (always, for officials).
+- `BankAccount`: bank, encrypted account number (last four shown), paybill or till, and
+  how statements arrive. One active account per chama.
+- `StatementInbox`: the chama's own address for bank e-statements.
+- `services.py`: create, bank account, draft rules, invites, joining, adoption,
+  activation, expiry. See [Setting up a chama](../flows/chama-setup.md).
+- `access.py`: member, official and founder checks. Someone outside a chama gets
+  "not found", so membership is not revealed.
 
-- `Chama`: name, type (merry-go-round, table banking, welfare, investment club), state,
-  mode (`records_only` until its officials are verified, then `money_out`), and the
-  member-code prefix (`JC-4821`).
-- `Membership`: a person in a chama, with their member code (`JC-4821-017`), role and
-  state. One open membership per person per chama.
-
-Both are history: they are referenced with `PROTECT` and never deleted.
-
-Phase 1 adds creating a chama, invites, rules, bank accounts and the states in Part 5.1
-and 5.2 of the proposal.
+All of these are history: referenced with `PROTECT` and never deleted.

@@ -13,6 +13,7 @@ class EntryType(models.TextChoices):
     CASH_BANKED = "cash_banked"
     FINE_RAISED = "fine_raised"
     FINE_WAIVED = "fine_waived"
+    FINE_PAID = "fine_paid"
     PAYOUT = "payout"
     LOAN_DISBURSED = "loan_disbursed"
     BANK_CHARGE = "bank_charge"

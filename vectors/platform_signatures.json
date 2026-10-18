@@ -1,0 +1,39 @@
+{
+  "about": "Platform signatures: ECDSA P-256, SHA-256 pre-hashed (the message IS the 32-byte entry hash), DER-encoded, base64. The key is a TEST key derived from a public string; production uses AWS KMS.",
+  "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEkSpIJWZYSOFWqbTzJVzDJU2X8Gdo\n6Gqj7LdAoiHVLjes5hWNGefS0l356EtcL11tJmU8eUNU5DZtZOs0627D8Q==\n-----END PUBLIC KEY-----\n",
+  "valid": [
+    {
+      "hash": "084cbdfb3c1075b16035df5a2e26d87863b44208cebddb69c598ad507163f28c",
+      "signature_b64": "MEUCIQDsVK1c+5E+L1fyTKkmimbY7FHb8yP6LagA9JvMPGG5KgIgY8+yO3mKCyFiLtSb0SVTcsqVweUEa7D+FrrqyoHunOI="
+    },
+    {
+      "hash": "4f32e940841a73b16ab12d14ca1e3b30b5696b6be306c65e013e677776d684c5",
+      "signature_b64": "MEUCIHvPgAJhUb3Vd91w1rcsI2OCqA9kEJWCMk/06blr0eyyAiEAgIpj0gE5ZPRYOdRg2V6ZdIS4PZ9LvGsN5naOzQO7Ykw="
+    },
+    {
+      "hash": "6bd5993928560de85f9611d03c3eba753b9900da3d50a52dda8f63359bead296",
+      "signature_b64": "MEUCIQCyq18KKvW+w5ycXDSAq+VsA1W7fi4IHLEhSN1ANQhPHAIgaTFRUuNXsyOt1+4OT30KTncK1KNV6ttOM/UabapgaNM="
+    },
+    {
+      "hash": "b3e6e13f2df7bc47a24b09664dca0b66e9f9b5c85869da2602ce610063c8d748",
+      "signature_b64": "MEUCIQDf4tvavNMG2wWAaAP02LE2jNaNJiWfV9/NBPMM3M8X4wIgQYcWlvuvXz5XwJ1kmwM0JfCH6jKmjxlerrQk3LG/Tz8="
+    }
+  ],
+  "invalid": [
+    {
+      "name": "signature for another hash",
+      "hash": "4f32e940841a73b16ab12d14ca1e3b30b5696b6be306c65e013e677776d684c5",
+      "signature_b64": "MEUCIQDsVK1c+5E+L1fyTKkmimbY7FHb8yP6LagA9JvMPGG5KgIgY8+yO3mKCyFiLtSb0SVTcsqVweUEa7D+FrrqyoHunOI="
+    },
+    {
+      "name": "corrupted signature",
+      "hash": "084cbdfb3c1075b16035df5a2e26d87863b44208cebddb69c598ad507163f28c",
+      "signature_b64": "MEUCIQDsVK1c+5A+L1fyTKkmimbY7FHb8yP6LagA9JvMPGG5KgIgY8+yO3mKCyFiLtSb0SVTcsqVweUEa7D+FrrqyoHunOI="
+    },
+    {
+      "name": "not DER",
+      "hash": "084cbdfb3c1075b16035df5a2e26d87863b44208cebddb69c598ad507163f28c",
+      "signature_b64": "AAAA"
+    }
+  ]
+}

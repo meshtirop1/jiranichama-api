@@ -14,8 +14,17 @@ HISTORY_MODELS = {
     "staff.AuditLog",
     "chamas.Chama",
     "chamas.Membership",
+    "chamas.Invite",
+    "chamas.BankAccount",
+    "chamas.StatementInbox",
+    "rules.RuleVersion",
+    "fines.Fine",
+    "feeds.Statement",
+    "feeds.BankTransaction",
+    "reconciliation.Match",
 }
-OUR_APPS = {"core", "flags", "accounts", "notify", "chamas", "ledger", "staff"}
+OUR_APPS = {"core", "flags", "accounts", "notify", "chamas", "ledger", "staff", "devices",
+            "rules", "fines", "contributions", "feeds", "reconciliation"}
 
 
 def _label(model) -> str:

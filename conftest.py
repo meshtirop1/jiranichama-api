@@ -23,6 +23,12 @@ def platform_key(settings):
 
 
 @pytest.fixture(autouse=True)
+def media_in_tmp(settings, tmp_path):
+    """Statement files go to a temporary folder, never the working tree."""
+    settings.MEDIA_ROOT = tmp_path / "media"
+
+
+@pytest.fixture(autouse=True)
 def sms_outbox(settings):
     settings.SMS_BACKENDS = ["apps.notify.sms.ConsoleBackend"]
     ConsoleBackend.outbox.clear()
