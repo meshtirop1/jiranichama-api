@@ -1,0 +1,185 @@
+"""One settings module, driven entirely by environment variables.
+
+Defaults are the safe ones (DEBUG off, HTTPS redirect on) so that tests and CI run the
+same way production does.
+"""
+
+from datetime import timedelta
+from pathlib import Path
+
+import environ
+from celery.schedules import crontab
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+env = environ.Env()
+if (BASE_DIR / ".env").exists():
+    environ.Env.read_env(BASE_DIR / ".env")
+
+SECRET_KEY = env("DJANGO_SECRET_KEY")
+DEBUG = env.bool("DJANGO_DEBUG", default=False)
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
+
+INSTALLED_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
+    "drf_spectacular",
+    "django_otp",
+    "django_otp.plugins.otp_totp",
+    "apps.core",
+    "apps.flags",
+    "apps.accounts",
+    "apps.notify",
+    "apps.chamas",
+    "apps.ledger",
+    "apps.staff",
+]
+
+MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_otp.middleware.OTPMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
+
+ROOT_URLCONF = "config.urls"
+WSGI_APPLICATION = "config.wsgi.application"
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
+
+DATABASES = {"default": env.db("DATABASE_URL")}
+# PgBouncer runs in transaction pooling mode: no server-side cursors, no session state.
+DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = True
+DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=0)
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+AUTH_USER_MODEL = "accounts.User"
+
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+     "OPTIONS": {"min_length": 12}},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+]
+
+LANGUAGE_CODE = "en"
+LANGUAGES = [("en", "English"), ("sw", "Kiswahili")]
+TIME_ZONE = "Africa/Nairobi"
+USE_I18N = True
+USE_TZ = True
+
+STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# --- Security -------------------------------------------------------------------------
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_HSTS_SECONDS = env.int("DJANGO_HSTS_SECONDS", default=31536000)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_REFERRER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"
+SESSION_COOKIE_AGE = 60 * 60 * 8  # staff console sessions: one working day
+SILENCED_SYSTEM_CHECKS = env.list("DJANGO_SILENCED_CHECKS", default=[])
+
+# --- API ------------------------------------------------------------------------------
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "EXCEPTION_HANDLER": "apps.core.problems.problem_exception_handler",
+    "DEFAULT_THROTTLE_RATES": {"otp": "20/hour", "otp_verify": "60/hour"},
+    "UNAUTHENTICATED_USER": None,
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": False,
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "JiraniChama API",
+    "VERSION": "0.1.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "OAS_VERSION": "3.1.0",
+}
+
+# --- Celery ---------------------------------------------------------------------------
+CELERY_BROKER_URL = env("REDIS_URL", default="redis://localhost:6390/0")
+CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=False)
+CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_DEFAULT_QUEUE = "bulk"
+CELERY_TASK_ROUTES = {
+    "apps.feeds.*": {"queue": "feeds"},
+    "apps.rules.*": {"queue": "rules"},
+    "apps.notify.*": {"queue": "notify"},
+    "apps.documents.*": {"queue": "documents"},
+    "apps.ledger.tasks.sign_*": {"queue": "signing"},
+    "apps.core.tasks.publish_outbox": {"queue": "notify"},
+}
+CELERY_BEAT_SCHEDULE = {
+    "publish-outbox": {"task": "apps.core.tasks.publish_outbox", "schedule": 30.0},
+    "sign-pending-entries": {"task": "apps.ledger.tasks.sign_pending", "schedule": 60.0},
+    "verify-chains-nightly": {
+        "task": "apps.ledger.tasks.verify_chains",
+        "schedule": crontab(hour=1, minute=0),
+    },
+}
+
+# --- JiraniChama ----------------------------------------------------------------------
+FIELD_ENCRYPTION_KEYS = env.list("FIELD_ENCRYPTION_KEYS")
+HMAC_KEY = env("HMAC_KEY")
+
+PLATFORM_SIGNER = env("PLATFORM_SIGNER", default="local")
+PLATFORM_SIGNING_KEY_PEM = env("PLATFORM_SIGNING_KEY_PEM", default="").replace("\\n", "\n")
+KMS_KEY_ID = env("KMS_KEY_ID", default="")
+AWS_REGION = env("AWS_REGION", default="")
+
+SMS_BACKENDS = env.list("SMS_BACKENDS", default=["apps.notify.sms.ConsoleBackend"])
+AFRICASTALKING_USERNAME = env("AFRICASTALKING_USERNAME", default="sandbox")
+AFRICASTALKING_API_KEY = env("AFRICASTALKING_API_KEY", default="")
+AFRICASTALKING_SENDER_ID = env("AFRICASTALKING_SENDER_ID", default="")
+AFRICASTALKING_SANDBOX = env.bool("AFRICASTALKING_SANDBOX", default=True)
+
+OTP_TTL_SECONDS = 300
+OTP_MAX_ATTEMPTS = 5
+OTP_MAX_PER_WINDOW = 3
+OTP_WINDOW_SECONDS = 600
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": env("LOG_LEVEL", default="INFO")},
+}

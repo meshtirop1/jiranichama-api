@@ -1,0 +1,41 @@
+{
+  "about": "Hand-written canonical JSON cases (RFC 8785 subset: no floats). Each input is JSON text so both languages parse it themselves. scripts/make_vectors.py checks the Python output against 'expected' and writes canonical_json.json with sha256 added.",
+  "cases": [
+    {
+      "name": "keys sorted, literals",
+      "input": "{\"b\": 1, \"a\": [true, false, null], \"c\": \"x\"}",
+      "expected": "{\"a\":[true,false,null],\"b\":1,\"c\":\"x\"}"
+    },
+    {
+      "name": "empty containers",
+      "input": "{\"z\": {}, \"y\": []}",
+      "expected": "{\"y\":[],\"z\":{}}"
+    },
+    {
+      "name": "string escapes",
+      "input": "{\"s\": \"quote\\\" back\\\\ nl\\n tab\\t bs\\b ff\\f cr\\r ctl\\u0001\\u001f del\\u007f e\\u00e9 euro\\u20ac\"}",
+      "expected": "{\"s\":\"quote\\\" back\\\\ nl\\n tab\\t bs\\b ff\\f cr\\r ctl\\u0001\\u001f del\u007f e\u00e9 euro\u20ac\"}"
+    },
+    {
+      "name": "RFC 8785 3.2.3 key order by UTF-16 code units",
+      "input": "{\"\\u20ac\": \"Euro Sign\", \"\\r\": \"Carriage Return\", \"\\ufb33\": \"Hebrew Letter Dalet With Dagesh\", \"1\": \"One\", \"\\ud83d\\ude00\": \"Emoji: Grinning Face\", \"\\u0080\": \"Control\", \"\\u00f6\": \"Latin Small Letter O With Diaeresis\"}",
+      "expected": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\u0080\":\"Control\",\"\u00f6\":\"Latin Small Letter O With Diaeresis\",\"\u20ac\":\"Euro Sign\",\"\ud83d\ude00\":\"Emoji: Grinning Face\",\"\ufb33\":\"Hebrew Letter Dalet With Dagesh\"}"
+    },
+    {
+      "name": "safe integer range",
+      "input": "{\"max\": 9007199254740991, \"min\": -9007199254740991, \"zero\": 0, \"neg\": -250}",
+      "expected": "{\"max\":9007199254740991,\"min\":-9007199254740991,\"neg\":-250,\"zero\":0}"
+    },
+    {
+      "name": "nested arrays keep order",
+      "input": "[[3, 2, 1], {\"k\": [\"b\", \"a\"]}, \"Jirani \\ud83d\\ude00\"]",
+      "expected": "[[3,2,1],{\"k\":[\"b\",\"a\"]},\"Jirani \ud83d\ude00\"]"
+    }
+  ],
+  "must_reject": [
+    {"name": "float", "input": "{\"amount\": 1.5}"},
+    {"name": "float written as whole number", "input": "[1.0]"},
+    {"name": "integer above safe range", "input": "[9007199254740992]"},
+    {"name": "integer below safe range", "input": "[-9007199254740992]"}
+  ]
+}
