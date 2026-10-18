@@ -104,7 +104,8 @@ def ledger_chain():
 
 def write(name, data):
     path = VECTORS / name
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    # Always LF, so CI's regenerate-and-diff check passes on any platform.
+    path.write_bytes((json.dumps(data, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
     print(f"wrote {path.relative_to(ROOT)}")
 
 
