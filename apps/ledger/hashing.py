@@ -88,7 +88,9 @@ def receipt_code(hash_hex: str) -> str:
 def signatures_digest(signatures) -> str | None:
     """SHA-256 over the sorted (member_code, device_key_fingerprint, signature_b64)
     triples that approved an entry; None when nobody signed."""
-    triples = sorted([list(t) for t in signatures])
+    # Sorted by UTF-16 code units, like canonical JSON keys, so Dart sorts the same way.
+    triples = sorted([list(t) for t in signatures],
+                     key=lambda t: [s.encode("utf-16-be") for s in t])
     if not triples:
         return None
     return hashlib.sha256(canonical_bytes(triples)).hexdigest()
