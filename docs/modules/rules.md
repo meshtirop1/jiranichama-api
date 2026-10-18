@@ -22,6 +22,11 @@ A chama's constitution as settings, checked, enforced and written out in plain w
 - **P.3** Money goes out only after every official passed the ID check (Phase 2).
 - **P.4** Records are never changed; mistakes are fixed by visible corrections.
 
+## Cash at meetings
+
+`contributions.cash_banking_days` (default 3, rule 3.4): cash counts from the day it was
+handed over if it reaches the bank within that many days, otherwise from the bank date.
+
 ## Limits of v1
 
 Monthly contributions only (weekly and fortnightly need a new period format). Loans,

@@ -1,6 +1,7 @@
 from django.urls import include, path
 
 from apps.chamas import views as chamas
+from apps.contributions import views as contrib
 from apps.feeds import views as feeds
 from apps.ledger import views as ledger
 from apps.reconciliation import views as recon
@@ -28,4 +29,11 @@ urlpatterns = [
     path("bank-transactions/<uuid:pk>/assign/", recon.AssignView.as_view()),
     path("bank-transactions/<uuid:pk>/not-me/", recon.NotMeView.as_view()),
     path("hooks/mail/<str:token>/inbound/", feeds.MailInboundHook.as_view()),
+    path("chamas/<uuid:pk>/opening-balances/", contrib.OpeningView.as_view()),
+    path("chamas/<uuid:pk>/opening-balances/confirm/", contrib.OpeningConfirmView.as_view()),
+    path("opening-balance-lines/<uuid:pk>/object/", contrib.OpeningObjectView.as_view()),
+    path("chamas/<uuid:pk>/cash-receipts/", contrib.CashListView.as_view()),
+    path("cash-receipts/<uuid:pk>/confirm/", contrib.CashConfirmView.as_view()),
+    path("cash-receipts/<uuid:pk>/decline/", contrib.CashDeclineView.as_view()),
+    path("bank-transactions/<uuid:pk>/bank-cash/", contrib.BankCashView.as_view()),
 ]

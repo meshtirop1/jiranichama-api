@@ -17,6 +17,8 @@ class SigningChallenge(models.Model):
         ADOPT_RULES = "adopt_rules"
         CONFIRM_STATEMENT = "confirm_statement"
         ASSIGN_PAYMENT = "assign_payment"
+        CONFIRM_OPENING = "confirm_opening"
+        CONFIRM_CASH = "confirm_cash"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,

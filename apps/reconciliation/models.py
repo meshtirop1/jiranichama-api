@@ -14,6 +14,7 @@ class Match(models.Model):
         PHONE = "phone"
         TREASURER = "treasurer"
         NOT_ME = "not_me"
+        CASH = "cash"
 
     bank_txn = models.ForeignKey(BankTransaction, on_delete=models.PROTECT,
                                  related_name="matches")

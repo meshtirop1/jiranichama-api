@@ -77,6 +77,8 @@ class InviteDetailSerializer(serializers.Serializer):
 class PositionSerializer(serializers.Serializer):
     member_code = serializers.CharField()
     contributed_cents = serializers.IntegerField()
+    opening_cents = serializers.IntegerField()
+    pending_cash_cents = serializers.IntegerField()
     arrears_cents = serializers.IntegerField()
     fines_cents = serializers.IntegerField()
     credit_cents = serializers.IntegerField()

@@ -92,6 +92,17 @@
       "fines_to_reverse": []
     },
     {
+      "name": "an opening-balance fine is payable at once",
+      "amount_cents": 120000, "value_date": "2026-03-04",
+      "dues": [["2026-03", 100000]],
+      "fines": [["F-OPEN", "2026-03", 20000, false]],
+      "slices": [
+        {"kind": "fine", "amount_cents": 20000, "period": "2026-03", "outcome": "fine_paid", "fine_id": "F-OPEN"},
+        {"kind": "contribution", "amount_cents": 100000, "period": "2026-03", "outcome": "on_time", "fine_id": null}
+      ],
+      "fines_to_reverse": []
+    },
+    {
       "name": "nothing to allocate",
       "amount_cents": 0, "value_date": "2026-03-04",
       "dues": [["2026-03", 100000]], "fines": [],
