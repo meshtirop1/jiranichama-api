@@ -39,3 +39,20 @@ def test_chain_vectors_recompute():
 def test_document_has_exactly_the_hashed_fields():
     doc = CHAIN["entries"][0]["document"]
     assert tuple(sorted(doc)) == tuple(sorted(hashing.HASHED_FIELDS))
+
+
+def test_platform_signature_vectors():
+    import base64
+
+    from cryptography.hazmat.primitives import serialization
+
+    from apps.ledger.signing import verify_digest
+
+    vectors = json.loads((Path(__file__).resolve().parents[3] / "vectors" /
+                          "platform_signatures.json").read_text(encoding="utf-8"))
+    key = serialization.load_pem_public_key(vectors["public_key_pem"].encode())
+    for v in vectors["valid"]:
+        assert verify_digest(key, bytes.fromhex(v["hash"]), base64.b64decode(v["signature_b64"]))
+    for v in vectors["invalid"]:
+        assert not verify_digest(key, bytes.fromhex(v["hash"]),
+                                 base64.b64decode(v["signature_b64"])), v["name"]

@@ -102,6 +102,43 @@ def ledger_chain():
     }
 
 
+def platform_signatures(chain: dict):
+    """Signatures over the chain vectors' hashes, made the way the platform signs
+    (ECDSA P-256 over the 32-byte hash as a pre-hashed digest, DER). The key is derived
+    from a public string: it is a TEST key and signs nothing real."""
+    from cryptography.hazmat.primitives.asymmetric import ec
+
+    from apps.ledger.signing import _PREHASHED, public_key_pem
+
+    secret = int.from_bytes(hashlib.sha256(b"jiranichama test vector key").digest(), "big")
+    key = ec.derive_private_key(secret % (2**256 - 2**224 - 1) or 1, ec.SECP256R1())
+    public_pem = public_key_pem(key.public_key())
+    import base64
+
+    good = []
+    for entry in chain["entries"]:
+        sig = key.sign(bytes.fromhex(entry["hash"]), _PREHASHED)
+        good.append({"hash": entry["hash"], "signature_b64": base64.b64encode(sig).decode()})
+    first = good[0]
+    bad = [
+        {"name": "signature for another hash", "hash": good[1]["hash"],
+         "signature_b64": first["signature_b64"]},
+        {"name": "corrupted signature", "hash": first["hash"],
+         "signature_b64": base64.b64encode(
+             bytes([b ^ 0x01 if i == 10 else b for i, b in enumerate(
+                 base64.b64decode(first["signature_b64"]))])).decode()},
+        {"name": "not DER", "hash": first["hash"], "signature_b64": "AAAA"},
+    ]
+    return {
+        "about": "Platform signatures: ECDSA P-256, SHA-256 pre-hashed (the message IS the "
+                 "32-byte entry hash), DER-encoded, base64. The key is a TEST key derived "
+                 "from a public string; production uses AWS KMS.",
+        "public_key_pem": public_pem,
+        "valid": good,
+        "invalid": bad,
+    }
+
+
 def write(name, data):
     path = VECTORS / name
     # Always LF, so CI's regenerate-and-diff check passes on any platform.
@@ -111,4 +148,10 @@ def write(name, data):
 
 if __name__ == "__main__":
     write("canonical_json.json", canonical_cases())
-    write("ledger_chain.json", ledger_chain())
+    chain = ledger_chain()
+    write("ledger_chain.json", chain)
+    signatures = VECTORS / "platform_signatures.json"
+    if not signatures.exists():
+        # ECDSA signatures are randomised, so this file is generated once and kept;
+        # tests verify it rather than regenerate it.
+        write("platform_signatures.json", platform_signatures(chain))
