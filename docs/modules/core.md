@@ -40,3 +40,21 @@ All API errors are RFC 9457 problem documents (`application/problem+json`) with 
 Creates `jirani_forbid_change()` and attaches it as a trigger to the tables that must
 never change. TRUNCATE is not trapped, so tests can reset the database; production
 revokes TRUNCATE from the app instead ([database roles](../operations/database-roles.md)).
+
+## Mostly append-only tables (`append_only_except`)
+
+Some history rows have one status that must still move (a statement's `state`, a bank
+line's `state`, a rule version's `state`). `jirani_forbid_change_except(columns)` refuses
+DELETE and any UPDATE that changes anything other than those columns.
+
+## Idempotency (`idempotency.py`)
+
+`@idempotent()` on a write stores its first successful response under (user,
+`Idempotency-Key`). A retry with the same key and body gets that response back, marked
+`Idempotent-Replayed: true`; the same key with a different body is refused (422); a
+missing key is refused (428).
+
+## SMS-confirmed actions (`two_step.py`)
+
+`POST` without a code sends one and answers 202 with `challenge_id`; the same `POST` with
+`challenge_id` and `code` does the action.
