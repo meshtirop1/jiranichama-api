@@ -19,8 +19,8 @@ class StatementSerializer(serializers.ModelSerializer):
     lines = serializers.SerializerMethodField()
     credits_cents = serializers.SerializerMethodField()
     debits_cents = serializers.SerializerMethodField()
-    uploaded_by = serializers.CharField(source="uploaded_by.display_name", default=None)
-    confirmed_by = serializers.CharField(source="confirmed_by.display_name", default=None)
+    uploaded_by = serializers.SerializerMethodField()
+    confirmed_by = serializers.SerializerMethodField()
 
     class Meta:
         model = Statement
@@ -28,6 +28,20 @@ class StatementSerializer(serializers.ModelSerializer):
                   "opening_cents", "closing_cents", "credits_cents", "debits_cents", "lines",
                   "problems", "flags", "uploaded_by", "confirmed_by", "confirmed_at",
                   "created_at"]
+
+    def _who(self, obj, user) -> str | None:
+        if user is None:
+            return None
+        if user.display_name:
+            return user.display_name
+        m = obj.chama.memberships.filter(user=user).only("member_code").first()
+        return m.member_code if m else user.phone_hint
+
+    def get_uploaded_by(self, obj) -> str | None:
+        return self._who(obj, obj.uploaded_by)
+
+    def get_confirmed_by(self, obj) -> str | None:
+        return self._who(obj, obj.confirmed_by)
 
     def get_lines(self, obj) -> int:
         return len(obj.parsed_lines)

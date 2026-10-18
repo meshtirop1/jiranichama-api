@@ -9,3 +9,4 @@ media/
 *.sqlite3
 .coverage
 htmlcov/
+.dev-sms.log

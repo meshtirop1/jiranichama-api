@@ -124,7 +124,12 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "apps.core.problems.problem_exception_handler",
-    "DEFAULT_THROTTLE_RATES": {"otp": "20/hour", "otp_verify": "60/hour"},
+    # Per-IP limits on sign-in codes. Raised only for local end-to-end runs, where every
+    # test user signs in from 127.0.0.1.
+    "DEFAULT_THROTTLE_RATES": {
+        "otp": env("OTP_THROTTLE_RATE", default="20/hour"),
+        "otp_verify": env("OTP_VERIFY_THROTTLE_RATE", default="60/hour"),
+    },
     "UNAUTHENTICATED_USER": None,
 }
 
@@ -185,6 +190,8 @@ AFRICASTALKING_USERNAME = env("AFRICASTALKING_USERNAME", default="sandbox")
 AFRICASTALKING_API_KEY = env("AFRICASTALKING_API_KEY", default="")
 AFRICASTALKING_SENDER_ID = env("AFRICASTALKING_SENDER_ID", default="")
 AFRICASTALKING_SANDBOX = env.bool("AFRICASTALKING_SANDBOX", default=True)
+# Local development only (see apps.notify.sms.DevFileBackend). Ignored unless DEBUG is on.
+DEV_SMS_FILE = env("DEV_SMS_FILE", default="") if DEBUG else ""
 
 # Statements
 STATEMENT_MAX_BYTES = env.int("STATEMENT_MAX_BYTES", default=5 * 1024 * 1024)

@@ -11,6 +11,7 @@ carry a sign-in code.
 | Backend | Use |
 | --- | --- |
 | `apps.notify.sms.ConsoleBackend` | Development and tests: keeps messages in memory |
+| `apps.notify.sms.DevFileBackend` | Local development only: appends messages, codes included, to `DEV_SMS_FILE`, readable at `GET /dev/sms/?to=…` for the device end-to-end test. Refuses to load unless `DJANGO_DEBUG=1`; the URL is mounted only then |
 | `apps.notify.sms.AfricasTalkingBackend` | Africa's Talking (sandbox when `AFRICASTALKING_SANDBOX=1`) |
 
 The proposal calls for a second live provider. It is not chosen yet; adding it is one

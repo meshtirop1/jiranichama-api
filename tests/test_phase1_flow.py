@@ -149,6 +149,7 @@ def test_statement_upload_confirm_match_assign_and_not_me(api, active, people, s
     data_after = _confirm_two_step(api, f"/api/v1/statements/{statement['id']}/confirm/",
                                    people["chair"], sms_outbox)
     assert data_after["state"] == "accepted" and data_after["confirmed_by"] == "Jane"
+    assert data_after["uploaded_by"] == "Akinyi"
 
     txns = BankTransaction.objects.filter(chama=active)
     assert sorted(txns.values_list("state", flat=True)) == [

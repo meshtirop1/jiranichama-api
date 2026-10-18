@@ -121,3 +121,14 @@ def test_anonymise_removes_personal_details(user):
     user.refresh_from_db()
     assert user.phone == "" and user.display_name == "" and not user.is_active
     assert user.phone_hash == f"anonymised:{user.id}"
+
+
+def test_profile_name_and_language(api, user):
+    api.force_authenticate(user)
+    assert api.patch("/api/v1/auth/me/", {"display_name": " "}, format="json").status_code == 400
+    r = api.patch("/api/v1/auth/me/", {"display_name": "Wanjiru Kamau", "language": "sw"},
+                  format="json")
+    assert r.status_code == 200 and r.json()["display_name"] == "Wanjiru Kamau"
+    user.refresh_from_db()
+    assert (user.display_name, user.language) == ("Wanjiru Kamau", "sw")
+    assert api.get("/api/v1/auth/me/").json()["phone_hint"].endswith("678")

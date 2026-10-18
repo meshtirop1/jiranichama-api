@@ -52,5 +52,13 @@ class SetPinSerializer(serializers.Serializer):
         return value
 
 
+class ProfileSerializer(serializers.Serializer):
+    id = serializers.UUIDField(read_only=True)
+    phone_hint = serializers.CharField(read_only=True)
+    display_name = serializers.CharField(min_length=2, max_length=60, trim_whitespace=True)
+    language = serializers.ChoiceField(choices=["en", "sw"], required=False)
+    has_pin = serializers.BooleanField(read_only=True)
+
+
 class LogoutSerializer(serializers.Serializer):
     refresh = serializers.CharField()
