@@ -46,6 +46,7 @@ def active(api, people, sms_outbox, settings):
     assert r.status_code == 201, r.content
     chama_id = r.json()["id"]
     assert r.json()["state"] == "setup" and r.json()["my_role"] == "chair"
+    assert r.json()["i_am_founder"] is True
     assert r.json()["statement_inbox"].endswith("@" + settings.STATEMENT_INBOX_DOMAIN)
 
     r = api.put(f"/api/v1/chamas/{chama_id}/bank-account/",

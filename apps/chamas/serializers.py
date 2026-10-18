@@ -27,6 +27,7 @@ class BankAccountSerializer(serializers.ModelSerializer):
 class ChamaSerializer(serializers.ModelSerializer):
     my_role = serializers.SerializerMethodField()
     my_member_code = serializers.SerializerMethodField()
+    i_am_founder = serializers.SerializerMethodField()
     statement_inbox = serializers.CharField(source="statement_inbox.address", read_only=True)
     bank_account = serializers.SerializerMethodField()
 
@@ -34,7 +35,7 @@ class ChamaSerializer(serializers.ModelSerializer):
         model = Chama
         fields = ["id", "name", "type", "state", "mode", "member_code_prefix",
                   "expected_members", "meets", "created_at", "setup_expires_at",
-                  "activated_at", "my_role", "my_member_code", "statement_inbox",
+                  "activated_at", "my_role", "my_member_code", "i_am_founder", "statement_inbox",
                   "bank_account"]
 
     def _mine(self, obj):
@@ -47,6 +48,10 @@ class ChamaSerializer(serializers.ModelSerializer):
     def get_my_member_code(self, obj) -> str | None:
         m = self._mine(obj)
         return m.member_code if m else None
+
+    def get_i_am_founder(self, obj) -> bool:
+        m = self._mine(obj)
+        return bool(m) and m.user_id == obj.created_by_id
 
     @extend_schema_field(BankAccountSerializer(allow_null=True))
     def get_bank_account(self, obj):
