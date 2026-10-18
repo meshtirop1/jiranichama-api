@@ -1,0 +1,139 @@
+{
+  "about": "One chama's chain. Recompute 'canonical' from 'document', 'hash' as SHA-256 of it, 'receipt_code' as the first 8 Base32 characters of the hash bytes, and check each prev_hash links to the hash before (genesis = 64 zeros).",
+  "hash_version": 1,
+  "genesis_prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "entries": [
+    {
+      "entry_id": "00000000-0000-4000-8000-000000000001",
+      "signatures": [
+        [
+          "JC-4821-001",
+          "a1b2c3d4e5f60718",
+          "MEUCIQ=="
+        ],
+        [
+          "JC-4821-002",
+          "1817f6e5d4c3b2a1",
+          "MEQCIA=="
+        ]
+      ],
+      "signatures_digest": "52df83a964d78568e5adc74556bb39e398f3e8c7965ed8e43a26b112414101ab",
+      "document": {
+        "v": 1,
+        "chama_id": "6f1c2a8e-3b4d-4c5e-9f60-7a8b9c0d1e2f",
+        "seq": 1,
+        "type": "opening_balance",
+        "member_code": "JC-4821-017",
+        "amount_cents": 1250000,
+        "period": null,
+        "rule_version_id": null,
+        "rule_refs": [],
+        "decision": {},
+        "source": "proposal",
+        "source_id": "0b7a3c1d-2e4f-4a6b-8c9d-0e1f2a3b4c5d",
+        "reverses": null,
+        "signatures_digest": "52df83a964d78568e5adc74556bb39e398f3e8c7965ed8e43a26b112414101ab",
+        "at": "2026-03-01T06:00:00.000Z",
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "canonical": "{\"amount_cents\":1250000,\"at\":\"2026-03-01T06:00:00.000Z\",\"chama_id\":\"6f1c2a8e-3b4d-4c5e-9f60-7a8b9c0d1e2f\",\"decision\":{},\"member_code\":\"JC-4821-017\",\"period\":null,\"prev_hash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"reverses\":null,\"rule_refs\":[],\"rule_version_id\":null,\"seq\":1,\"signatures_digest\":\"52df83a964d78568e5adc74556bb39e398f3e8c7965ed8e43a26b112414101ab\",\"source\":\"proposal\",\"source_id\":\"0b7a3c1d-2e4f-4a6b-8c9d-0e1f2a3b4c5d\",\"type\":\"opening_balance\",\"v\":1}",
+      "hash": "084cbdfb3c1075b16035df5a2e26d87863b44208cebddb69c598ad507163f28c",
+      "receipt_code": "BBGL36Z4"
+    },
+    {
+      "entry_id": "00000000-0000-4000-8000-000000000002",
+      "signatures": [],
+      "signatures_digest": null,
+      "document": {
+        "v": 1,
+        "chama_id": "6f1c2a8e-3b4d-4c5e-9f60-7a8b9c0d1e2f",
+        "seq": 2,
+        "type": "contribution",
+        "member_code": "JC-4821-017",
+        "amount_cents": 100000,
+        "period": "2026-03",
+        "rule_version_id": "9e8d7c6b-5a49-4382-a716-f5e4d3c2b1a0",
+        "rule_refs": [
+          "3.1"
+        ],
+        "decision": {
+          "outcome": "on_time"
+        },
+        "source": "bank_txn",
+        "source_id": "1c2d3e4f-5a6b-4c7d-8e9f-a0b1c2d3e4f5",
+        "reverses": null,
+        "signatures_digest": null,
+        "at": "2026-03-04T09:15:30.123Z",
+        "prev_hash": "084cbdfb3c1075b16035df5a2e26d87863b44208cebddb69c598ad507163f28c"
+      },
+      "canonical": "{\"amount_cents\":100000,\"at\":\"2026-03-04T09:15:30.123Z\",\"chama_id\":\"6f1c2a8e-3b4d-4c5e-9f60-7a8b9c0d1e2f\",\"decision\":{\"outcome\":\"on_time\"},\"member_code\":\"JC-4821-017\",\"period\":\"2026-03\",\"prev_hash\":\"084cbdfb3c1075b16035df5a2e26d87863b44208cebddb69c598ad507163f28c\",\"reverses\":null,\"rule_refs\":[\"3.1\"],\"rule_version_id\":\"9e8d7c6b-5a49-4382-a716-f5e4d3c2b1a0\",\"seq\":2,\"signatures_digest\":null,\"source\":\"bank_txn\",\"source_id\":\"1c2d3e4f-5a6b-4c7d-8e9f-a0b1c2d3e4f5\",\"type\":\"contribution\",\"v\":1}",
+      "hash": "4f32e940841a73b16ab12d14ca1e3b30b5696b6be306c65e013e677776d684c5",
+      "receipt_code": "J4ZOSQEE"
+    },
+    {
+      "entry_id": "00000000-0000-4000-8000-000000000003",
+      "signatures": [],
+      "signatures_digest": null,
+      "document": {
+        "v": 1,
+        "chama_id": "6f1c2a8e-3b4d-4c5e-9f60-7a8b9c0d1e2f",
+        "seq": 3,
+        "type": "fine_raised",
+        "member_code": "JC-4821-017",
+        "amount_cents": 20000,
+        "period": "2026-03",
+        "rule_version_id": "9e8d7c6b-5a49-4382-a716-f5e4d3c2b1a0",
+        "rule_refs": [
+          "3.2"
+        ],
+        "decision": {
+          "outcome": "late",
+          "days_late": 4
+        },
+        "source": "scheduler",
+        "source_id": null,
+        "reverses": null,
+        "signatures_digest": null,
+        "at": "2026-03-08T21:00:00.999Z",
+        "prev_hash": "4f32e940841a73b16ab12d14ca1e3b30b5696b6be306c65e013e677776d684c5"
+      },
+      "canonical": "{\"amount_cents\":20000,\"at\":\"2026-03-08T21:00:00.999Z\",\"chama_id\":\"6f1c2a8e-3b4d-4c5e-9f60-7a8b9c0d1e2f\",\"decision\":{\"days_late\":4,\"outcome\":\"late\"},\"member_code\":\"JC-4821-017\",\"period\":\"2026-03\",\"prev_hash\":\"4f32e940841a73b16ab12d14ca1e3b30b5696b6be306c65e013e677776d684c5\",\"reverses\":null,\"rule_refs\":[\"3.2\"],\"rule_version_id\":\"9e8d7c6b-5a49-4382-a716-f5e4d3c2b1a0\",\"seq\":3,\"signatures_digest\":null,\"source\":\"scheduler\",\"source_id\":null,\"type\":\"fine_raised\",\"v\":1}",
+      "hash": "6bd5993928560de85f9611d03c3eba753b9900da3d50a52dda8f63359bead296",
+      "receipt_code": "NPKZSOJI"
+    },
+    {
+      "entry_id": "00000000-0000-4000-8000-000000000004",
+      "signatures": [
+        [
+          "JC-4821-001",
+          "a1b2c3d4e5f60718",
+          "MEUCIQ=="
+        ]
+      ],
+      "signatures_digest": "19f14baa094418000e85eef706e10e07d5c9ced96e0d83416e37223a4c5b7faa",
+      "document": {
+        "v": 1,
+        "chama_id": "6f1c2a8e-3b4d-4c5e-9f60-7a8b9c0d1e2f",
+        "seq": 4,
+        "type": "correction",
+        "member_code": null,
+        "amount_cents": -20000,
+        "period": "2026-03",
+        "rule_version_id": null,
+        "rule_refs": [],
+        "decision": {
+          "reason": "Fine raised in error — payment dated 4 Mar"
+        },
+        "source": "proposal",
+        "source_id": "2d3e4f5a-6b7c-4d8e-9fa0-b1c2d3e4f5a6",
+        "reverses": "00000000-0000-4000-8000-000000000003",
+        "signatures_digest": "19f14baa094418000e85eef706e10e07d5c9ced96e0d83416e37223a4c5b7faa",
+        "at": "2026-03-09T07:30:00.000Z",
+        "prev_hash": "6bd5993928560de85f9611d03c3eba753b9900da3d50a52dda8f63359bead296"
+      },
+      "canonical": "{\"amount_cents\":-20000,\"at\":\"2026-03-09T07:30:00.000Z\",\"chama_id\":\"6f1c2a8e-3b4d-4c5e-9f60-7a8b9c0d1e2f\",\"decision\":{\"reason\":\"Fine raised in error — payment dated 4 Mar\"},\"member_code\":null,\"period\":\"2026-03\",\"prev_hash\":\"6bd5993928560de85f9611d03c3eba753b9900da3d50a52dda8f63359bead296\",\"reverses\":\"00000000-0000-4000-8000-000000000003\",\"rule_refs\":[],\"rule_version_id\":null,\"seq\":4,\"signatures_digest\":\"19f14baa094418000e85eef706e10e07d5c9ced96e0d83416e37223a4c5b7faa\",\"source\":\"proposal\",\"source_id\":\"2d3e4f5a-6b7c-4d8e-9fa0-b1c2d3e4f5a6\",\"type\":\"correction\",\"v\":1}",
+      "hash": "b3e6e13f2df7bc47a24b09664dca0b66e9f9b5c85869da2602ce610063c8d748",
+      "receipt_code": "WPTOCPZN"
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+import uuid
+
+from django.contrib.postgres.fields import ArrayField
+from django.db import models
+
+from apps.chamas.models import Chama, Membership
+
+
+class EntryType(models.TextChoices):
+    OPENING_BALANCE = "opening_balance"
+    CONTRIBUTION = "contribution"
+    CONTRIBUTION_PENDING_CASH = "contribution_pending_cash"
+    CASH_BANKED = "cash_banked"
+    FINE_RAISED = "fine_raised"
+    FINE_WAIVED = "fine_waived"
+    PAYOUT = "payout"
+    LOAN_DISBURSED = "loan_disbursed"
+    BANK_CHARGE = "bank_charge"
+    INTEREST_EARNED = "interest_earned"
+    REVERSAL = "reversal"
+    CORRECTION = "correction"
+    UNAPPROVED_DEBIT_DETECTED = "unapproved_debit_detected"
+    MEMBERSHIP = "membership"
+    RULE_VERSION_ADOPTED = "rule_version_adopted"
+    DEVICE_REGISTERED = "device_registered"
+    ROLE_CHANGED = "role_changed"
+    SEAL = "seal"
+
+
+class LedgerEntry(models.Model):
+    """One money fact (or governance fact) in a chama's chain. Written once, only by
+    ``ledger.services.append``; the database refuses UPDATE and DELETE on this table."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    chama = models.ForeignKey(Chama, on_delete=models.PROTECT, related_name="ledger_entries")
+    seq = models.PositiveBigIntegerField()
+    type = models.CharField(max_length=40, choices=EntryType.choices)
+    member = models.ForeignKey(Membership, on_delete=models.PROTECT, null=True, blank=True,
+                               related_name="ledger_entries")
+    member_code = models.CharField(max_length=20, null=True, blank=True)
+    amount_cents = models.BigIntegerField(default=0)
+    period = models.CharField(max_length=7, null=True, blank=True)  # "2026-03"
+    # The rules app (Phase 1) turns this into a FK to RuleVersion.
+    rule_version_id = models.UUIDField(null=True, blank=True)
+    rule_refs = ArrayField(models.CharField(max_length=32), default=list, blank=True)
+    decision = models.JSONField(default=dict, blank=True)
+    source = models.CharField(max_length=24)
+    source_id = models.UUIDField(null=True, blank=True)
+    reverses = models.ForeignKey("self", on_delete=models.PROTECT, null=True, blank=True,
+                                 related_name="reversed_by")
+    signatures_digest = models.CharField(max_length=64, null=True, blank=True)
+    at = models.DateTimeField()
+    prev_hash = models.CharField(max_length=64)
+    hash = models.CharField(max_length=64, unique=True)
+    receipt_code = models.CharField(max_length=8, db_index=True)
+
+    class Meta:
+        db_table = "ledger_entry"
+        ordering = ["chama", "seq"]
+        constraints = [
+            models.UniqueConstraint(fields=["chama", "seq"], name="ledger_entry_chama_seq"),
+        ]
+
+    def __str__(self):
+        return f"{self.chama_id}#{self.seq} {self.type}"
+
+
+class ChainHead(models.Model):
+    """The latest seq and hash per chama. Locked with SELECT ... FOR UPDATE on every
+    append, so entries in one chama are written strictly one after another."""
+
+    chama = models.OneToOneField(Chama, on_delete=models.PROTECT, primary_key=True,
+                                 related_name="chain_head")
+    seq = models.PositiveBigIntegerField(default=0)
+    hash = models.CharField(max_length=64)
+
+    class Meta:
+        db_table = "ledger_chain_head"
+
+
+class EntrySignature(models.Model):
+    """The platform's signature over an entry hash, added after the entry commits so the
+    KMS call never happens while the chain head is locked (6.6)."""
+
+    entry = models.OneToOneField(LedgerEntry, on_delete=models.PROTECT, primary_key=True,
+                                 related_name="platform_signature")
+    platform_sig = models.BinaryField()
+    key_id = models.CharField(max_length=200)
+    signed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "ledger_entry_signature"

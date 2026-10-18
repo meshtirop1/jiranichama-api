@@ -1,0 +1,59 @@
+{
+  "about": "Hand-written canonical JSON cases (RFC 8785 subset: no floats). Each input is JSON text so both languages parse it themselves. scripts/make_vectors.py checks the Python output against 'expected' and writes canonical_json.json with sha256 added.",
+  "cases": [
+    {
+      "name": "keys sorted, literals",
+      "input": "{\"b\": 1, \"a\": [true, false, null], \"c\": \"x\"}",
+      "expected": "{\"a\":[true,false,null],\"b\":1,\"c\":\"x\"}",
+      "sha256": "210bd8e5501c622e789c4b9e6cd70edbfbe598f4725066bac3c1ffe0176ff0e3"
+    },
+    {
+      "name": "empty containers",
+      "input": "{\"z\": {}, \"y\": []}",
+      "expected": "{\"y\":[],\"z\":{}}",
+      "sha256": "7de7e2fb9e6bdef5b46f1184b8f60abb44651d80d3120e3e5133c573cc927d5d"
+    },
+    {
+      "name": "string escapes",
+      "input": "{\"s\": \"quote\\\" back\\\\ nl\\n tab\\t bs\\b ff\\f cr\\r ctl\\u0001\\u001f del\\u007f e\\u00e9 euro\\u20ac\"}",
+      "expected": "{\"s\":\"quote\\\" back\\\\ nl\\n tab\\t bs\\b ff\\f cr\\r ctl\\u0001\\u001f del eé euro€\"}",
+      "sha256": "7b14e3de2fe95b415cc3cac1af4e58a7c9b103aa8b4964196bac7c536a461173"
+    },
+    {
+      "name": "RFC 8785 3.2.3 key order by UTF-16 code units",
+      "input": "{\"\\u20ac\": \"Euro Sign\", \"\\r\": \"Carriage Return\", \"\\ufb33\": \"Hebrew Letter Dalet With Dagesh\", \"1\": \"One\", \"\\ud83d\\ude00\": \"Emoji: Grinning Face\", \"\\u0080\": \"Control\", \"\\u00f6\": \"Latin Small Letter O With Diaeresis\"}",
+      "expected": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\":\"Control\",\"ö\":\"Latin Small Letter O With Diaeresis\",\"€\":\"Euro Sign\",\"😀\":\"Emoji: Grinning Face\",\"דּ\":\"Hebrew Letter Dalet With Dagesh\"}",
+      "sha256": "5e321556d22018a9656991a9e94f77ec175fa193e52a2429d312f8419ec8b08c"
+    },
+    {
+      "name": "safe integer range",
+      "input": "{\"max\": 9007199254740991, \"min\": -9007199254740991, \"zero\": 0, \"neg\": -250}",
+      "expected": "{\"max\":9007199254740991,\"min\":-9007199254740991,\"neg\":-250,\"zero\":0}",
+      "sha256": "765c80eba1acaf17831d1c8fe5d55baadf4637068aaa6c0cc491a217204d18b8"
+    },
+    {
+      "name": "nested arrays keep order",
+      "input": "[[3, 2, 1], {\"k\": [\"b\", \"a\"]}, \"Jirani \\ud83d\\ude00\"]",
+      "expected": "[[3,2,1],{\"k\":[\"b\",\"a\"]},\"Jirani 😀\"]",
+      "sha256": "c14381b244a61d3eeae2c8a91355a9b0cb89bf1c4c939a43296e15c29563daba"
+    }
+  ],
+  "must_reject": [
+    {
+      "name": "float",
+      "input": "{\"amount\": 1.5}"
+    },
+    {
+      "name": "float written as whole number",
+      "input": "[1.0]"
+    },
+    {
+      "name": "integer above safe range",
+      "input": "[9007199254740992]"
+    },
+    {
+      "name": "integer below safe range",
+      "input": "[-9007199254740992]"
+    }
+  ]
+}

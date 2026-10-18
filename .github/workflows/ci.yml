@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: jiranichama
+          POSTGRES_USER: jiranichama
+          POSTGRES_PASSWORD: jiranichama
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U jiranichama" --health-interval 2s --health-retries 30
+    env:
+      # Same defaults as production: DEBUG off, HTTPS redirect on.
+      DJANGO_SECRET_KEY: ci-only-${{ github.run_id }}-not-a-real-secret-key-padding-padding
+      DJANGO_DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: testserver,api.jiranichama.co.ke
+      DATABASE_URL: postgres://jiranichama:jiranichama@localhost:5432/jiranichama
+      # Test-only keys. Production keys live in the server's secret store.
+      FIELD_ENCRYPTION_KEYS: Q2Wk9bSlbbri5c6OZF5PstiOpyEX82rFolxtMdYXqG4=
+      HMAC_KEY: ci-only-hmac-key-not-used-anywhere-else
+      CELERY_TASK_ALWAYS_EAGER: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - run: pip install -r requirements.txt pytest pytest-django ruff
+      - name: Lint
+        run: ruff check .
+      - name: Migrations are complete
+        run: python manage.py makemigrations --check --dry-run
+      - name: Deploy checks
+        run: python manage.py check --deploy --fail-level WARNING
+      - name: Vectors are up to date
+        run: |
+          python scripts/make_vectors.py
+          git diff --exit-code vectors/
+      - name: OpenAPI schema builds
+        run: python manage.py spectacular --file schema.yml --validate --fail-on-warn
+      - name: Tests
+        run: pytest --create-db -p no:cacheprovider
