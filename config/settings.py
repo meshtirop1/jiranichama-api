@@ -105,6 +105,11 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # private S3 bucket with Object Lock (6.6) behind the same storage API.
 MEDIA_ROOT = env.path("MEDIA_ROOT", default=BASE_DIR / "media")
 MEDIA_URL = "/never-served/"
+# Nightly public anchoring (6.6): OpenTimestamps calendars (empty: not sent) and the
+# outside mailbox that gets every night's root and leaves.
+OTS_CALENDARS = env.list("OTS_CALENDARS", default=[
+    "https://a.pool.opentimestamps.org", "https://b.pool.opentimestamps.org"])
+ANCHOR_EMAIL_TO = env.list("ANCHOR_EMAIL_TO", default=[])
 # SMS commands from basic phones (4.9): the secret token in the provider's incoming-SMS
 # callback URL (empty: the hook is off), its IPs, and how many messages a number may send
 # an hour.
@@ -210,6 +215,8 @@ CELERY_BEAT_SCHEDULE = {
                          "schedule": crontab(minute=15)},
     "expire-stale-setups": {"task": "apps.chamas.tasks.expire_setups",
                             "schedule": crontab(hour=2, minute=0)},
+    "anchor-nightly": {"task": "apps.ledger.tasks.anchor_nightly",
+                       "schedule": crontab(hour=0, minute=30)},
     "verify-chains-nightly": {
         "task": "apps.ledger.tasks.verify_chains",
         "schedule": crontab(hour=1, minute=0),

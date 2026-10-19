@@ -28,6 +28,7 @@ urlpatterns = [
     path("chamas/<uuid:pk>/reconciliation/", recon.ReconciliationView.as_view()),
     path("chamas/<uuid:pk>/ledger/", ledger.LedgerView.as_view()),
     path("chamas/<uuid:pk>/ledger/head/", ledger.LedgerHeadView.as_view()),
+    path("chamas/<uuid:pk>/anchors/", ledger.AnchorProofView.as_view()),
     path("invites/<str:code>/", chamas.InviteAcceptView.as_view()),
     path("memberships/<uuid:pk>/position/", chamas.PositionView.as_view()),
     path("statements/<uuid:pk>/", feeds.StatementDetailView.as_view()),

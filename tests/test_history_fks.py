@@ -11,6 +11,7 @@ HISTORY_MODELS = {
     "ledger.LedgerEntry",
     "ledger.EntrySignature",
     "ledger.ChainHead",
+    "ledger.Anchor",
     "staff.AuditLog",
     "chamas.Chama",
     "chamas.Membership",
