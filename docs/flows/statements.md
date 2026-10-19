@@ -77,7 +77,8 @@ check typed rows against anything, so the file is refused as unreadable.
 
 Each line becomes a `BankTransaction`. A line already seen in an earlier statement (same
 reference) is skipped, so overlapping statements never count a payment twice. Credits go
-to [matching](payments.md); debits wait for Phase 2's debit matching (`debit_pending`).
+to [matching](payments.md); debits go to [money out](money-out.md) (bank charges,
+approved proposals, or an unapproved-debit alert).
 
 ## Not yet
 

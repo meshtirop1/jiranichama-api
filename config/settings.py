@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "apps.feeds",
     "apps.reconciliation",
     "apps.documents",
+    "apps.payouts",
 ]
 
 MIDDLEWARE = [
@@ -151,6 +152,10 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "OAS_VERSION": "3.1.0",
+    "ENUM_NAME_OVERRIDES": {
+        "ProposalKindEnum": "apps.payouts.models.Proposal.Kind",
+        "DocumentKindEnum": "apps.documents.models.IssuedDocument.Kind",
+    },
 }
 
 # --- Celery ---------------------------------------------------------------------------
@@ -173,6 +178,8 @@ CELERY_BEAT_SCHEDULE = {
     "sign-pending-entries": {"task": "apps.ledger.tasks.sign_pending", "schedule": 60.0},
     "raise-late-fines": {"task": "apps.fines.tasks.raise_due_fines",
                          "schedule": crontab(minute=5)},
+    "expire-proposals": {"task": "apps.payouts.tasks.expire_proposals",
+                         "schedule": crontab(minute=15)},
     "expire-stale-setups": {"task": "apps.chamas.tasks.expire_setups",
                             "schedule": crontab(hour=2, minute=0)},
     "verify-chains-nightly": {

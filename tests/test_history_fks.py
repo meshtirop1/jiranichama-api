@@ -28,10 +28,14 @@ HISTORY_MODELS = {
     "contributions.CashReceipt",
     "documents.IssuedDocument",
     "feeds.TypedLine",
+    "payouts.Proposal",
+    "payouts.Approval",
+    "payouts.UnapprovedDebit",
+    "payouts.MoneyOutConsent",
     "documents.DocumentAccess",
 }
 OUR_APPS = {"core", "flags", "accounts", "notify", "chamas", "ledger", "staff", "devices",
-            "rules", "fines", "contributions", "feeds", "reconciliation", "documents"}
+            "rules", "fines", "contributions", "feeds", "reconciliation", "documents", "payouts"}
 
 
 def _label(model) -> str:
