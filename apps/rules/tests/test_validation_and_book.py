@@ -91,3 +91,20 @@ def test_calendar():
     assert calendar.grace_end("2026-02", rules) == date(2026, 2, 7)
     assert calendar.periods("2026-11", "2027-02") == ["2026-11", "2026-12", "2027-01",
                                                       "2027-02"]
+
+
+def test_every_error_has_a_stable_code_for_the_app():
+    r = template_for("merry_go_round")
+    r["approvals"]["tiers"] = [
+        {"up_to_cents": 9_000_000, "officials": 2, "member_vote": False},
+        {"up_to_cents": 5_000_000, "officials": 1, "member_vote": False},
+    ]
+    r["fines"]["late_contribution"]["monthly_cap_cents"] = 100
+    codes = {e.code for e in validation.check(r)}
+    assert {"tiers_last_unlimited", "tiers_order", "tiers_officials_order",
+            "fine_cap_below_fine"} <= codes
+    r = template_for("merry_go_round")
+    r["contributions"]["due_day"] = 31
+    [e] = validation.check(r)
+    assert e.as_dict() == {"path": "contributions/due_day", "code": "out_of_range",
+                           "message": e.message}
