@@ -25,8 +25,9 @@ switch stands in until then.
    - a bank statement has been accepted, and the amount fits the last reconciled balance
      less money already promised (approved or paid but not yet matched) (rule 0.1);
    - the approval level for the amount (rules 4.x) sets how many officials must approve.
-     A level that also needs a members' vote is refused for now: votes arrive with
-     meetings (5.11), and a payout is never approved without the vote the rules ask for.
+     A level that also needs a members' vote opens one alongside
+     ([Members' votes](votes.md)); the proposal is approved only when the vote has passed
+     too, and rejected if it fails or lapses.
 3. **Approvals.** Each official sees a plain summary ("APPROVE paying Mary KES 20,000 for
    merry-go-round turn") and approves with an SMS code naming exactly that
    (`POST /proposals/{id}/approve/`, two steps). The proposer may approve; one person
@@ -64,7 +65,7 @@ The alert entry stays on the chain either way: nothing is ever deleted.
 
 ## Not yet (later Phase 2 slices)
 
-Members' votes;
+
 the merry-go-round rotation (turns, draw, arrears handling); the 72-hour escalation of
 an unexplained debit to a dispute; reminders when a Paid debit does not appear; retro
 approvals; amount mismatches handled as partial matches (today a different amount is

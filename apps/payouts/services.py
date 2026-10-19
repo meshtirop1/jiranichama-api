@@ -137,12 +137,6 @@ def _rules_check(chama: Chama, *, amount_cents: int, payee: Membership | None, t
         return tier, _refuse("not_enough_money", "0.1",
                              f"Only {_kes(max(available, 0))} is available after money "
                              "already promised."), version
-    if tier["member_vote"]:
-        # Member votes arrive with meetings and votes (5.11); until then, amounts that
-        # need one are refused rather than approved without it.
-        return tier, _refuse("member_vote_needed", f"4.{i}",
-                             f"This amount needs a vote of the members (rule 4.{i}). Votes "
-                             "in the app are not available yet."), version
     return {**tier, "rule": f"4.{i}"}, None, version
 
 
@@ -171,7 +165,7 @@ def propose(chama: Chama, by: Membership, *, kind: str, amount_cents: int, purpo
     tier, refusal, version = _rules_check(chama, amount_cents=amount_cents, payee=payee,
                                           today=today, allow_arrears=allow_arrears)
     now = timezone.now()
-    return Proposal.objects.create(
+    p = Proposal.objects.create(
         chama=chama, kind=kind, amount_cents=amount_cents, payee_membership=payee,
         payee_name=payee_name, payee_account=(payee_account or "").strip()[:120],
         purpose=purpose, proposed_by=by, rule_version_id=version.id,
@@ -181,13 +175,60 @@ def propose(chama: Chama, by: Membership, *, kind: str, amount_cents: int, purpo
         now + timedelta(hours=version.rules["approvals"]["deadline_hours"]),
         state=Proposal.State.REFUSED if refusal else Proposal.State.COLLECTING,
         state_reason=refusal["message"] if refusal else "")
+    if not refusal and p.needs_vote:
+        # The rules want the members' say too (rule 4.x, 5.11): a vote runs alongside the
+        # officials' approvals, with the same deadline. The payee does not vote.
+        from apps.votes import services as votes
+
+        to = p.payee_name + (f", {p.payee_account}" if p.payee_account else "")
+        votes.open_vote(chama, subject=f"payouts.proposal:{p.id}",
+                        question=f"Pay {to} {_kes(p.amount_cents)} for {p.purpose}?",
+                        rules=version.rules, closes_at=p.deadline_at,
+                        exclude=[payee.id] if payee else None)
+    return p
 
 
 # --- Approving ------------------------------------------------------------------------------
 
+def _vote_of(p: Proposal):
+    from apps.votes.services import for_subject
+
+    return for_subject(f"payouts.proposal:{p.id}") if p.needs_vote else None
+
+
+def _maybe_approved(p: Proposal) -> None:
+    """Approved once enough officials have approved and, where the rules want it, the
+    members' vote has passed. Called with the proposal's row locked."""
+    if p.state != Proposal.State.COLLECTING:
+        return
+    approvals = p.approvals.filter(decision=Approval.Decision.APPROVE).count()
+    if approvals < p.needs_officials:
+        return
+    vote = _vote_of(p)
+    if vote is not None and vote.state != "passed":
+        return
+    p.state = Proposal.State.APPROVED
+    p.save(update_fields=["state"])
+
+
+def on_vote_closed(vote) -> None:
+    """The members' vote on a proposal has closed (votes.services._close)."""
+    p = Proposal.objects.select_for_update().get(pk=vote.subject.split(":", 1)[1])
+    if vote.state == "passed":
+        _maybe_approved(p)
+    elif p.state == Proposal.State.COLLECTING:
+        p.state = Proposal.State.REJECTED
+        p.state_reason = ("The members voted no." if vote.state == "failed"
+                          else "Not enough members voted.")
+        p.save(update_fields=["state", "state_reason"])
+
+
 def expire_due(chama: Chama | None = None) -> int:
     """Proposals whose approvals did not come in by the deadline. Runs hourly and on
     every read, so a stale proposal is never shown as still open."""
+    from apps.votes.services import close_due
+
+    close_due(chama)  # a vote closing on the deadline decides first
     qs = Proposal.objects.filter(state=Proposal.State.COLLECTING, deadline_at__lte=timezone.now())
     if chama is not None:
         qs = qs.filter(chama=chama)
@@ -266,10 +307,7 @@ def approve(p: Proposal, by: Membership, *, challenge_id, sms_code: str) -> Prop
         _require_can_answer(p, by)
         Approval.objects.create(proposal=p, membership=by, role=by.role,
                                 decision=Approval.Decision.APPROVE, challenge_id=challenge_id)
-        approvals = p.approvals.filter(decision=Approval.Decision.APPROVE).count()
-        if approvals >= p.needs_officials:
-            p.state = Proposal.State.APPROVED
-            p.save(update_fields=["state"])
+        _maybe_approved(p)
     return p
 
 
@@ -327,10 +365,7 @@ def approve_with_device(p: Proposal, by: Membership, *, device_id, nonce: str,
         Approval.objects.create(proposal=p, membership=by, role=by.role,
                                 decision=Approval.Decision.APPROVE, device=device,
                                 payload_hash=payload_hash, signature=signature)
-        approvals = p.approvals.filter(decision=Approval.Decision.APPROVE).count()
-        if approvals >= p.needs_officials:
-            p.state = Proposal.State.APPROVED
-            p.save(update_fields=["state"])
+        _maybe_approved(p)
     return p
 
 

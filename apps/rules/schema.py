@@ -68,6 +68,12 @@ SCHEMA_V1 = _obj(
             "every_days": {**_int, "minimum": 7, "maximum": 31},
         }),
         "kyc": _obj(["payer"], {"payer": {"enum": ["chama", "member"]}}),
+        # Members' votes (5.11). Optional: missing means half must vote, more than half yes.
+        "votes": _obj(["quorum_pct", "pass_pct", "secret"], {
+            "quorum_pct": {**_int, "minimum": 10, "maximum": 100},
+            "pass_pct": {**_int, "minimum": 50, "maximum": 90},
+            "secret": {"type": "boolean"},
+        }),
         # Merry-go-round turns (5.6). Optional: other chama types have no rotation.
         "rotation": _obj(["order", "arrears"], {
             "order": {"enum": ["fixed", "draw"]},

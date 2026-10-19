@@ -110,8 +110,27 @@ def _render_en(r: dict) -> list[Clause]:
         Clause("P.4", "Records are never changed. A mistake is fixed by a new, visible "
                       "correction."),
     ]
-    out[-4:-4] = _rotation_en(r.get("rotation"))
+    out[-4:-4] = _rotation_en(r.get("rotation")) + _votes_en(r.get("votes"))
     return out
+
+
+def _votes_en(v: dict | None) -> list[Clause]:
+    v = {"quorum_pct": 50, "pass_pct": 50, "secret": False, **(v or {})}
+    how = "in secret: who voted is shown, not how" if v["secret"] else "openly"
+    return [Clause("9.1", f"A members' vote counts if at least {v['quorum_pct']}% of the "
+                          f"members who may vote take part, and passes with more than "
+                          f"{v['pass_pct']}% of the votes cast. Members vote {how}. The "
+                          "person a vote is about does not vote on it.")]
+
+
+def _votes_sw(v: dict | None) -> list[Clause]:
+    v = {"quorum_pct": 50, "pass_pct": 50, "secret": False, **(v or {})}
+    how = ("kwa siri: wanaopiga kura wanaonyeshwa, si jinsi walivyopiga" if v["secret"]
+           else "wazi")
+    return [Clause("9.1", f"Kura ya wanachama inahesabiwa angalau asilimia {v['quorum_pct']} "
+                          f"ya wanaoruhusiwa kupiga kura wakishiriki, na inapita kwa zaidi ya "
+                          f"asilimia {v['pass_pct']} ya kura zilizopigwa. Wanachama wanapiga "
+                          f"kura {how}. Mhusika wa kura hapigi kura hiyo.")]
 
 
 def _rotation_en(rot: dict | None) -> list[Clause]:
@@ -210,5 +229,5 @@ def _render_sw(r: dict) -> list[Clause]:
         Clause("P.4", "Kumbukumbu hazibadilishwi kamwe. Kosa linarekebishwa kwa marekebisho "
                       "mapya yanayoonekana."),
     ]
-    out[-4:-4] = _rotation_sw(r.get("rotation"))
+    out[-4:-4] = _rotation_sw(r.get("rotation")) + _votes_sw(r.get("votes"))
     return out

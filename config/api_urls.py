@@ -8,6 +8,7 @@ from apps.feeds import views as feeds
 from apps.ledger import views as ledger
 from apps.payouts import views as payouts
 from apps.reconciliation import views as recon
+from apps.votes import views as votes
 
 urlpatterns = [
     path("auth/", include("apps.accounts.urls")),
@@ -51,6 +52,11 @@ urlpatterns = [
     path("chamas/<uuid:pk>/money-out/", payouts.MoneyOutView.as_view()),
     path("chamas/<uuid:pk>/proposals/", payouts.ProposalListView.as_view()),
     path("chamas/<uuid:pk>/rotation/", payouts.RotationView.as_view()),
+    path("chamas/<uuid:pk>/votes/", votes.VoteListView.as_view()),
+    path("votes/<uuid:pk>/", votes.VoteDetailView.as_view()),
+    path("votes/<uuid:pk>/ballots/", votes.BallotView.as_view()),
+    path("votes/<uuid:pk>/signing-payload/", votes.BallotSigningPayloadView.as_view()),
+    path("votes/<uuid:pk>/signed-ballots/", votes.SignedBallotView.as_view()),
     path("chamas/<uuid:pk>/rotation/next/", payouts.RotationNextView.as_view()),
     path("proposals/<uuid:pk>/", payouts.ProposalDetailView.as_view()),
     path("proposals/<uuid:pk>/approve/", payouts.ProposalApproveView.as_view()),
