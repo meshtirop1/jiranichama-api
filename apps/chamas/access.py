@@ -14,7 +14,8 @@ def membership_of(user, chama: Chama) -> Membership | None:
 
 def require_member(user, chama: Chama) -> Membership:
     m = membership_of(user, chama)
-    if m is None or not m.is_current:
+    # A member serving their notice (5.13) still sees the chama until they have left.
+    if m is None or not (m.is_current or m.state == Membership.State.EXITING):
         # Same answer as "no such chama", so membership is not leaked.
         raise Problem("not_found", "Chama not found.", status.HTTP_404_NOT_FOUND)
     return m

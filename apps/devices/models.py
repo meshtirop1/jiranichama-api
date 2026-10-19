@@ -25,6 +25,9 @@ class SigningChallenge(models.Model):
         CAST_BALLOT = "cast_ballot"
         GUARANTEE_LOAN = "guarantee_loan"
         APPROVE_WAIVER = "approve_waiver"
+        DECIDE_DISPUTE = "decide_dispute"
+        APPROVE_DEVICE = "approve_device"
+        LEAVE_CHAMA = "leave_chama"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
@@ -50,6 +53,9 @@ class Device(models.Model):
     Written once; only ``state`` and ``revoked_at`` change afterwards."""
 
     class State(models.TextChoices):
+        # A new phone after a lost one (5.12): an official's waits for the other
+        # officials (or a members' vote); anyone else's for 24 hours, against SIM swap.
+        PENDING = "pending"
         ACTIVE = "active"
         REVOKED = "revoked"
 
@@ -73,6 +79,12 @@ class Device(models.Model):
     state = models.CharField(max_length=8, choices=State.choices, default=State.ACTIVE)
     registered_at = models.DateTimeField(auto_now_add=True)
     revoked_at = models.DateTimeField(null=True, blank=True)
+    # How it came: first phone, handed over by the old phone, or after a lost phone.
+    arrival = models.CharField(max_length=10, default="first")
+    replaces = models.ForeignKey("self", on_delete=models.PROTECT, null=True, blank=True,
+                                 related_name="+")
+    active_from = models.DateTimeField(null=True, blank=True)  # cooling-off end
+    needs_officials = models.BooleanField(default=False)
 
     MUTABLE = ["state", "revoked_at"]
 
@@ -87,6 +99,7 @@ class DeviceNonce(models.Model):
     class Use(models.TextChoices):
         ATTEST = "attest"
         SIGN = "sign"
+        HANDOVER = "handover"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
@@ -99,3 +112,20 @@ class DeviceNonce(models.Model):
 
     class Meta:
         db_table = "devices_nonce"
+
+
+class DeviceApproval(models.Model):
+    """Another official vouches for an official's new phone in one chama, by SMS code; or
+    the members' vote did, where fewer than two other officials exist."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    device = models.ForeignKey(Device, on_delete=models.PROTECT, related_name="approvals")
+    chama = models.ForeignKey("chamas.Chama", on_delete=models.PROTECT, related_name="+")
+    membership = models.ForeignKey("chamas.Membership", on_delete=models.PROTECT, null=True,
+                                   blank=True, related_name="+")
+    by_vote = models.BooleanField(default=False)
+    challenge_id = models.UUIDField(null=True, blank=True)
+    at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "devices_device_approval"

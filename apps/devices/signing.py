@@ -29,10 +29,19 @@ def _code_hmac(challenge_id, code: str) -> str:
     return keyed_hash("signing", f"{challenge_id}:{code}")
 
 
+# Codes that do not approve or confirm anything for others.
+NOT_SIGNING = (SigningChallenge.Purpose.JOIN_CHAMA, SigningChallenge.Purpose.ADOPT_RULES,
+               SigningChallenge.Purpose.REGISTER_DEVICE)
+
+
 def issue(*, user, purpose: str, subject: str, content_hash: str, action_text: str,
           language: str | None = None) -> SigningChallenge:
     """Send a code by SMS. ``action_text`` completes "…to {action_text}. Never share
     this code." in the user's language (callers pass text in that language)."""
+    if purpose not in NOT_SIGNING:
+        from .changes import require_can_sign
+
+        require_can_sign(user)  # a new phone after a lost one signs nothing until confirmed
     now = timezone.now()
     recent = SigningChallenge.objects.filter(user=user, purpose=purpose, subject=subject,
                                              created_at__gte=now - TTL).count()

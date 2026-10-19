@@ -91,6 +91,15 @@ def _cross_field(rules: dict) -> list[RuleError]:
             f"With {officials} officials, at most {officials - 1} can be required, because "
             "nobody decides a waiver of their own fine.", "waivers_too_many_officials"))
 
+    dispute = rules.get("disputes")
+    if dispute and dispute["decided_by"] == "officials" and \
+            dispute["officials"] > officials - 1:
+        errors.append(RuleError(
+            "disputes/officials",
+            f"With {officials} officials, at most {officials - 1} can be required, because "
+            "an official involved in a dispute does not decide it.",
+            "disputes_too_many_officials"))
+
     fine = rules["fines"]["late_contribution"]
     cap = fine["monthly_cap_cents"]
     if fine["enabled"] and fine["amount_cents"] == 0:

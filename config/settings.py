@@ -50,6 +50,9 @@ INSTALLED_APPS = [
     "apps.votes",
     "apps.meetings",
     "apps.loans",
+    "apps.disputes",
+    "apps.elections",
+    "apps.exits",
 ]
 
 MIDDLEWARE = [
@@ -185,6 +188,8 @@ SPECTACULAR_SETTINGS = {
     "ENUM_NAME_OVERRIDES": {
         "ProposalKindEnum": "apps.payouts.models.Proposal.Kind",
         "DocumentKindEnum": "apps.documents.models.IssuedDocument.Kind",
+        "OfficialRoleEnum": "apps.elections.views.ROLE_CHOICES",
+        "MembershipRoleEnum": "apps.chamas.models.Membership.Role",
     },
 }
 
@@ -219,6 +224,10 @@ CELERY_BEAT_SCHEDULE = {
                           "schedule": crontab(minute="*/10")},
     "seal-minutes": {"task": "apps.meetings.tasks.seal_minutes", "schedule": crontab(minute=30)},
     "expire-waivers": {"task": "apps.fines.tasks.expire_waivers", "schedule": crontab(minute=40)},
+    "install-elected": {"task": "apps.elections.tasks.install_elected",
+                        "schedule": crontab(minute=50)},
+    "settle-exits": {"task": "apps.exits.tasks.settle_exits",
+                     "schedule": crontab(hour=7, minute=45)},
     "loans-daily": {"task": "apps.loans.tasks.loans_daily",
                     "schedule": crontab(hour=7, minute=30)},
     "expire-proposals": {"task": "apps.payouts.tasks.expire_proposals",

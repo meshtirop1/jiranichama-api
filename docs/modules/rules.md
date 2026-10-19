@@ -47,7 +47,7 @@ sends them as `errors: [{path, code, message}]`. `path` names the setting
 (`contributions/due_day`, `approvals/tiers/1/officials`). `code` is stable, so the app shows
 the reason in English or Kiswahili. Codes: `out_of_range` (any schema failure),
 `tiers_last_unlimited`, `tiers_only_last_unlimited`, `tiers_order`, `tiers_officials_order`,
-`tiers_too_many_officials`, `fine_needs_amount`, `fine_cap_below_fine`, `waivers_too_many_officials`. `message` stays as
+`tiers_too_many_officials`, `fine_needs_amount`, `fine_cap_below_fine`, `waivers_too_many_officials`, `disputes_too_many_officials`. `message` stays as
 the English explanation for logs and staff.
 
 ## Rotation (schema v1, optional section)
@@ -85,3 +85,19 @@ contribution_first}`. Only the table-banking template has it, as `{3, 300, flat,
 
 `waivers: {officials: 1-5, member_vote: bool}`, in every template as `{2, false}`. Clause
 3.5. `officials` may not exceed the number of officials minus one.
+
+## Disputes (schema v1, optional section)
+
+`disputes: {decided_by: officials|vote, officials: 1-5, response_hours: 24-336,
+allow_officials_only: bool}`, in every template as `{officials, 2, 72, true}`. Clause 14.1.
+With `officials`, `officials` may not exceed the number of officials minus one.
+
+## Elections (schema v1, optional section)
+
+`elections: {term_months: 6-60, vote_days: 1-30}`, in every template as `{24, 7}`.
+Clause 15.1.
+
+## Leaving and death (schema v1, optional section)
+
+`exit: {notice_days: 0-180, deduction_pct: 0-50, death_benefit_cents}`, in every template
+as `{30, 0, 0}`. Clause 16.1.

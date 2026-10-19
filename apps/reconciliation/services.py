@@ -214,6 +214,12 @@ def not_me(txn: BankTransaction, member: Membership, *, reason: str = "") -> lis
             fine.save(update_fields=["paid_cents", "state"])
     Match.objects.create(bank_txn=txn, membership=member, method=Match.Method.NOT_ME,
                          decided_by=member.user, reason=reason.strip())
+    from apps.disputes.services import raise_dispute
+
+    raise_dispute(txn.chama, member, subject_type="payment", subject_id=txn.id,
+                  reason="not_mine",
+                  text=reason.strip() or "The treasurer assigned this payment to me; it is "
+                                         "not mine.")
     txn.state = BankTransaction.State.UNMATCHED
     txn.save(update_fields=["state"])
     return entries

@@ -70,7 +70,8 @@ def start_register(user, *, public_key_b64: str) -> SigningChallenge:
 
 
 def register(user, *, public_key_b64: str, platform: str, label: str, chain_b64: list[str],
-             attest_nonce: str, challenge_id, sms_code: str) -> Device:
+             attest_nonce: str, challenge_id, sms_code: str,
+             handover: dict | None = None) -> Device:
     """The SMS code proves the account owner is holding this phone; the attestation says
     where the key lives."""
     der = _public_key(public_key_b64)
@@ -93,13 +94,19 @@ def register(user, *, public_key_b64: str, platform: str, label: str, chain_b64:
         raise Problem("attestation_untrusted", "This phone cannot keep a signing key safely. "
                                                "Approve by SMS code instead.",
                       status.HTTP_403_FORBIDDEN)
+    from . import changes
+
+    old = changes.check_handover(user, der, handover) if handover else None
     with transaction.atomic():
         device = Device.objects.create(
             user=user, public_key_der=der, fingerprint=attestation.spki_fingerprint(der),
             platform=platform, label=(label or "")[:80],
             security_level=result.security_level, attestation=result.as_dict(),
-            attestation_root_trusted=result.root_trusted)
-        _announce(device)
+            attestation_root_trusted=result.root_trusted, **changes.arrival_for(user, old))
+        changes.after_create(device)
+        if device.state == Device.State.ACTIVE:
+            _announce(device)
+            changes._install_elected(user)
     return device
 
 
@@ -118,6 +125,9 @@ def _announce(device: Device) -> None:
 
 
 def active_device(user) -> Device | None:
+    from .changes import promote_due
+
+    promote_due(user)
     return (Device.objects.filter(user=user, state=Device.State.ACTIVE)
             .order_by("-registered_at").first())
 

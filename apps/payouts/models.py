@@ -22,6 +22,7 @@ class Proposal(models.Model):
         PAYOUT = "payout"          # to a member (a turn, welfare, a dividend)
         WITHDRAWAL = "withdrawal"  # to anyone else (a supplier, an asset)
         LOAN = "loan"              # to the borrower, once guarantors accepted (5.8)
+        SETTLEMENT = "settlement"  # a leaving member, or a dead member's next of kin (5.13)
 
     class State(models.TextChoices):
         COLLECTING = "collecting_approvals"

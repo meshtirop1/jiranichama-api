@@ -122,6 +122,15 @@ def _rules_check(chama: Chama, *, amount_cents: int, payee: Membership | None, t
     tiers = version.rules["approvals"]["tiers"]
     i, tier = next((i, t) for i, t in enumerate(tiers, start=1)
                    if t["up_to_cents"] is None or amount_cents <= t["up_to_cents"])
+    signers = Membership.objects.filter(chama=chama, role__in=OFFICIAL_ROLES,
+                                        state=Membership.State.ACTIVE)
+    if payee is not None:
+        signers = signers.exclude(pk=payee.pk)
+    if signers.count() < tier["officials"]:
+        refusal = _refuse("election_needed", f"4.{i}",
+                          f"This needs {tier['officials']} officials to approve, and only "
+                          f"{signers.count()} can. The chama needs an election first.")
+        return tier, refusal, version
     if payee is not None and not allow_arrears:
         behind = position(payee, today).arrears_cents
         if behind > 0:
@@ -147,7 +156,9 @@ def propose(chama: Chama, by: Membership, *, kind: str, amount_cents: int, purpo
     """``allow_arrears`` and ``deduct_cents`` are for a merry-go-round turn paid less what
     the member owes (rule 8.2 "deduct"); see rotation.propose_next."""
     _money_out(chama)
-    if kind != Proposal.Kind.LOAN:  # a loan is proposed by the borrower (loans.services)
+    # A loan is proposed by the borrower (loans), a settlement by the leaving member or the
+    # official recording a death (exits); everything else by an official.
+    if kind not in (Proposal.Kind.LOAN, Proposal.Kind.SETTLEMENT):
         _official(by)
     if amount_cents <= 0:
         raise Problem("invalid_amount", "Enter the amount.")
@@ -156,6 +167,10 @@ def propose(chama: Chama, by: Membership, *, kind: str, amount_cents: int, purpo
         raise Problem("purpose_required", "Say what the money is for.")
     if kind in (Proposal.Kind.PAYOUT, Proposal.Kind.LOAN):
         if payee is None or payee.chama_id != chama.id or not payee.is_current:
+            raise Problem("invalid_member", "Choose a member of this chama.")
+        payee_name = payee.user.display_name or payee.member_code
+    elif kind == Proposal.Kind.SETTLEMENT and payee is not None:
+        if payee.chama_id != chama.id:
             raise Problem("invalid_member", "Choose a member of this chama.")
         payee_name = payee.user.display_name or payee.member_code
     else:
@@ -257,9 +272,18 @@ def _content_hash(p: Proposal) -> str:
     })).hexdigest()
 
 
+def _require_not_disputed(p: Proposal) -> None:
+    from apps.disputes.services import open_on_proposal
+
+    if open_on_proposal(p.id):
+        raise Problem("disputed", "A member has raised a dispute about this; it is paused "
+                                  "until the dispute is settled.", status.HTTP_409_CONFLICT)
+
+
 def _require_can_answer(p: Proposal, by: Membership) -> None:
     expire_due(p.chama)
     p.refresh_from_db()
+    _require_not_disputed(p)
     if p.state != Proposal.State.COLLECTING:
         raise Problem("not_collecting", "This proposal is not waiting for approvals.",
                       status.HTTP_409_CONFLICT)
@@ -328,6 +352,9 @@ def signing_payload(p: Proposal, nonce: str) -> dict:
 
 
 def start_device_approve(p: Proposal, by: Membership) -> dict:
+    from apps.devices.changes import require_can_sign
+
+    require_can_sign(by.user)
     _require_can_answer(p, by)
     device = keys.active_device(by.user)
     if device is None:
@@ -414,6 +441,7 @@ def mark_paid(p: Proposal, by: Membership, bank_reference: str) -> Proposal:
         if p.state != Proposal.State.APPROVED:
             raise Problem("not_approved", "Only an approved proposal can be marked paid.",
                           status.HTTP_409_CONFLICT)
+        _require_not_disputed(p)
         p.state = Proposal.State.PAID_PENDING_MATCH
         p.bank_reference = (bank_reference or "").strip()[:100]
         p.paid_by, p.paid_at = by, timezone.now()
@@ -483,6 +511,10 @@ def _write_payout(p: Proposal, txn: BankTransaction, extra: dict | None = None):
         from apps.loans.services import on_paid as loan_paid
 
         loan_paid(p)
+    if p.kind == Proposal.Kind.SETTLEMENT:
+        from apps.exits.services import on_paid as exit_paid
+
+        exit_paid(p)
     return entry
 
 

@@ -37,10 +37,13 @@ def _kes(cents: int) -> str:
 
 
 def records_cents(chama: Chama, baseline: int) -> int:
+    # Fines and loans settled from a leaving member's savings (exits) never touch the
+    # bank: only the settlement paid out does.
     moves = (LedgerEntry.objects.filter(chama=chama, type__in=BANK_TYPES)
-             .aggregate(t=Sum("amount_cents"))["t"] or 0)
+             .exclude(source="exit").aggregate(t=Sum("amount_cents"))["t"] or 0)
     reversed_moves = (LedgerEntry.objects.filter(chama=chama, type="reversal",
                                                  reverses__type__in=BANK_TYPES)
+                      .exclude(reverses__source="exit")
                       .aggregate(t=Sum("amount_cents"))["t"] or 0)
     total = baseline + moves + reversed_moves
     # An M-Pesa payment reaches us before the statement that shows it in the bank: until
