@@ -96,3 +96,8 @@ With `officials`, `officials` may not exceed the number of officials minus one.
 
 `elections: {term_months: 6-60, vote_days: 1-30}`, in every template as `{24, 7}`.
 Clause 15.1.
+
+## Leaving and death (schema v1, optional section)
+
+`exit: {notice_days: 0-180, deduction_pct: 0-50, death_benefit_cents}`, in every template
+as `{30, 0, 0}`. Clause 16.1.

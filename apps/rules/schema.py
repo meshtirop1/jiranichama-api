@@ -68,6 +68,12 @@ SCHEMA_V1 = _obj(
             "every_days": {**_int, "minimum": 7, "maximum": 31},
         }),
         "kyc": _obj(["payer"], {"payer": {"enum": ["chama", "member"]}}),
+        # Leaving and death (5.13). Optional; defaults in exits.services.DEFAULTS.
+        "exit": _obj(["notice_days", "deduction_pct", "death_benefit_cents"], {
+            "notice_days": {**_int, "minimum": 0, "maximum": 180},
+            "deduction_pct": {**_int, "minimum": 0, "maximum": 50},
+            "death_benefit_cents": {**_int, "minimum": 0, "maximum": 1_000_000_000},
+        }),
         # Elections (5.12). Optional; defaults in elections.services.DEFAULTS.
         "elections": _obj(["term_months", "vote_days"], {
             "term_months": {**_int, "minimum": 6, "maximum": 60},

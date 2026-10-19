@@ -156,7 +156,9 @@ def propose(chama: Chama, by: Membership, *, kind: str, amount_cents: int, purpo
     """``allow_arrears`` and ``deduct_cents`` are for a merry-go-round turn paid less what
     the member owes (rule 8.2 "deduct"); see rotation.propose_next."""
     _money_out(chama)
-    if kind != Proposal.Kind.LOAN:  # a loan is proposed by the borrower (loans.services)
+    # A loan is proposed by the borrower (loans), a settlement by the leaving member or the
+    # official recording a death (exits); everything else by an official.
+    if kind not in (Proposal.Kind.LOAN, Proposal.Kind.SETTLEMENT):
         _official(by)
     if amount_cents <= 0:
         raise Problem("invalid_amount", "Enter the amount.")
@@ -165,6 +167,10 @@ def propose(chama: Chama, by: Membership, *, kind: str, amount_cents: int, purpo
         raise Problem("purpose_required", "Say what the money is for.")
     if kind in (Proposal.Kind.PAYOUT, Proposal.Kind.LOAN):
         if payee is None or payee.chama_id != chama.id or not payee.is_current:
+            raise Problem("invalid_member", "Choose a member of this chama.")
+        payee_name = payee.user.display_name or payee.member_code
+    elif kind == Proposal.Kind.SETTLEMENT and payee is not None:
+        if payee.chama_id != chama.id:
             raise Problem("invalid_member", "Choose a member of this chama.")
         payee_name = payee.user.display_name or payee.member_code
     else:
@@ -505,6 +511,10 @@ def _write_payout(p: Proposal, txn: BankTransaction, extra: dict | None = None):
         from apps.loans.services import on_paid as loan_paid
 
         loan_paid(p)
+    if p.kind == Proposal.Kind.SETTLEMENT:
+        from apps.exits.services import on_paid as exit_paid
+
+        exit_paid(p)
     return entry
 
 

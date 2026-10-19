@@ -119,7 +119,7 @@ def _render_en(r: dict) -> list[Clause]:
     out[-4:-4] = (_rotation_en(r.get("rotation")) + _votes_en(r.get("votes"))
                   + _changes_en(r.get("rule_changes")) + _meetings_en(r.get("meetings"))
                   + _loans_en(r.get("loans")) + _disputes_en(r.get("disputes"))
-                  + _elections_en(r.get("elections")))
+                  + _elections_en(r.get("elections")) + _exit_en(r.get("exit")))
     return out
 
 
@@ -170,6 +170,32 @@ def _meetings_sw(m: dict | None) -> list[Clause]:
                        f"wanaweza kupinga ndani ya siku {m['objection_days']}. Kumbukumbu "
                        "zisizopingwa zinafungwa na haziwezi kubadilika."),
     ]
+
+
+def _exit_en(x: dict | None) -> list[Clause]:
+    x = {"notice_days": 30, "deduction_pct": 0, "death_benefit_cents": 0, **(x or {})}
+    ded = (f", less {x['deduction_pct']}% for leaving" if x["deduction_pct"] else "")
+    benefit = (f" The chama also pays a welfare benefit of {kes(x['death_benefit_cents'])}."
+               if x["death_benefit_cents"] else "")
+    return [Clause("16.1", f"A member may leave after {_plural(x['notice_days'], 'day')}' "
+                           f"notice and gets back their savings, less unpaid fines and any "
+                           f"loan{ded}. When a member dies, their savings, less unpaid fines "
+                           f"and any loan, go to their next of kin.{benefit} If a loan is "
+                           "larger than the savings, the guarantors are called for the rest.")]
+
+
+def _exit_sw(x: dict | None) -> list[Clause]:
+    x = {"notice_days": 30, "deduction_pct": 0, "death_benefit_cents": 0, **(x or {})}
+    ded = (f", ukiondoa asilimia {x['deduction_pct']} kwa kuondoka"
+           if x["deduction_pct"] else "")
+    benefit = (f" Chama pia kinalipa msaada wa {kes(x['death_benefit_cents'])}."
+               if x["death_benefit_cents"] else "")
+    return [Clause("16.1", f"Mwanachama anaweza kuondoka baada ya notisi ya siku "
+                           f"{x['notice_days']} na kurudishiwa akiba yake, ukiondoa faini "
+                           f"ambazo hazijalipwa na mkopo wowote{ded}. Mwanachama akifariki, "
+                           "akiba yake, ukiondoa faini na mkopo, inakwenda kwa ndugu wa "
+                           f"karibu.{benefit} Mkopo ukizidi akiba, wadhamini wanaitwa kwa "
+                           "kiasi kilichobaki.")]
 
 
 def _elections_en(e: dict | None) -> list[Clause]:
@@ -430,5 +456,5 @@ def _render_sw(r: dict) -> list[Clause]:
     out[-4:-4] = (_rotation_sw(r.get("rotation")) + _votes_sw(r.get("votes"))
                   + _changes_sw(r.get("rule_changes")) + _meetings_sw(r.get("meetings"))
                   + _loans_sw(r.get("loans")) + _disputes_sw(r.get("disputes"))
-                  + _elections_sw(r.get("elections")))
+                  + _elections_sw(r.get("elections")) + _exit_sw(r.get("exit")))
     return out

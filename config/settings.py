@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "apps.loans",
     "apps.disputes",
     "apps.elections",
+    "apps.exits",
 ]
 
 MIDDLEWARE = [
@@ -225,6 +226,8 @@ CELERY_BEAT_SCHEDULE = {
     "expire-waivers": {"task": "apps.fines.tasks.expire_waivers", "schedule": crontab(minute=40)},
     "install-elected": {"task": "apps.elections.tasks.install_elected",
                         "schedule": crontab(minute=50)},
+    "settle-exits": {"task": "apps.exits.tasks.settle_exits",
+                     "schedule": crontab(hour=7, minute=45)},
     "loans-daily": {"task": "apps.loans.tasks.loans_daily",
                     "schedule": crontab(hour=7, minute=30)},
     "expire-proposals": {"task": "apps.payouts.tasks.expire_proposals",

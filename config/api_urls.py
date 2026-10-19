@@ -6,6 +6,7 @@ from apps.devices import views as devices
 from apps.disputes import views as disputes
 from apps.documents import views as docs
 from apps.elections import views as elections
+from apps.exits import views as exits
 from apps.feeds import views as feeds
 from apps.fines import views as fines
 from apps.ledger import views as ledger
@@ -65,6 +66,11 @@ urlpatterns = [
     path("chamas/<uuid:pk>/money-out/", payouts.MoneyOutView.as_view()),
     path("chamas/<uuid:pk>/proposals/", payouts.ProposalListView.as_view()),
     path("chamas/<uuid:pk>/rotation/", payouts.RotationView.as_view()),
+    path("chamas/<uuid:pk>/exits/", exits.ExitListView.as_view()),
+    path("chamas/<uuid:pk>/exit-quote/", exits.ExitQuoteView.as_view()),
+    path("chamas/<uuid:pk>/leave/", exits.LeaveView.as_view()),
+    path("exits/<uuid:pk>/cancel/", exits.ExitCancelView.as_view()),
+    path("memberships/<uuid:pk>/death/", exits.DeathView.as_view()),
     path("chamas/<uuid:pk>/elections/", elections.ElectionListView.as_view()),
     path("elections/<uuid:pk>/mandate-updated/", elections.MandateView.as_view()),
     path("chamas/<uuid:pk>/disputes/", disputes.DisputeListView.as_view()),

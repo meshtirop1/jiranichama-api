@@ -38,6 +38,7 @@ _BASE = {
                      "cooling_days": 30},
     "waivers": {"officials": 2, "member_vote": False},
     "elections": {"term_months": 24, "vote_days": 7},
+    "exit": {"notice_days": 30, "deduction_pct": 0, "death_benefit_cents": 0},
     "disputes": {"decided_by": "officials", "officials": 2, "response_hours": 72,
                  "allow_officials_only": True},
     "meetings": {"absence_fine_cents": 0, "late_fine_cents": 0, "late_after_minutes": 15,
