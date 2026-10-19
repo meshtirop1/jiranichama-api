@@ -37,3 +37,9 @@ uses a key from the environment and is for development only; production uses `km
 | `sign_entry` | `signing` | After each append, via the outbox |
 | `sign_pending` | `signing` | Every minute |
 | `verify_chains` | `bulk` | Nightly at 01:00 EAT |
+
+## Anchoring (`anchoring.py`)
+
+`anchor_now` (nightly at 00:30, `tasks.anchor_nightly`): a Merkle root over every chain
+head, posted to OpenTimestamps and emailed off-site, kept as `Anchor`. `proof_for` gives a
+chama its leaf and path (`GET /chamas/{id}/anchors/`). See [Public anchoring](../flows/anchoring.md).

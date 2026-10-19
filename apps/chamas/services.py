@@ -141,10 +141,16 @@ def set_draft_rules(chama: Chama, rules: dict) -> dict:
 
 @transaction.atomic
 def invite(chama: Chama, *, invited_by, role: str = Membership.Role.MEMBER,
-           phone: str | None = None) -> Invite:
+           phone: str | None = None, by_sms: bool = False, language: str = "en") -> Invite:
     if chama.state in (Chama.State.CLOSED, Chama.State.EXPIRED, Chama.State.SUSPENDED):
         raise Problem("chama_closed", "This chama is not accepting members.",
                       status.HTTP_409_CONFLICT)
+    if by_sms:
+        # Basic-phone members join an active chama as members: officials need the app
+        # (approvals), and founding members adopt the rules in the app.
+        if not phone or role != Membership.Role.MEMBER or chama.state != Chama.State.ACTIVE:
+            raise Problem("sms_invite_not_allowed", "Invites by SMS are for members of an "
+                                                    "active chama, by phone number.")
     if role in OFFICIAL_ROLES and not phone:
         raise Problem("phone_required", "Officials are invited by phone number.")
     ph = hint = ""
@@ -159,9 +165,13 @@ def invite(chama: Chama, *, invited_by, role: str = Membership.Role.MEMBER,
             chama=chama, role=role, state=Membership.State.ACTIVE).exists():
         raise Problem("role_taken", "Someone already holds this office.",
                       status.HTTP_409_CONFLICT)
-    return Invite.objects.create(chama=chama, code=_new_invite_code(), phone_hash=ph,
-                                 phone_hint=hint, role=role, invited_by=invited_by,
-                                 expires_at=timezone.now() + timedelta(days=INVITE_DAYS))
+    inv = Invite.objects.create(chama=chama, code=_new_invite_code(), phone_hash=ph,
+                                phone_hint=hint, role=role, invited_by=invited_by,
+                                expires_at=timezone.now() + timedelta(days=INVITE_DAYS),
+                                sms_language=language if by_sms else "")
+    if by_sms:
+        transaction.on_commit(lambda: send_sms_invite(inv, e164, language))
+    return inv
 
 
 def _rules_for_joining(chama: Chama) -> dict:
@@ -235,6 +245,85 @@ def confirm_accept(code: str, user, *, challenge_id, sms_code: str) -> Membershi
         elif chama.state == Chama.State.AWAITING_OFFICIALS:
             _open_adoption_if_ready(chama)
     return membership
+
+
+# --- Joining from a basic phone (5.2a) --------------------------------------------------
+
+def _kes(cents: int) -> str:
+    return f"KES {cents / 100:,.0f}" if cents % 100 == 0 else f"KES {cents / 100:,.2f}"
+
+
+def send_sms_invite(inv: Invite, phone: str, language: str) -> None:
+    """The invite by SMS, with the main rules, for someone without the app. They reply
+    YES <code> (NDIYO <code>) from this number to join."""
+    from apps.notify.sms import send_sms
+
+    rules = _rules_for_joining(inv.chama)
+    c, f = rules["contributions"], rules["fines"]["late_contribution"]
+    who = inv.invited_by.display_name or "An official"
+    if language == "sw":
+        fine = _kes(f["amount_cents"]) if f["enabled"] else "hakuna"
+        text = (f"{who} anakualika ujiunge na {inv.chama.name} kwenye JiraniChama. Kanuni: "
+                f"{_kes(c['amount_cents'])} kila mwezi kabla ya tarehe {c['due_day']}, faini "
+                f"ya kuchelewa {fine}. Kiongozi atakusomea kanuni zote. Jibu NDIYO {inv.code} "
+                "kujiunga.")
+    else:
+        fine = _kes(f["amount_cents"]) if f["enabled"] else "none"
+        text = (f"{who} invites you to join {inv.chama.name} on JiraniChama. Rules: "
+                f"{_kes(c['amount_cents'])} a month by day {c['due_day']}, late fine {fine}. "
+                f"An official can read you the full rules. Reply YES {inv.code} to join.")
+    send_sms(phone, text)
+
+
+def accept_by_sms(code: str, e164: str) -> Membership:
+    """A reply "YES <code>" from the invited number. The provider vouches for the sender,
+    the same trust as an SMS code; the invite must have been sent to this number."""
+    from apps.accounts.models import User
+
+    h = phone_hash(e164)
+    inv = Invite.objects.select_related("chama").filter(code=code.upper()).first()
+    if inv is None or not inv.phone_hash or inv.phone_hash != h:
+        raise Problem("invite_invalid", "This invite is not valid.", status.HTTP_404_NOT_FOUND)
+    user = User.objects.filter(phone_hash=h).first()
+    if user is None:
+        user = User.objects.create_user(e164, language="sw" if inv.sms_language == "sw"
+                                         else "en")
+    with transaction.atomic():
+        chama = _lock(inv.chama)
+        inv = Invite.objects.select_for_update().get(pk=inv.pk)
+        if inv.state != Invite.State.PENDING or inv.expires_at <= timezone.now():
+            raise Problem("invite_invalid", "This invite is not valid.",
+                          status.HTTP_404_NOT_FOUND)
+        if Membership.objects.filter(chama=chama, user=user).exclude(
+                state=Membership.State.EXITED).exists():
+            raise Problem("already_member", "You are already a member of this chama.",
+                          status.HTTP_409_CONFLICT)
+        membership = Membership.objects.create(
+            chama=chama, user=user, role=Membership.Role.MEMBER,
+            member_code=_next_member_code(chama), is_founding=False, joined_on=_today())
+        inv.state, inv.membership = Invite.State.ACCEPTED, membership
+        inv.save(update_fields=["state", "membership"])
+        ledger.append(chama=chama, type="membership", source="invite", source_id=inv.id,
+                      member=membership, decision={"role": membership.role,
+                                                   "founding": False, "via": "sms",
+                                                   "rules": rules_hash(_rules_for_joining(chama))})
+    return membership
+
+
+def welcome_text(m: Membership) -> str:
+    rules = _rules_for_joining(m.chama)
+    c = rules["contributions"]
+    account = active_bank_account(m.chama)
+    where = (f"paybill {account.paybill}" if account and account.paybill else
+             (f"{account.get_bank_display()} account ending {account.account_no_last4}"
+              if account else "the chama's bank account"))
+    if m.user.language == "sw":
+        return (f"JiraniChama: karibu {m.chama.name}. Nambari yako ni {m.member_code}. Lipa "
+                f"{_kes(c['amount_cents'])} kila mwezi kabla ya tarehe {c['due_day']} kwa "
+                f"{where}, ukitumia {m.member_code} kama kumbukumbu. Tuma SALIO wakati wowote.")
+    return (f"JiraniChama: welcome to {m.chama.name}. Your member code is {m.member_code}. "
+            f"Pay {_kes(c['amount_cents'])} a month by day {c['due_day']} to {where}, with "
+            f"{m.member_code} as the reference. Send BAL any time.")
 
 
 # --- Adoption ---------------------------------------------------------------------------

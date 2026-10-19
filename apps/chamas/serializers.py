@@ -30,13 +30,15 @@ class ChamaSerializer(serializers.ModelSerializer):
     i_am_founder = serializers.SerializerMethodField()
     statement_inbox = serializers.CharField(source="statement_inbox.address", read_only=True)
     bank_account = serializers.SerializerMethodField()
+    loans_on = serializers.SerializerMethodField(
+        help_text="Loans are switched on for this chama and its rules have a loans section.")
 
     class Meta:
         model = Chama
         fields = ["id", "name", "type", "state", "mode", "member_code_prefix",
                   "expected_members", "meets", "created_at", "setup_expires_at",
                   "activated_at", "my_role", "my_member_code", "i_am_founder", "statement_inbox",
-                  "bank_account"]
+                  "bank_account", "loans_on"]
 
     def _mine(self, obj):
         return self.context.get("memberships", {}).get(obj.id)
@@ -48,6 +50,13 @@ class ChamaSerializer(serializers.ModelSerializer):
     def get_my_member_code(self, obj) -> str | None:
         m = self._mine(obj)
         return m.member_code if m else None
+
+    def get_loans_on(self, obj) -> bool:
+        if obj.state != Chama.State.ACTIVE:
+            return False
+        from apps.loans.services import enabled
+
+        return enabled(obj) is not None
 
     def get_i_am_founder(self, obj) -> bool:
         m = self._mine(obj)
@@ -98,6 +107,9 @@ class MembershipSerializer(serializers.ModelSerializer):
 class InviteCreateSerializer(serializers.Serializer):
     role = serializers.ChoiceField(choices=Membership.Role.choices, default="member")
     phone = PhoneField(required=False)
+    by_sms = serializers.BooleanField(default=False, help_text="For someone without the app: "
+                                      "the invite goes by SMS; they reply YES <code>.")
+    language = serializers.ChoiceField(choices=["en", "sw"], default="en")
 
 
 class InviteSerializer(serializers.ModelSerializer):

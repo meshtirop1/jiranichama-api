@@ -25,6 +25,10 @@ class EntryType(models.TextChoices):
     RULE_VERSION_ADOPTED = "rule_version_adopted"
     ROTATION_SET = "rotation_set"
     VOTE_RESULT = "vote_result"
+    MEETING_CLOSED = "meeting_closed"
+    MINUTES_SEALED = "minutes_sealed"
+    LOAN_INTEREST = "loan_interest"
+    LOAN_REPAYMENT = "loan_repayment"
     DEVICE_REGISTERED = "device_registered"
     ROLE_CHANGED = "role_changed"
     SEAL = "seal"
@@ -93,3 +97,28 @@ class EntrySignature(models.Model):
 
     class Meta:
         db_table = "ledger_entry_signature"
+
+
+class Anchor(models.Model):
+    """One night's public anchor: a Merkle root over every chama's chain head
+    (ledger.anchoring). Insert only, apart from the timestamp and email fields."""
+
+    class OtsStatus(models.TextChoices):
+        NONE = "none"
+        SUBMITTED = "submitted"  # a calendar holds it; Bitcoin attestation follows
+        FAILED = "failed"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    at = models.DateTimeField(auto_now_add=True)
+    merkle_root = models.CharField(max_length=64)
+    leaves = models.JSONField(default=list)  # [{chama_id, seq, hash}], sorted by chama
+    ots_proof = models.BinaryField(null=True, blank=True)
+    ots_calendar = models.CharField(max_length=200, blank=True, default="")
+    ots_status = models.CharField(max_length=10, choices=OtsStatus.choices,
+                                  default=OtsStatus.NONE)
+    emailed = models.BooleanField(default=False)
+
+    MUTABLE = ["ots_proof", "ots_calendar", "ots_status", "emailed"]
+
+    class Meta:
+        db_table = "ledger_anchor"

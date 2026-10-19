@@ -6,9 +6,12 @@ from apps.devices import views as devices
 from apps.documents import views as docs
 from apps.feeds import views as feeds
 from apps.ledger import views as ledger
+from apps.loans import views as loans
+from apps.meetings import views as meetings
 from apps.notify import views as notify
 from apps.payouts import views as payouts
 from apps.reconciliation import views as recon
+from apps.rules import views as rules
 from apps.votes import views as votes
 
 urlpatterns = [
@@ -19,6 +22,9 @@ urlpatterns = [
     path("chamas/<uuid:pk>/", chamas.ChamaDetailView.as_view()),
     path("chamas/<uuid:pk>/bank-account/", chamas.BankAccountView.as_view()),
     path("chamas/<uuid:pk>/rules/", chamas.RulesView.as_view()),
+    path("chamas/<uuid:pk>/rule-proposals/", rules.RuleProposalListView.as_view()),
+    path("rule-proposals/<uuid:pk>/", rules.RuleProposalDetailView.as_view()),
+    path("rule-proposals/<uuid:pk>/withdraw/", rules.RuleProposalWithdrawView.as_view()),
     path("chamas/<uuid:pk>/invites/", chamas.InviteCreateView.as_view()),
     path("chamas/<uuid:pk>/submit/", chamas.SubmitView.as_view()),
     path("chamas/<uuid:pk>/adopt/", chamas.AdoptView.as_view()),
@@ -28,6 +34,7 @@ urlpatterns = [
     path("chamas/<uuid:pk>/reconciliation/", recon.ReconciliationView.as_view()),
     path("chamas/<uuid:pk>/ledger/", ledger.LedgerView.as_view()),
     path("chamas/<uuid:pk>/ledger/head/", ledger.LedgerHeadView.as_view()),
+    path("chamas/<uuid:pk>/anchors/", ledger.AnchorProofView.as_view()),
     path("invites/<str:code>/", chamas.InviteAcceptView.as_view()),
     path("memberships/<uuid:pk>/position/", chamas.PositionView.as_view()),
     path("statements/<uuid:pk>/", feeds.StatementDetailView.as_view()),
@@ -55,6 +62,25 @@ urlpatterns = [
     path("chamas/<uuid:pk>/money-out/", payouts.MoneyOutView.as_view()),
     path("chamas/<uuid:pk>/proposals/", payouts.ProposalListView.as_view()),
     path("chamas/<uuid:pk>/rotation/", payouts.RotationView.as_view()),
+    path("chamas/<uuid:pk>/loans/", loans.LoanListView.as_view()),
+    path("chamas/<uuid:pk>/loans/quote/", loans.LoanQuoteView.as_view()),
+    path("loans/<uuid:pk>/", loans.LoanDetailView.as_view()),
+    path("loans/<uuid:pk>/cancel/", loans.LoanCancelView.as_view()),
+    path("loans/<uuid:pk>/guarantors/", loans.LoanGuarantorView.as_view()),
+    path("guarantees/<uuid:pk>/accept/", loans.GuaranteeAcceptView.as_view()),
+    path("guarantees/<uuid:pk>/decline/", loans.GuaranteeDeclineView.as_view()),
+    path("chamas/<uuid:pk>/meetings/", meetings.MeetingListView.as_view()),
+    path("meetings/<uuid:pk>/", meetings.MeetingDetailView.as_view()),
+    path("meetings/<uuid:pk>/cancel/", meetings.MeetingCancelView.as_view()),
+    path("meetings/<uuid:pk>/apologies/", meetings.ApologyView.as_view()),
+    path("meetings/<uuid:pk>/start/", meetings.MeetingStartView.as_view()),
+    path("meetings/<uuid:pk>/check-in-code/", meetings.CheckInCodeView.as_view()),
+    path("meetings/<uuid:pk>/check-in/", meetings.CheckInView.as_view()),
+    path("meetings/<uuid:pk>/attendance/", meetings.MarkView.as_view()),
+    path("meetings/<uuid:pk>/close/", meetings.CloseAttendanceView.as_view()),
+    path("meetings/<uuid:pk>/minutes/", meetings.MinutesView.as_view()),
+    path("minutes/<uuid:pk>/objections/", meetings.MinutesObjectionView.as_view()),
+    path("minutes/<uuid:pk>/photo/", meetings.MinutesPhotoView.as_view()),
     path("chamas/<uuid:pk>/votes/", votes.VoteListView.as_view()),
     path("votes/<uuid:pk>/", votes.VoteDetailView.as_view()),
     path("votes/<uuid:pk>/ballots/", votes.BallotView.as_view()),

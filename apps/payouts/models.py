@@ -21,6 +21,7 @@ class Proposal(models.Model):
     class Kind(models.TextChoices):
         PAYOUT = "payout"          # to a member (a turn, welfare, a dividend)
         WITHDRAWAL = "withdrawal"  # to anyone else (a supplier, an asset)
+        LOAN = "loan"              # to the borrower, once guarantors accepted (5.8)
 
     class State(models.TextChoices):
         COLLECTING = "collecting_approvals"
