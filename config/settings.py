@@ -184,6 +184,8 @@ CELERY_BEAT_SCHEDULE = {
     "sign-pending-entries": {"task": "apps.ledger.tasks.sign_pending", "schedule": 60.0},
     "raise-late-fines": {"task": "apps.fines.tasks.raise_due_fines",
                          "schedule": crontab(minute=5)},
+    "reconcile-daily": {"task": "apps.reconciliation.tasks.reconcile_daily",
+                        "schedule": crontab(hour=6, minute=0)},
     "expire-proposals": {"task": "apps.payouts.tasks.expire_proposals",
                          "schedule": crontab(minute=15)},
     "expire-stale-setups": {"task": "apps.chamas.tasks.expire_setups",

@@ -35,6 +35,8 @@ HISTORY_MODELS = {
     "payouts.Rotation",
     "payouts.RotationTurn",
     "devices.Device",
+    "reconciliation.ReconciliationRun",
+    "reconciliation.ReconciliationGap",
     "documents.DocumentAccess",
 }
 OUR_APPS = {"core", "flags", "accounts", "notify", "chamas", "ledger", "staff", "devices",

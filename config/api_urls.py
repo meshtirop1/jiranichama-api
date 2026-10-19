@@ -23,6 +23,7 @@ urlpatterns = [
     path("chamas/<uuid:pk>/members/", chamas.MembersView.as_view()),
     path("chamas/<uuid:pk>/statements/", feeds.StatementListView.as_view()),
     path("chamas/<uuid:pk>/unmatched/", recon.UnmatchedView.as_view()),
+    path("chamas/<uuid:pk>/reconciliation/", recon.ReconciliationView.as_view()),
     path("chamas/<uuid:pk>/ledger/", ledger.LedgerView.as_view()),
     path("chamas/<uuid:pk>/ledger/head/", ledger.LedgerHeadView.as_view()),
     path("invites/<str:code>/", chamas.InviteAcceptView.as_view()),
