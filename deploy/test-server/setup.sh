@@ -26,23 +26,23 @@ systemctl enable --now postgresql redis-server >/dev/null
 
 echo "== code"
 if [ -d "$APP/.git" ]; then
-  sudo -u $U git -C "$APP" fetch -q origin "$BRANCH"
-  sudo -u $U git -C "$APP" reset -q --hard "origin/$BRANCH"
+  sudo -H -u $U git -C "$APP" fetch -q origin "$BRANCH"
+  sudo -H -u $U git -C "$APP" reset -q --hard "origin/$BRANCH"
 else
-  sudo -u $U git clone -q -b "$BRANCH" "$REPO" "$APP"
+  sudo -H -u $U git clone -q -b "$BRANCH" "$REPO" "$APP"
 fi
 mkdir -p "$DATA/media" && chown -R $U:$U "$DATA"
 
 echo "== Python 3.12 (its own, via uv; the system Python is left alone)"
 if [ ! -x /home/$U/.uvtool/bin/uv ]; then
-  sudo -u $U python3 -m venv /home/$U/.uvtool
-  sudo -u $U /home/$U/.uvtool/bin/pip install -q uv
+  sudo -H -u $U python3 -m venv /home/$U/.uvtool
+  sudo -H -u $U /home/$U/.uvtool/bin/pip install -q uv
 fi
 UV=/home/$U/.uvtool/bin/uv
 if [ ! -x "$APP/.venv/bin/python" ]; then
-  sudo -u $U "$UV" venv -q --python 3.12 "$APP/.venv"
+  sudo -H -u $U "$UV" venv -q --python 3.12 "$APP/.venv"
 fi
-sudo -u $U "$UV" pip install -q --python "$APP/.venv/bin/python" -r "$APP/requirements.txt"
+sudo -H -u $U "$UV" pip install -q --python "$APP/.venv/bin/python" -r "$APP/requirements.txt"
 
 echo "== database"
 if ! sudo -u postgres psql -tAc "select 1 from pg_roles where rolname='jiranichama'" | grep -q 1; then
@@ -56,7 +56,7 @@ DBPASS=$(cat /root/.jiranichama-dbpass)
 echo "== settings (written once; edit $APP/../jiranichama.env to change)"
 ENVF=/home/deploy/sites/jiranichama.env
 if [ ! -f "$ENVF" ]; then
-  sudo -u $U "$APP/.venv/bin/python" - "$ENVF" "$HOST" "$DBPASS" "$DATA" <<'PY'
+  sudo -H -u $U "$APP/.venv/bin/python" - "$ENVF" "$HOST" "$DBPASS" "$DATA" <<'PY'
 import secrets, sys
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import serialization
@@ -94,7 +94,7 @@ PY
 fi
 
 echo "== migrate and static files"
-run() { sudo -u $U bash -c "set -a; . $ENVF; set +a; cd $APP && .venv/bin/python manage.py $*"; }
+run() { sudo -H -u $U bash -c "set -a; . $ENVF; set +a; cd $APP && .venv/bin/python manage.py $*"; }
 run migrate --noinput -v 0
 run collectstatic --noinput -v 0
 
