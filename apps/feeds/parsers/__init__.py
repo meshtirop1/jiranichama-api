@@ -6,11 +6,12 @@ column names and preamble labels. **No profile is verified against a real export
 expected output. PDF statements are stored and sent to staff (``needs_parser``).
 """
 
-from .base import NeedsParser, ParsedLine, ParsedStatement, StatementUnreadable
+from .base import NeedsParser, ParsedLine, ParsedStatement, StatementUnreadable, UnreadableLine
 from .csv_parser import parse_csv
 from .profiles import PROFILES, profile_for
 
-__all__ = ["NeedsParser", "ParsedLine", "ParsedStatement", "StatementUnreadable", "parse",
+__all__ = ["NeedsParser", "ParsedLine", "ParsedStatement", "StatementUnreadable",
+           "UnreadableLine", "parse",
            "PROFILES", "profile_for"]
 
 

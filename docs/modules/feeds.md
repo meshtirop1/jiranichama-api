@@ -15,3 +15,11 @@ Settings: `STATEMENT_MAX_BYTES`, `STATEMENT_INBOX_DOMAIN`, `MAIL_HOOK_TOKEN`,
 
 Files are stored with Django's storage API: local disk in development, the private
 object-locked bucket in production.
+
+## Typed-in lines
+
+`TypedLine`: a statement row an official typed in because the parser could not read it.
+Written once, all of a statement's rows together, only after the statement adds up
+(`services.submit_typed_lines`). `services.all_lines` gives read and typed rows together
+in file order; ingest and the confirmation code use it. `BankTransaction.typed_by` marks
+lines that came from typing. See [Bank statements](../flows/statements.md).

@@ -27,6 +27,7 @@ urlpatterns = [
     path("memberships/<uuid:pk>/position/", chamas.PositionView.as_view()),
     path("statements/<uuid:pk>/", feeds.StatementDetailView.as_view()),
     path("statements/<uuid:pk>/confirm/", feeds.StatementConfirmView.as_view()),
+    path("statements/<uuid:pk>/typed-lines/", feeds.StatementTypedLinesView.as_view()),
     path("bank-transactions/<uuid:pk>/assign/", recon.AssignView.as_view()),
     path("bank-transactions/<uuid:pk>/not-me/", recon.NotMeView.as_view()),
     path("hooks/mail/<str:token>/inbound/", feeds.MailInboundHook.as_view()),

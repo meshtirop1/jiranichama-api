@@ -27,6 +27,7 @@ HISTORY_MODELS = {
     "contributions.OpeningObjection",
     "contributions.CashReceipt",
     "documents.IssuedDocument",
+    "feeds.TypedLine",
     "documents.DocumentAccess",
 }
 OUR_APPS = {"core", "flags", "accounts", "notify", "chamas", "ledger", "staff", "devices",

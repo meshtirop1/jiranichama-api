@@ -35,6 +35,18 @@ class ParsedLine:
 
 
 @dataclass
+class UnreadableLine:
+    """A row we could not read, kept as the cells in the file so an official can type it
+    in (5.5 "A line cannot be read")."""
+
+    line_no: int
+    cells: list[str]
+
+    def as_dict(self) -> dict:
+        return {"line_no": self.line_no, "cells": self.cells}
+
+
+@dataclass
 class ParsedStatement:
     parser: str
     account_no: str | None
@@ -43,6 +55,9 @@ class ParsedStatement:
     opening_cents: int
     closing_cents: int
     lines: list[ParsedLine] = field(default_factory=list)
+    unreadable: list[UnreadableLine] = field(default_factory=list)
+    # The file lists the newest line first; typed-in lines are put back in this order.
+    newest_first: bool = False
 
     @property
     def credits_cents(self) -> int:

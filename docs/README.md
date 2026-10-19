@@ -41,7 +41,7 @@ Phase 0 (foundations) is done. Phase 1 (records core) is in progress: chama setu
 adoption, rules engine v1, statements by bank email or two-official upload, matching,
 contributions and late fines are built. Opening balances, cash at meetings, and member
 and chama statements (sealed PDFs with a public check) are built too. Still to come in
-Phase 1: typing in unreadable statement lines, and the full rules editor. Then Phase 2 money out, Phase 3 governance and loans, Phase 4 basic
+Phase 1: the full rules editor. Unreadable statement lines can now be typed in by an official and confirmed by another. Then Phase 2 money out, Phase 3 governance and loans, Phase 4 basic
 phones.
 
 ## Not in Phase 0, on purpose
