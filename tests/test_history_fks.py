@@ -37,10 +37,14 @@ HISTORY_MODELS = {
     "devices.Device",
     "reconciliation.ReconciliationRun",
     "reconciliation.ReconciliationGap",
+    "votes.Vote",
+    "votes.Ballot",
+    "votes.Turnout",
     "documents.DocumentAccess",
 }
 OUR_APPS = {"core", "flags", "accounts", "notify", "chamas", "ledger", "staff", "devices",
-            "rules", "fines", "contributions", "feeds", "reconciliation", "documents", "payouts"}
+            "rules", "fines", "contributions", "feeds", "reconciliation", "documents",
+            "payouts", "votes"}
 
 
 def _label(model) -> str:

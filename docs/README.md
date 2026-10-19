@@ -18,6 +18,7 @@ owns.
 - [Merry-go-round rotation](flows/rotation.md): the checkable draw, whose turn is next, arrears.
 - [Phone signing keys](flows/device-keys.md): fingerprint approvals, attestation, nonces.
 - [Daily reconciliation](flows/reconciliation.md): bank vs records each morning, gaps, breach after 7 days.
+- [Members' votes](flows/votes.md): votes on large payouts, by phone key or SMS code, secret if the rules say.
 
 ## Modules
 
@@ -35,6 +36,7 @@ owns.
 - [contributions and fines](modules/contributions-and-fines.md)
 - [documents](modules/documents.md): statements, PDFs, the check page.
 - [payouts](modules/payouts.md): money out.
+- [votes](modules/votes.md): members' votes.
 
 ## Operations
 
@@ -46,7 +48,7 @@ Phase 0 (foundations) is done. Phase 1 (records core) is in progress: chama setu
 adoption, rules engine v1, statements by bank email or two-official upload, matching,
 contributions and late fines are built. Opening balances, cash at meetings, and member
 and chama statements (sealed PDFs with a public check) are built too. Still to come in
-Phase 1: nothing beyond polish. Unreadable statement lines can be typed in by an official and confirmed by another, and the app edits every rule setting (rule errors carry stable codes). Phase 2 has started: money out (proposals, approvals by SMS code, debits matched back, unapproved-debit alerts) the merry-go-round rotation, approvals signed with the phone's key (fingerprint) for officials with the app, and daily reconciliation of the bank against the records. Then the rest of Phase 2, Phase 3 governance and loans, Phase 4 basic
+Phase 1: nothing beyond polish. Unreadable statement lines can be typed in by an official and confirmed by another, and the app edits every rule setting (rule errors carry stable codes). Phase 2 has started: money out (proposals, approvals by SMS code, debits matched back, unapproved-debit alerts) the merry-go-round rotation, approvals signed with the phone's key (fingerprint) for officials with the app, daily reconciliation of the bank against the records, and members' votes on large payouts. Then the rest of Phase 2, Phase 3 governance and loans, Phase 4 basic
 phones.
 
 ## Not in Phase 0, on purpose

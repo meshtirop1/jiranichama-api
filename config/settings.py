@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "apps.reconciliation",
     "apps.documents",
     "apps.payouts",
+    "apps.votes",
 ]
 
 MIDDLEWARE = [
@@ -186,6 +187,7 @@ CELERY_BEAT_SCHEDULE = {
                          "schedule": crontab(minute=5)},
     "reconcile-daily": {"task": "apps.reconciliation.tasks.reconcile_daily",
                         "schedule": crontab(hour=6, minute=0)},
+    "close-votes": {"task": "apps.votes.tasks.close_due_votes", "schedule": crontab(minute=10)},
     "expire-proposals": {"task": "apps.payouts.tasks.expire_proposals",
                          "schedule": crontab(minute=15)},
     "expire-stale-setups": {"task": "apps.chamas.tasks.expire_setups",

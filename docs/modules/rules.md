@@ -52,3 +52,8 @@ the English explanation for logs and staff.
 
 `rotation: {order: fixed|draw, arrears: skip|deduct|block}`. Only merry-go-round templates
 include it; the rule book adds clauses 8.1 and 8.2 when present.
+
+## Votes (schema v1, optional section)
+
+`votes: {quorum_pct: 10-100, pass_pct: 50-90, secret: bool}`, in every template as
+`{50, 50, false}`. Missing means the same defaults. The rule book's clause 9.1 says it.

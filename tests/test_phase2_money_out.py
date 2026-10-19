@@ -111,7 +111,6 @@ def test_nobody_approves_a_payment_to_themselves(chama, sms_outbox):
 
 @pytest.mark.parametrize("amount,code,rule", [
     (20_000_000, "not_enough_money", "0.1"),        # KES 200,000 > KES 100,000 in the bank
-    (6_000_000, "member_vote_needed", "4.2"),       # above KES 50,000 needs a vote
 ])
 def test_the_rules_refuse_and_name_the_rule(chama, amount, code, rule):
     c, chair, *_ = chama

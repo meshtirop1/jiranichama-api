@@ -33,6 +33,7 @@ _BASE = {
     "adoption": {"members_share_pct": 51},
     "statements": {"every_days": 14},
     "kyc": {"payer": "chama"},
+    "votes": {"quorum_pct": 50, "pass_pct": 50, "secret": False},
 }
 
 TEMPLATE_VERSION = 1

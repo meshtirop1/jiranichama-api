@@ -49,6 +49,8 @@ class ProposalSerializer(serializers.ModelSerializer):
     approved = serializers.SerializerMethodField()
     can_answer = serializers.SerializerMethodField()
     seal_receipt = serializers.CharField(source="entry.receipt_code", default=None)
+    vote_id = serializers.SerializerMethodField()
+    vote_state = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -56,7 +58,16 @@ class ProposalSerializer(serializers.ModelSerializer):
                   "payee_member_code", "payee_account", "purpose", "proposed_by",
                   "proposed_by_code",
                   "needs_officials", "approved", "approvals", "refusal", "deadline_at",
-                  "bank_reference", "paid_at", "can_answer", "seal_receipt", "created_at"]
+                  "bank_reference", "paid_at", "can_answer", "seal_receipt", "needs_vote",
+                  "vote_id", "vote_state", "created_at"]
+
+    def get_vote_id(self, p) -> str | None:
+        v = services._vote_of(p)
+        return str(v.id) if v else None
+
+    def get_vote_state(self, p) -> str | None:
+        v = services._vote_of(p)
+        return v.state if v else None
 
     def get_proposed_by(self, p) -> str:
         return _name(p.proposed_by)
