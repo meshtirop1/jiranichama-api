@@ -41,6 +41,8 @@ HISTORY_MODELS = {
     "votes.Vote",
     "votes.Ballot",
     "votes.Turnout",
+    "votes.VoteSmsNumber",
+    "notify.InboundSms",
     "documents.DocumentAccess",
 }
 OUR_APPS = {"core", "flags", "accounts", "notify", "chamas", "ledger", "staff", "devices",

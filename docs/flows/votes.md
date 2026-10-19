@@ -57,5 +57,5 @@ proposal is rejected, saying why.
 
 ## Not yet
 
-Votes for rule changes, new members, elections and loans; SMS replies ("YES 4821") from
-basic phones; reopening a lapsed vote once; meetings and attendance.
+Votes for rule changes, new members, elections and loans; reopening a lapsed vote once;
+meetings and attendance. (SMS replies from basic phones: see [SMS commands](sms-commands.md).)

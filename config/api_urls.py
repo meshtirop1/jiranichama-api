@@ -6,6 +6,7 @@ from apps.devices import views as devices
 from apps.documents import views as docs
 from apps.feeds import views as feeds
 from apps.ledger import views as ledger
+from apps.notify import views as notify
 from apps.payouts import views as payouts
 from apps.reconciliation import views as recon
 from apps.votes import views as votes
@@ -36,6 +37,7 @@ urlpatterns = [
     path("bank-transactions/<uuid:pk>/not-me/", recon.NotMeView.as_view()),
     path("hooks/mail/<str:token>/inbound/", feeds.MailInboundHook.as_view()),
     path("hooks/daraja/<str:token>/<str:step>/", feeds.DarajaHook.as_view()),
+    path("hooks/sms/<str:token>/inbound/", notify.SmsInboundHook.as_view()),
     path("chamas/<uuid:pk>/opening-balances/", contrib.OpeningView.as_view()),
     path("chamas/<uuid:pk>/opening-balances/confirm/", contrib.OpeningConfirmView.as_view()),
     path("opening-balance-lines/<uuid:pk>/object/", contrib.OpeningObjectView.as_view()),

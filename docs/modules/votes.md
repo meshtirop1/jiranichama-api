@@ -11,3 +11,5 @@ Members' votes. See [Members' votes](../flows/votes.md).
 - `tasks.py`: `close_due_votes`, hourly.
 - `views.py`: `/chamas/{id}/votes/`, `/votes/{id}/`, `/votes/{id}/ballots/`,
   `/votes/{id}/signing-payload/`, `/votes/{id}/signed-ballots/`.
+- `VoteSmsNumber` and `sms_invites`/`cast_sms_reply`: the vote by SMS for members without a
+  phone key ("Reply YES 4821"). See [SMS commands](../flows/sms-commands.md).
