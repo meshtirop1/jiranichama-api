@@ -36,6 +36,7 @@ class ProposalSerializer(serializers.ModelSerializer):
     payee_member_code = serializers.CharField(source="payee_membership.member_code",
                                               default=None)
     proposed_by = serializers.SerializerMethodField()
+    proposed_by_code = serializers.CharField(source="proposed_by.member_code")
     approvals = ApprovalSerializer(many=True, read_only=True)
     approved = serializers.SerializerMethodField()
     can_answer = serializers.SerializerMethodField()
@@ -45,6 +46,7 @@ class ProposalSerializer(serializers.ModelSerializer):
         model = Proposal
         fields = ["id", "kind", "state", "state_reason", "amount_cents", "payee_name",
                   "payee_member_code", "payee_account", "purpose", "proposed_by",
+                  "proposed_by_code",
                   "needs_officials", "approved", "approvals", "refusal", "deadline_at",
                   "bank_reference", "paid_at", "can_answer", "seal_receipt", "created_at"]
 
