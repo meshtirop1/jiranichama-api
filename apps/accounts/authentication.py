@@ -25,3 +25,15 @@ class AppJWTAuthentication(JWTAuthentication):
                 User.objects.filter(pk=user.pk).update(last_app_at=now)
                 user.last_app_at = now
         return result
+
+
+try:
+    from drf_spectacular.contrib.rest_framework_simplejwt import SimpleJWTScheme
+
+    class AppJWTScheme(SimpleJWTScheme):
+        """The OpenAPI schema describes it as the plain bearer JWT it is."""
+
+        target_class = "apps.accounts.authentication.AppJWTAuthentication"
+        name = "jwtAuth"
+except ImportError:  # pragma: no cover - drf-spectacular always installed here
+    pass
