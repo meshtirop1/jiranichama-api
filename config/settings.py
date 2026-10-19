@@ -125,6 +125,10 @@ ANCHOR_EMAIL_TO = env.list("ANCHOR_EMAIL_TO", default=[])
 SMS_INBOUND_TOKEN = env("SMS_INBOUND_TOKEN", default="")
 SMS_INBOUND_ALLOWED_IPS = env.list("SMS_INBOUND_ALLOWED_IPS", default=[])
 SMS_COMMANDS_PER_HOUR = env.int("SMS_COMMANDS_PER_HOUR", default=10)
+# Test servers only: demo phones type this fixed code instead of receiving an SMS.
+# Empty (the default) switches it off; production never sets it.
+DEMO_SIGNIN_CODE = env("DEMO_SIGNIN_CODE", default="")
+DEMO_PHONES = env.list("DEMO_PHONES", default=[])
 # USSD menu (4.9): Africa's Talking calls /hooks/ussd/{USSD_TOKEN}/.
 USSD_TOKEN = env("USSD_TOKEN", default="")
 # Bank feeds (Phase 4): Equity Jenga. UAT until a live pull has been checked.

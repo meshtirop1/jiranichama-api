@@ -1,0 +1,16 @@
+[Unit]
+Description=JiraniChama scheduler (test server)
+After=network.target postgresql.service redis-server.service
+
+[Service]
+User=deploy
+Group=deploy
+WorkingDirectory=/home/deploy/sites/jiranichama
+EnvironmentFile=/home/deploy/sites/jiranichama.env
+ExecStart=/home/deploy/sites/jiranichama/.venv/bin/celery -A config beat --loglevel INFO --schedule /home/deploy/sites/jiranichama-data/celerybeat-schedule
+Restart=always
+RestartSec=5
+MemoryMax=600M
+
+[Install]
+WantedBy=multi-user.target

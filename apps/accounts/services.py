@@ -24,6 +24,14 @@ SMS_TEMPLATES = {
 }
 
 
+def demo_code(e164: str) -> str | None:
+    """On a test server only: the fixed code that demo phones use instead of an SMS, so
+    the app can be tried without an SMS provider. Off unless DEMO_SIGNIN_CODE is set, and
+    only for the numbers in DEMO_PHONES. Never set it in production."""
+    code = settings.DEMO_SIGNIN_CODE
+    return code if code and e164 in settings.DEMO_PHONES else None
+
+
 def _code_hmac(challenge_id, code: str) -> str:
     return keyed_hash("otp", f"{challenge_id}:{code}")
 
@@ -40,13 +48,15 @@ def request_code(e164: str, language: str = "en") -> OtpChallenge:
             status.HTTP_429_TOO_MANY_REQUESTS,
         )
 
-    code = f"{secrets.randbelow(10**6):06d}"
+    code = demo_code(e164) or f"{secrets.randbelow(10**6):06d}"
     with transaction.atomic():
         challenge = OtpChallenge(phone_hash=ph, expires_at=now + timedelta(
             seconds=settings.OTP_TTL_SECONDS))
         challenge.code_hmac = _code_hmac(challenge.id, code)
         challenge.save()
 
+    if demo_code(e164):
+        return challenge  # a demo phone on a test server: no SMS is sent
     # Sent from the request, not a queue, so the code never passes through the broker.
     template = SMS_TEMPLATES.get(language, SMS_TEMPLATES["en"])
     send_sms(e164, template.format(code=code))
