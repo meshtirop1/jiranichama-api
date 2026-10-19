@@ -9,6 +9,7 @@ chama's ledger.
 import base64
 import hashlib
 import math
+import secrets
 
 from django.db import transaction
 from django.utils import timezone
@@ -22,7 +23,7 @@ from apps.devices import attestation, keys, signing
 from apps.devices.models import Device, DeviceNonce, SigningChallenge
 from apps.ledger import services as ledger
 
-from .models import Ballot, Turnout, Vote
+from .models import Ballot, Turnout, Vote, VoteSmsNumber
 
 DEFAULTS = {"quorum_pct": 50, "pass_pct": 50, "secret": False}
 
@@ -37,10 +38,62 @@ def open_vote(chama: Chama, *, subject: str, question: str, rules: dict, closes_
     eligible = [str(i) for i in Membership.objects.filter(
         chama=chama, state=Membership.State.ACTIVE).exclude(pk__in=exclude or [])
         .values_list("id", flat=True)]
-    return Vote.objects.create(chama=chama, subject=subject, question=question[:300],
+    vote = Vote.objects.create(chama=chama, subject=subject, question=question[:300],
                                quorum_pct=s["quorum_pct"], pass_pct=s["pass_pct"],
                                secret=s["secret"], eligible=len(eligible),
                                eligible_ids=eligible, closes_at=closes_at)
+    transaction.on_commit(lambda: sms_invites(vote.pk))
+    return vote
+
+
+def _free_number(member: Membership) -> str:
+    taken = set(VoteSmsNumber.objects.filter(membership__user=member.user,
+                                             vote__state=Vote.State.OPEN)
+                .values_list("number", flat=True))
+    while True:
+        n = f"{secrets.randbelow(9000) + 1000}"
+        if n not in taken:
+            return n
+
+
+def sms_invites(vote_id) -> int:
+    """Every eligible member without a phone key gets the question by SMS, with their own
+    number to reply YES or NO with (5.11 step 2; basic phones)."""
+    from apps.notify.sms import SmsFailed, send_sms
+
+    vote = Vote.objects.select_related("chama").get(pk=vote_id)
+    sent = 0
+    for m in (Membership.objects.filter(pk__in=vote.eligible_ids).select_related("user")):
+        if keys.active_device(m.user) is not None:
+            continue  # votes in the app with the fingerprint
+        n = VoteSmsNumber.objects.create(vote=vote, membership=m, number=_free_number(m))
+        by = timezone.localtime(vote.closes_at).strftime("%d %b %H:%M")
+        if m.user.language == "sw":
+            text = (f"{vote.chama.name} kura: {vote.question} Jibu NDIYO {n.number} au "
+                    f"HAPANA {n.number} kabla ya {by}.")
+        else:
+            text = (f"{vote.chama.name} vote: {vote.question} Reply YES {n.number} or "
+                    f"NO {n.number} by {by}.")
+        try:
+            send_sms(m.user.phone, text)
+            sent += 1
+        except SmsFailed:
+            continue
+    return sent
+
+
+def cast_sms_reply(user, *, choice: str, number: str) -> Vote:
+    """A reply "YES 4821" from the member's own number (the provider tells us the
+    sender). The number names the vote; the first ballot counts."""
+    n = (VoteSmsNumber.objects.filter(membership__user=user, number=number)
+         .select_related("vote", "membership").order_by("-id").first())
+    if n is None:
+        raise Problem("not_found", "That vote number is not known.", status.HTTP_404_NOT_FOUND)
+    if keys.active_device(user) is not None:
+        raise Problem("use_device_key", "Vote in the app with your fingerprint.",
+                      status.HTTP_409_CONFLICT)
+    _require_can_vote(n.vote, n.membership)
+    return _record(n.vote, n.membership, _choice(choice), method="reply")
 
 
 def quorum_needed(vote: Vote) -> int:

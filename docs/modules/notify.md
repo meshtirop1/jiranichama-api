@@ -16,3 +16,10 @@ carry a sign-in code.
 
 The proposal calls for a second live provider. It is not chosen yet; adding it is one
 class with a `send(to, text)` method, listed second in `SMS_BACKENDS`.
+
+## Incoming SMS (`commands.py`)
+
+`handle(from, text)` answers BAL, DUE, FINES, RULES, VERIFY, YES/NO and HELP (English and
+Kiswahili words) for known members, within the hourly limit, and logs each message as
+`InboundSms` (hash, command, replied; never the text). The hook is `SmsInboundHook`.
+See [SMS commands](../flows/sms-commands.md).

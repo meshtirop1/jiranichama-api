@@ -105,6 +105,12 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # private S3 bucket with Object Lock (6.6) behind the same storage API.
 MEDIA_ROOT = env.path("MEDIA_ROOT", default=BASE_DIR / "media")
 MEDIA_URL = "/never-served/"
+# SMS commands from basic phones (4.9): the secret token in the provider's incoming-SMS
+# callback URL (empty: the hook is off), its IPs, and how many messages a number may send
+# an hour.
+SMS_INBOUND_TOKEN = env("SMS_INBOUND_TOKEN", default="")
+SMS_INBOUND_ALLOWED_IPS = env.list("SMS_INBOUND_ALLOWED_IPS", default=[])
+SMS_COMMANDS_PER_HOUR = env.int("SMS_COMMANDS_PER_HOUR", default=10)
 # M-Pesa Daraja C2B (6.9). Our public base URL for Safaricom's callbacks, the platform's
 # Daraja app credentials (used only to register callback URLs), and Safaricom's IPs.
 DARAJA_BASE_URL = env("DARAJA_BASE_URL", default="https://sandbox.safaricom.co.ke")

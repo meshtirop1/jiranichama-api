@@ -5,6 +5,10 @@ import json
 
 from django.conf import settings
 from django.http import JsonResponse
+from drf_spectacular.utils import extend_schema
+from rest_framework import permissions, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 
 def dev_sms_outbox(request):
@@ -18,3 +22,29 @@ def dev_sms_outbox(request):
     if to:
         messages = [m for m in messages if m["to"] == to]
     return JsonResponse({"messages": messages[-20:]})
+
+
+class SmsInboundHook(APIView):
+    """Messages members send to our shortcode (Africa's Talking incoming SMS callback:
+    from, text, id). Checked by a secret path token and an optional IP allowlist. The
+    answer goes back by SMS; the HTTP reply is always empty."""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes: list = []
+
+    @extend_schema(exclude=True)
+    def post(self, request, token):
+        import hmac
+
+        from .commands import handle
+
+        expected = settings.SMS_INBOUND_TOKEN
+        if not expected or not hmac.compare_digest(expected, token or ""):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        allowed = settings.SMS_INBOUND_ALLOWED_IPS
+        if allowed and request.META.get("REMOTE_ADDR") not in allowed:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        data = request.data
+        handle(str(data.get("from") or ""), str(data.get("text") or ""),
+               str(data.get("id") or "")[:100])
+        return Response(status=status.HTTP_200_OK)

@@ -63,7 +63,7 @@ class Ballot(models.Model):
     membership = models.ForeignKey(Membership, on_delete=models.PROTECT, null=True,
                                    blank=True, related_name="+")
     choice = models.CharField(max_length=3, choices=Choice.choices)
-    method = models.CharField(max_length=8)  # device or sms
+    method = models.CharField(max_length=8)  # device, sms (code) or reply (SMS reply)
     device = models.ForeignKey("devices.Device", on_delete=models.PROTECT, null=True,
                                blank=True, related_name="+")
     payload_hash = models.CharField(max_length=64, blank=True, default="")
@@ -86,3 +86,19 @@ class Turnout(models.Model):
         db_table = "votes_turnout"
         constraints = [models.UniqueConstraint(fields=["vote", "membership"],
                                                name="voted_once")]
+
+
+class VoteSmsNumber(models.Model):
+    """The number a member replies with to vote by SMS ("YES 4821"). Unique among the
+    member's votes, so a reply can only mean one vote; it works only from their own
+    number. Insert only."""
+
+    id = models.BigAutoField(primary_key=True)
+    vote = models.ForeignKey(Vote, on_delete=models.PROTECT, related_name="sms_numbers")
+    membership = models.ForeignKey(Membership, on_delete=models.PROTECT, related_name="+")
+    number = models.CharField(max_length=4)
+
+    class Meta:
+        db_table = "votes_sms_number"
+        constraints = [models.UniqueConstraint(fields=["vote", "membership"],
+                                               name="one_number_per_member")]
