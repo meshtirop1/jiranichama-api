@@ -110,8 +110,144 @@ def _render_en(r: dict) -> list[Clause]:
         Clause("P.4", "Records are never changed. A mistake is fixed by a new, visible "
                       "correction."),
     ]
-    out[-4:-4] = _rotation_en(r.get("rotation")) + _votes_en(r.get("votes"))
+    out[-4:-4] = (_rotation_en(r.get("rotation")) + _votes_en(r.get("votes"))
+                  + _changes_en(r.get("rule_changes")) + _meetings_en(r.get("meetings"))
+                  + _loans_en(r.get("loans")))
     return out
+
+
+_CHANGE_DEFAULTS = {"notice_days": 14, "vote_days": 7, "quorum_pct": 50, "pass_pct": 66,
+                    "cooling_days": 30}
+
+
+_MEETING_DEFAULTS = {"absence_fine_cents": 0, "late_fine_cents": 0, "late_after_minutes": 15,
+                     "apology_excuses": True, "objection_days": 7}
+
+
+def _meetings_en(m: dict | None) -> list[Clause]:
+    m = {**_MEETING_DEFAULTS, **(m or {})}
+    absent = (f"A member who misses a meeting is fined {kes(m['absence_fine_cents'])}"
+              if m["absence_fine_cents"] else "There is no fine for missing a meeting")
+    absent += (", unless they sent an apology before it started." if m["apology_excuses"]
+               and m["absence_fine_cents"] else ".")
+    late = (f"A member who arrives more than {_plural(m['late_after_minutes'], 'minute')} "
+            f"after the start is fined {kes(m['late_fine_cents'])}." if m["late_fine_cents"]
+            else f"Arriving more than {_plural(m['late_after_minutes'], 'minute')} after the "
+                 "start is recorded as late, without a fine.")
+    return [
+        Clause("11.1", "The secretary schedules meetings and members are reminded 2 days and "
+                       "2 hours before. " + absent),
+        Clause("11.2", late),
+        Clause("11.3", f"The secretary shares the minutes with every member, who may object "
+                       f"within {_plural(m['objection_days'], 'day')}. Minutes without "
+                       "objection are then sealed and cannot change."),
+    ]
+
+
+def _meetings_sw(m: dict | None) -> list[Clause]:
+    m = {**_MEETING_DEFAULTS, **(m or {})}
+    absent = (f"Mwanachama asiyehudhuria mkutano anatozwa faini ya "
+              f"{kes(m['absence_fine_cents'])}" if m["absence_fine_cents"]
+              else "Hakuna faini ya kutohudhuria mkutano")
+    absent += (", isipokuwa alituma udhuru kabla ya mkutano kuanza." if m["apology_excuses"]
+               and m["absence_fine_cents"] else ".")
+    late = (f"Mwanachama anayefika zaidi ya dakika {m['late_after_minutes']} baada ya kuanza "
+            f"anatozwa faini ya {kes(m['late_fine_cents'])}." if m["late_fine_cents"]
+            else f"Kufika zaidi ya dakika {m['late_after_minutes']} baada ya kuanza "
+                 "kunaandikwa kama kuchelewa, bila faini.")
+    return [
+        Clause("11.1", "Katibu anapanga mikutano na wanachama wanakumbushwa siku 2 na saa 2 "
+                       "kabla. " + absent),
+        Clause("11.2", late),
+        Clause("11.3", f"Katibu anawashirikisha wanachama wote kumbukumbu za mkutano, ambao "
+                       f"wanaweza kupinga ndani ya siku {m['objection_days']}. Kumbukumbu "
+                       "zisizopingwa zinafungwa na haziwezi kubadilika."),
+    ]
+
+
+def _rate(bp: int) -> str:
+    whole, part = divmod(bp, 100)
+    return f"{whole}" + (f".{part:02d}".rstrip("0") if part else "")
+
+
+def _loans_en(n: dict | None) -> list[Clause]:
+    if not n:
+        return []
+    how = ("on the amount borrowed (flat)" if n["interest"] == "flat"
+           else "on the amount still owed (reducing)")
+    g = n["guarantors"]
+    order = ("after the month's contribution" if n["contribution_first"]
+             else "before the month's contribution")
+    pen = (f"A missed instalment, not paid within {_plural(n['grace_days'], 'day')}, is fined "
+           f"{kes(n['late_penalty_cents'])}." if n["late_penalty_cents"]
+           else f"An instalment not paid within {_plural(n['grace_days'], 'day')} is missed.")
+    return [
+        Clause("12.1", f"A member may borrow after {_plural(n['min_months'], 'month')} of "
+                       f"membership, with no unpaid contributions and no other loan, up to "
+                       f"{n['savings_multiple_pct']}% of their savings, less what they "
+                       f"guarantee for others, for up to {_plural(n['max_term_months'], 'month')}. "
+                       + (f"The loan needs {_plural(g, 'guarantor')}, who share the amount "
+                          "equally." if g else "No guarantors are needed.")),
+        Clause("12.2", f"Interest is {_rate(n['monthly_rate_bp'])}% a month {how}, charged "
+                       f"on each instalment's due date. Repayments come {order}."),
+        Clause("12.3", pen),
+        Clause("12.4", f"After {_plural(n['default_after_missed'], 'missed instalment')} the "
+                       "loan is in default: the officials propose recovery from the "
+                       "borrower's savings, then from the guarantors in proportion to their "
+                       "shares, and every member sees each deduction."),
+    ]
+
+
+def _loans_sw(n: dict | None) -> list[Clause]:
+    if not n:
+        return []
+    how = ("kwa kiasi kilichokopwa" if n["interest"] == "flat"
+           else "kwa kiasi kinachodaiwa bado")
+    g = n["guarantors"]
+    order = ("baada ya mchango wa mwezi" if n["contribution_first"]
+             else "kabla ya mchango wa mwezi")
+    pen = (f"Awamu isiyolipwa ndani ya siku {n['grace_days']} inatozwa faini ya "
+           f"{kes(n['late_penalty_cents'])}." if n["late_penalty_cents"]
+           else f"Awamu isiyolipwa ndani ya siku {n['grace_days']} imekosekana.")
+    return [
+        Clause("12.1", f"Mwanachama anaweza kukopa baada ya miezi {n['min_months']} ya "
+                       f"uanachama, bila michango ambayo haijalipwa na bila mkopo mwingine, "
+                       f"hadi asilimia {n['savings_multiple_pct']} ya akiba yake, ukiondoa "
+                       f"anachodhamini kwa wengine, kwa hadi miezi {n['max_term_months']}. "
+                       + (f"Mkopo unahitaji wadhamini {g}, wanaogawana kiasi sawa." if g
+                          else "Hakuna wadhamini wanaohitajika.")),
+        Clause("12.2", f"Riba ni asilimia {_rate(n['monthly_rate_bp'])} kwa mwezi {how}, "
+                       f"inayotozwa tarehe ya kila awamu. Marejesho yanakuja {order}."),
+        Clause("12.3", pen),
+        Clause("12.4", f"Baada ya awamu {n['default_after_missed']} kukosekana mkopo "
+                       "umeshindwa: viongozi wanapendekeza kurejesha kutoka akiba ya mkopaji, "
+                       "kisha kwa wadhamini kulingana na sehemu zao, na kila mwanachama anaona "
+                       "kila makato."),
+    ]
+
+
+def _changes_en(c: dict | None) -> list[Clause]:
+    c = {**_CHANGE_DEFAULTS, **(c or {})}
+    return [Clause("10.1", f"An official may propose a change to these rules with a reason. "
+                           f"Members have {_plural(c['notice_days'], 'day')} to read it, then "
+                           f"{_plural(c['vote_days'], 'day')} to vote. It passes if at least "
+                           f"{c['quorum_pct']}% of members vote and more than "
+                           f"{c['pass_pct']}% of the votes are yes, and starts on the 1st of "
+                           f"the next month. A change turned down may be raised again after "
+                           f"{_plural(c['cooling_days'], 'day')}. This rule itself can only "
+                           "be changed under the stricter of its current and new thresholds.")]
+
+
+def _changes_sw(c: dict | None) -> list[Clause]:
+    c = {**_CHANGE_DEFAULTS, **(c or {})}
+    return [Clause("10.1", f"Kiongozi anaweza kupendekeza mabadiliko ya kanuni hizi kwa sababu. "
+                           f"Wanachama wana siku {c['notice_days']} kuyasoma, kisha siku "
+                           f"{c['vote_days']} kupiga kura. Yanapita angalau asilimia "
+                           f"{c['quorum_pct']} ya wanachama wakipiga kura na zaidi ya asilimia "
+                           f"{c['pass_pct']} wakisema ndiyo, na yanaanza tarehe 1 ya mwezi "
+                           f"unaofuata. Mabadiliko yaliyokataliwa yanaweza kuletwa tena baada "
+                           f"ya siku {c['cooling_days']}. Kanuni hii yenyewe inabadilishwa tu "
+                           "kwa kiwango kikali zaidi kati ya cha sasa na kipya.")]
 
 
 def _votes_en(v: dict | None) -> list[Clause]:
@@ -229,5 +365,7 @@ def _render_sw(r: dict) -> list[Clause]:
         Clause("P.4", "Kumbukumbu hazibadilishwi kamwe. Kosa linarekebishwa kwa marekebisho "
                       "mapya yanayoonekana."),
     ]
-    out[-4:-4] = _rotation_sw(r.get("rotation")) + _votes_sw(r.get("votes"))
+    out[-4:-4] = (_rotation_sw(r.get("rotation")) + _votes_sw(r.get("votes"))
+                  + _changes_sw(r.get("rule_changes")) + _meetings_sw(r.get("meetings"))
+                  + _loans_sw(r.get("loans")))
     return out

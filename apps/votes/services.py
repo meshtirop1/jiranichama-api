@@ -33,8 +33,13 @@ def settings_from(rules: dict) -> dict:
 
 
 def open_vote(chama: Chama, *, subject: str, question: str, rules: dict, closes_at,
-              exclude: list | None = None) -> Vote:
+              exclude: list | None = None, quorum_pct: int | None = None,
+              pass_pct: int | None = None) -> Vote:
     s = settings_from(rules)
+    if quorum_pct is not None:
+        s["quorum_pct"] = quorum_pct
+    if pass_pct is not None:
+        s["pass_pct"] = pass_pct
     eligible = [str(i) for i in Membership.objects.filter(
         chama=chama, state=Membership.State.ACTIVE).exclude(pk__in=exclude or [])
         .values_list("id", flat=True)]
@@ -251,6 +256,10 @@ def _tell_subject(vote: Vote) -> None:
         from apps.payouts.services import on_vote_closed
 
         on_vote_closed(vote)
+    elif vote.subject.startswith("rules.proposal:"):
+        from apps.rules.proposals import on_vote_closed as rules_vote_closed
+
+        rules_vote_closed(vote)
 
 
 def close_due(chama: Chama | None = None) -> int:

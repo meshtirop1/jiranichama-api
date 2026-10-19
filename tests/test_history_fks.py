@@ -11,6 +11,7 @@ HISTORY_MODELS = {
     "ledger.LedgerEntry",
     "ledger.EntrySignature",
     "ledger.ChainHead",
+    "ledger.Anchor",
     "staff.AuditLog",
     "chamas.Chama",
     "chamas.Membership",
@@ -18,6 +19,7 @@ HISTORY_MODELS = {
     "chamas.BankAccount",
     "chamas.StatementInbox",
     "rules.RuleVersion",
+    "rules.RuleProposal",
     "fines.Fine",
     "feeds.Statement",
     "feeds.BankTransaction",
@@ -44,10 +46,18 @@ HISTORY_MODELS = {
     "votes.VoteSmsNumber",
     "notify.InboundSms",
     "documents.DocumentAccess",
+    "meetings.Meeting",
+    "meetings.Apology",
+    "meetings.Attendance",
+    "meetings.Minutes",
+    "meetings.MinutesObjection",
+    "loans.Loan",
+    "loans.Guarantee",
+    "loans.LoanReminder",
 }
 OUR_APPS = {"core", "flags", "accounts", "notify", "chamas", "ledger", "staff", "devices",
             "rules", "fines", "contributions", "feeds", "reconciliation", "documents",
-            "payouts", "votes"}
+            "payouts", "votes", "meetings", "loans"}
 
 
 def _label(model) -> str:

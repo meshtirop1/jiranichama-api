@@ -1,7 +1,7 @@
 # Members' votes (5.11, rule 9.1)
 
 Phase 2 uses votes for **payouts above the rules' vote level** (approval levels 4.x with
-"members also vote"). Rule changes, elections and loans reuse the same votes later.
+"members also vote") and **rule changes** ([rule changes](rule-changes.md)), which bring their own thresholds. Elections and loans reuse the same votes later.
 
 ## Opening
 

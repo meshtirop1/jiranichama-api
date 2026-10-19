@@ -100,10 +100,38 @@ def apply_payment(*, txn: BankTransaction, member: Membership, amount_cents: int
                   version, base: dict) -> list[LedgerEntry]:
     """Split one payment (a bank line, or one member's share of banked cash) by the rules
     in force on ``value_date``, and write the entries. Called inside a transaction."""
+    from apps.loans import services as loans
+
+    entries = []
+    loan, take, how = loans.repayment_cents(member, spare_cents=0, amount_cents=amount_cents,
+                                            value_date=value_date)
+    if loan is not None and how == "first" and take > 0:
+        # The rules put the loan first (12.2): its instalments due take their share.
+        entries.append(loans.write_repayment(loan, txn=txn, member=member, amount_cents=take,
+                                             version=version, base=base))
+        amount_cents -= take
     allocation = engine.allocate(rules=version.rules, amount_cents=amount_cents,
                                  value_date=value_date, dues=dues(member, value_date),
                                  fines=open_fines(member))
-    entries = []
+    if loan is not None and how == "spare":
+        # Contributions first: the loan takes what would have gone ahead or to credit.
+        spare = sum(s.amount_cents for s in allocation.slices
+                    if s.kind == "contribution" and s.outcome in ("advance", "credit"))
+        _, take, _ = loans.repayment_cents(member, spare_cents=spare,
+                                           amount_cents=amount_cents, value_date=value_date)
+        left = take
+        credits = [s for s in allocation.slices if s.outcome == "credit"]
+        ahead = sorted([s for s in allocation.slices if s.outcome == "advance"],
+                       key=lambda s: s.period, reverse=True)  # the furthest month first
+        for s in credits + ahead:
+            cut = min(left, s.amount_cents)
+            s.amount_cents -= cut
+            left -= cut
+        allocation.slices = [s for s in allocation.slices if s.amount_cents > 0]
+        if take > 0:
+            entries.append(loans.write_repayment(loan, txn=txn, member=member,
+                                                 amount_cents=take, version=version,
+                                                 base=base))
     for s in allocation.slices:
         if s.kind == "contribution":
             entries.append(ledger.append(

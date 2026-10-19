@@ -88,3 +88,21 @@ class PlatformKeyView(APIView):
         signer = get_signer()
         return Response({"key_id": signer.key_id, "algorithm": "ECDSA_P256_SHA256_PREHASHED",
                          "public_key_pem": public_key_pem(signer.public_key())})
+
+
+class AnchorProofView(APIView):
+    """This chama's place in the latest public anchors: the leaf and Merkle path, so the
+    phone can check its chain head is in that night's root."""
+
+    @extend_schema(responses=serializers.ListSerializer(child=serializers.DictField()))
+    def get(self, request, pk):
+        from .anchoring import proof_for
+        from .models import Anchor
+
+        chama, _ = chama_for(request, pk)
+        out = []
+        for a in Anchor.objects.order_by("-at")[:7]:
+            proof = proof_for(a, chama.id)
+            if proof:
+                out.append(proof)
+        return Response(out)
