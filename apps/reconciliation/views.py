@@ -94,6 +94,9 @@ class ReconciliationSerializer(serializers.Serializer):
     days_open = serializers.IntegerField()
     breach_after_days = serializers.IntegerField()
     history = serializers.ListField(child=serializers.DictField())
+    statement = serializers.DictField(
+        help_text="Freshness: checked_to, every_days, due_on, days_overdue, level "
+                  "(0 fresh, 1 treasurer, 2 officials, 3 everyone).")
 
 
 class ReconciliationView(APIView):

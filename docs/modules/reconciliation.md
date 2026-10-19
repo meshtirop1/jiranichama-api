@@ -19,3 +19,11 @@ than 7 days becomes a breach and every member gets one SMS (`alert_breach`, afte
 `reconcile_all` runs at 06:00 (`tasks.reconcile_daily`); feeds ingest also calls
 `reconcile` after every accepted statement. `summary` is what the app shows
 (`GET /chamas/{id}/reconciliation/`). See [Daily reconciliation](../flows/reconciliation.md).
+
+## Statement freshness (`freshness.py`)
+
+`status(chama)` says how overdue the bank statement is (level 0 to 3, from the rules'
+`statements.every_days`); `remind(chama)` sends the level's SMS once per spell
+(`StatementReminder`, unique per chama, due day and level); `remind_all` runs at 07:00
+(`tasks.remind_overdue_statements`). The summary endpoint includes `statement`.
+See [Overdue bank statements](../flows/statement-reminders.md).

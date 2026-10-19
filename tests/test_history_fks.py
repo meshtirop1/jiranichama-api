@@ -37,6 +37,7 @@ HISTORY_MODELS = {
     "devices.Device",
     "reconciliation.ReconciliationRun",
     "reconciliation.ReconciliationGap",
+    "reconciliation.StatementReminder",
     "votes.Vote",
     "votes.Ballot",
     "votes.Turnout",
