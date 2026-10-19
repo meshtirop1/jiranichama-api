@@ -15,11 +15,16 @@ from . import services
 
 class BankTransactionSerializer(serializers.ModelSerializer):
     narration = serializers.CharField(read_only=True)
+    typed_in = serializers.SerializerMethodField(
+        help_text="An official typed this line in; it was not read from the bank's file.")
 
     class Meta:
         model = BankTransaction
         fields = ["id", "source", "direction", "amount_cents", "value_date", "narration",
-                  "state", "external_ref", "created_at"]
+                  "state", "external_ref", "typed_in", "created_at"]
+
+    def get_typed_in(self, obj) -> bool:
+        return obj.typed_by_id is not None
 
 
 class AssignSerializer(serializers.Serializer):

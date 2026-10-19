@@ -1,5 +1,5 @@
 from django.conf import settings
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_field
 from rest_framework import permissions, serializers, status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
@@ -12,7 +12,30 @@ from apps.core.problems import Problem
 from apps.core.two_step import ChallengeSentSerializer, ConfirmSerializer, code_sent
 
 from . import services
-from .models import Statement
+from .models import Statement, TypedLine
+
+
+class TypedLineSerializer(serializers.ModelSerializer):
+    typed_by = serializers.CharField(read_only=True, default=None)
+
+    class Meta:
+        model = TypedLine
+        fields = ["line_no", "value_date", "narration", "reference", "credit_cents",
+                  "debit_cents", "balance_cents", "typed_by", "typed_at"]
+
+
+class TypedLineInSerializer(serializers.Serializer):
+    line_no = serializers.IntegerField()
+    value_date = serializers.DateField()
+    narration = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    reference = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    credit_cents = serializers.IntegerField(required=False, min_value=0, default=0)
+    debit_cents = serializers.IntegerField(required=False, min_value=0, default=0)
+    balance_cents = serializers.IntegerField(required=False, allow_null=True, default=None)
+
+
+class TypedLinesSerializer(serializers.Serializer):
+    lines = TypedLineInSerializer(many=True)
 
 
 class StatementSerializer(serializers.ModelSerializer):
@@ -21,13 +44,17 @@ class StatementSerializer(serializers.ModelSerializer):
     debits_cents = serializers.SerializerMethodField()
     uploaded_by = serializers.SerializerMethodField()
     confirmed_by = serializers.SerializerMethodField()
+    unreadable_lines = serializers.JSONField(
+        help_text="Rows the parser could not read: [{line_no, cells}]. While the state is "
+                  "needs_typing an official types them in.")
+    typed_lines = serializers.SerializerMethodField()
 
     class Meta:
         model = Statement
         fields = ["id", "route", "state", "filename", "parser", "period_from", "period_to",
                   "opening_cents", "closing_cents", "credits_cents", "debits_cents", "lines",
                   "problems", "flags", "uploaded_by", "confirmed_by", "confirmed_at",
-                  "created_at"]
+                  "created_at", "unreadable_lines", "typed_lines"]
 
     def _who(self, obj, user) -> str | None:
         if user is None:
@@ -43,14 +70,24 @@ class StatementSerializer(serializers.ModelSerializer):
     def get_confirmed_by(self, obj) -> str | None:
         return self._who(obj, obj.confirmed_by)
 
+    def _typed(self, obj):
+        return list(obj.typed_lines.select_related("typed_by").order_by("line_no"))
+
     def get_lines(self, obj) -> int:
-        return len(obj.parsed_lines)
+        return len(obj.parsed_lines) + len(self._typed(obj))
 
     def get_credits_cents(self, obj) -> int:
-        return sum(line["credit_cents"] for line in obj.parsed_lines)
+        return (sum(line["credit_cents"] for line in obj.parsed_lines)
+                + sum(t.credit_cents for t in self._typed(obj)))
 
     def get_debits_cents(self, obj) -> int:
-        return sum(line["debit_cents"] for line in obj.parsed_lines)
+        return (sum(line["debit_cents"] for line in obj.parsed_lines)
+                + sum(t.debit_cents for t in self._typed(obj)))
+
+    @extend_schema_field(TypedLineSerializer(many=True))
+    def get_typed_lines(self, obj) -> list:
+        return [{**TypedLineSerializer(t).data, "typed_by": self._who(obj, t.typed_by)}
+                for t in self._typed(obj)]
 
 
 class StatementListView(APIView):
@@ -106,6 +143,22 @@ class StatementConfirmView(APIView):
             return code_sent(services.start_confirm(statement, me), request.user)
         statement = services.confirm(statement, me, challenge_id=s.validated_data["challenge_id"],
                                      sms_code=s.validated_data["code"])
+        return Response(StatementSerializer(statement).data)
+
+
+class StatementTypedLinesView(APIView):
+    """Type in the lines the parser could not read (5.5). All at once; refused, with the
+    reasons, unless the statement then adds up."""
+
+    @extend_schema(request=TypedLinesSerializer, responses=StatementSerializer)
+    @idempotent()
+    def post(self, request, pk):
+        statement, me = _statement_for(request, pk)
+        s = TypedLinesSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        lines = [{**line, "value_date": line["value_date"].isoformat()}
+                 for line in s.validated_data["lines"]]
+        statement = services.submit_typed_lines(statement, me, lines)
         return Response(StatementSerializer(statement).data)
 
 

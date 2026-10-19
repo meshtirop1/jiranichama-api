@@ -12,7 +12,7 @@ import re
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 
-from .base import ParsedLine, ParsedStatement, StatementUnreadable
+from .base import ParsedLine, ParsedStatement, StatementUnreadable, UnreadableLine
 from .profiles import Profile
 
 ALIASES: dict[str, tuple[str, ...]] = {
@@ -154,7 +154,7 @@ def parse_csv(data: bytes, profile: Profile) -> ParsedStatement:
                        if "balance" in cols and cols["balance"] < len(row)
                        and row[cols["balance"]].strip() else None)
         except ValueError:
-            bad.append(i)
+            bad.append(UnreadableLine(i, [c.strip() for c in row]))
             continue
         if credit < 0 or debit < 0:
             # A negative in a credit column is a debit, and the reverse.
@@ -167,13 +167,19 @@ def parse_csv(data: bytes, profile: Profile) -> ParsedStatement:
             cols["reference"] < len(row) else ""
         lines.append(ParsedLine(i, value_date, narration, reference, credit, debit, balance))
 
-    if bad:
-        raise StatementUnreadable("Some lines could not be read.", lines=bad)
     if not lines:
-        raise StatementUnreadable("The statement has no transactions.")
+        raise StatementUnreadable("The statement has no transactions we could read.",
+                                  lines=[b.line_no for b in bad])
+    if bad and not (opening and closing):
+        # Typed-in lines are checked against the statement's own opening and closing
+        # balances; without them we cannot tell a mistyped line from a real one.
+        raise StatementUnreadable("Some lines could not be read, and the statement does not "
+                                  "show its opening and closing balance.",
+                                  lines=[b.line_no for b in bad])
 
-    if lines[0].value_date > lines[-1].value_date:
-        lines.reverse()  # newest first in the file
+    newest_first = lines[0].value_date > lines[-1].value_date
+    if newest_first:
+        lines.reverse()
 
     seen: dict = {}
     for line in lines:
@@ -199,4 +205,6 @@ def parse_csv(data: bytes, profile: Profile) -> ParsedStatement:
         opening_cents=opening_cents,
         closing_cents=closing_cents,
         lines=lines,
+        unreadable=bad,
+        newest_first=newest_first,
     )

@@ -15,6 +15,10 @@ def _problem(code: str, message: str, **extra) -> dict:
     return {"code": code, "message": message, **extra}
 
 
+# Checks that can be run on the lines we read even when some lines still need typing in.
+UPLOAD_ONLY = ("account_missing", "account_mismatch", "future_dates")
+
+
 def check(parsed: ParsedStatement, account: BankAccount, today: date
           ) -> tuple[list[dict], list[dict]]:
     problems, flags = [], []
