@@ -104,6 +104,12 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # private S3 bucket with Object Lock (6.6) behind the same storage API.
 MEDIA_ROOT = env.path("MEDIA_ROOT", default=BASE_DIR / "media")
 MEDIA_URL = "/never-served/"
+# Device keys (6.7). SHA-256 fingerprints of the attestation roots we trust (Google's
+# hardware attestation roots in production). Until set, keys are recorded as untrusted;
+# production turns on DEVICE_REQUIRE_TRUSTED_ATTESTATION once the roots are in.
+ANDROID_ATTESTATION_ROOTS = env.list("ANDROID_ATTESTATION_ROOTS", default=[])
+DEVICE_REQUIRE_TRUSTED_ATTESTATION = env.bool("DEVICE_REQUIRE_TRUSTED_ATTESTATION",
+                                              default=False)
 # Printed (and in the QR code) on every statement PDF; the page is served by this API.
 VERIFY_BASE_URL = env("VERIFY_BASE_URL", default="https://api.jiranichama.co.ke/verify/")
 

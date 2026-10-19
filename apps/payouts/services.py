@@ -5,10 +5,12 @@ with an SMS code (the payee never counts); a signatory pays at the bank and taps
 the bank debit is matched back. Any other debit that is not a bank charge is an
 unapproved debit, and every member is told the same day.
 
-Phone-chip signatures (6.7) replace the SMS code for approvals in a later slice; the
-approval records and checks here stay the same.
+Officials with a registered phone key approve with their fingerprint, face or phone
+PIN (6.7): the phone signs the exact payload, with a single-use server nonce, and the SMS
+code is refused for them. Officials without the app keep the SMS code.
 """
 
+import base64
 import hashlib
 import re
 from datetime import timedelta
@@ -22,8 +24,8 @@ from apps.chamas.models import OFFICIAL_ROLES, Chama, Membership
 from apps.contributions.projections import position
 from apps.core.canonical import canonical_bytes
 from apps.core.problems import Problem
-from apps.devices import signing
-from apps.devices.models import SigningChallenge
+from apps.devices import attestation, keys, signing
+from apps.devices.models import Device, DeviceNonce, SigningChallenge
 from apps.feeds.models import BankTransaction, Statement
 from apps.ledger import services as ledger
 from apps.notify.sms import SmsFailed, send_sms
@@ -238,8 +240,16 @@ def summary(p: Proposal, language: str) -> str:
     return f"APPROVE paying {to} {amount} for {p.purpose}"
 
 
+def _sms_allowed(by: Membership) -> None:
+    if keys.active_device(by.user) is not None:
+        raise Problem("use_device_key", "This phone is set up for approvals: approve with "
+                                        "your fingerprint in the app.",
+                      status.HTTP_409_CONFLICT)
+
+
 def start_approve(p: Proposal, by: Membership) -> SigningChallenge:
     _require_can_answer(p, by)
+    _sms_allowed(by)
     return signing.issue(user=by.user, purpose=SigningChallenge.Purpose.APPROVE_PROPOSAL,
                          subject=f"payouts.proposal:{p.id}", content_hash=_content_hash(p),
                          action_text=summary(p, by.user.language))
@@ -247,6 +257,7 @@ def start_approve(p: Proposal, by: Membership) -> SigningChallenge:
 
 def approve(p: Proposal, by: Membership, *, challenge_id, sms_code: str) -> Proposal:
     _require_can_answer(p, by)
+    _sms_allowed(by)
     signing.confirm(user=by.user, challenge_id=challenge_id, code=sms_code,
                     purpose=SigningChallenge.Purpose.APPROVE_PROPOSAL,
                     subject=f"payouts.proposal:{p.id}", content_hash=_content_hash(p))
@@ -255,6 +266,67 @@ def approve(p: Proposal, by: Membership, *, challenge_id, sms_code: str) -> Prop
         _require_can_answer(p, by)
         Approval.objects.create(proposal=p, membership=by, role=by.role,
                                 decision=Approval.Decision.APPROVE, challenge_id=challenge_id)
+        approvals = p.approvals.filter(decision=Approval.Decision.APPROVE).count()
+        if approvals >= p.needs_officials:
+            p.state = Proposal.State.APPROVED
+            p.save(update_fields=["state"])
+    return p
+
+
+# --- Approving with the phone's key (6.7) ------------------------------------------------
+
+def signing_payload(p: Proposal, nonce: str) -> dict:
+    """What the phone signs: everything that makes this approval this approval, and a
+    single-use nonce, so the signature cannot be used for anything else."""
+    return {
+        "v": 1, "purpose": "approve_proposal", "chama_id": str(p.chama_id),
+        "proposal_id": str(p.id), "kind": p.kind, "amount_cents": p.amount_cents,
+        "deduct_cents": p.deduct_cents, "payee": p.payee_name,
+        "payee_account": p.payee_account, "purpose_text": p.purpose,
+        "rule_version_id": str(p.rule_version_id) if p.rule_version_id else None,
+        "nonce": nonce,
+    }
+
+
+def start_device_approve(p: Proposal, by: Membership) -> dict:
+    _require_can_answer(p, by)
+    device = keys.active_device(by.user)
+    if device is None:
+        raise Problem("no_device_key", "Set up this phone for approvals first.",
+                      status.HTTP_409_CONFLICT)
+    n = keys.issue_nonce(by.user, DeviceNonce.Use.SIGN, f"payouts.proposal:{p.id}")
+    payload = signing_payload(p, n.nonce)
+    return {"device_id": str(device.id), "payload": payload,
+            "payload_hash": hashlib.sha256(canonical_bytes(payload)).hexdigest()}
+
+
+def approve_with_device(p: Proposal, by: Membership, *, device_id, nonce: str,
+                        payload_hash: str, signature_b64: str) -> Proposal:
+    """The phone signed SHA-256 over the canonical payload, after the official's
+    fingerprint, face or PIN. A payload that changed since it was shown is refused (409)."""
+    device = Device.objects.filter(pk=device_id, user=by.user,
+                                   state=Device.State.ACTIVE).first()
+    if device is None:
+        raise Problem("device_invalid", "This phone's key is not active.",
+                      status.HTTP_403_FORBIDDEN)
+    with transaction.atomic():
+        p = Proposal.objects.select_for_update().get(pk=p.pk)
+        _require_can_answer(p, by)
+        keys.take_nonce(by.user, DeviceNonce.Use.SIGN, nonce, f"payouts.proposal:{p.id}")
+        message = canonical_bytes(signing_payload(p, nonce))
+        if hashlib.sha256(message).hexdigest() != payload_hash:
+            raise Problem("payload_changed", "What you are approving has changed. Look "
+                                             "again.", status.HTTP_409_CONFLICT)
+        try:
+            signature = base64.b64decode(signature_b64)
+        except (ValueError, TypeError):
+            signature = b""
+        if not attestation.verify_signature(bytes(device.public_key_der), message, signature):
+            raise Problem("signature_invalid", "The phone's signature did not check out.",
+                          status.HTTP_400_BAD_REQUEST)
+        Approval.objects.create(proposal=p, membership=by, role=by.role,
+                                decision=Approval.Decision.APPROVE, device=device,
+                                payload_hash=payload_hash, signature=signature)
         approvals = p.approvals.filter(decision=Approval.Decision.APPROVE).count()
         if approvals >= p.needs_officials:
             p.state = Proposal.State.APPROVED
@@ -328,17 +400,23 @@ def _reference_fits(p: Proposal, txn: BankTransaction) -> bool:
 
 
 def _write_payout(p: Proposal, txn: BankTransaction, extra: dict | None = None):
+    approved = list(p.approvals.filter(decision=Approval.Decision.APPROVE)
+                    .select_related("membership", "device").order_by("at"))
     approvers = [{"member_code": a.membership.member_code, "role": a.role,
-                  "at": a.at.isoformat()}
-                 for a in p.approvals.filter(decision=Approval.Decision.APPROVE)
-                 .select_related("membership").order_by("at")]
+                  "at": a.at.isoformat(), "method": "device" if a.device_id else "sms"}
+                 for a in approved]
+    # Phone-key signatures are bound into the entry's hash (signatures_digest), so the
+    # chain itself shows which keys approved.
+    signatures = [(a.membership.member_code, a.device.fingerprint,
+                   base64.b64encode(bytes(a.signature)).decode())
+                  for a in approved if a.device_id]
     if p.deduct_cents:
         extra = {**(extra or {}), "deducted_for_arrears": p.deduct_cents,
                  "paid_by_bank": p.amount_cents}
     entry = ledger.append(
         chama=p.chama, type="payout", source="proposal", source_id=p.id,
         amount_cents=-(p.amount_cents + p.deduct_cents), member=p.payee_membership,
-        rule_version_id=p.rule_version_id,
+        rule_version_id=p.rule_version_id, signatures=signatures,
         decision={"kind": p.kind, "payee": p.payee_name, "purpose": p.purpose,
                   "approved_by": approvers, "bank_ref": txn.external_ref,
                   "value_date": txn.value_date.isoformat(), **(extra or {})})

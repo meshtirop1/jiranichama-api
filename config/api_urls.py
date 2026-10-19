@@ -2,6 +2,7 @@ from django.urls import include, path
 
 from apps.chamas import views as chamas
 from apps.contributions import views as contrib
+from apps.devices import views as devices
 from apps.documents import views as docs
 from apps.feeds import views as feeds
 from apps.ledger import views as ledger
@@ -52,6 +53,11 @@ urlpatterns = [
     path("chamas/<uuid:pk>/rotation/next/", payouts.RotationNextView.as_view()),
     path("proposals/<uuid:pk>/", payouts.ProposalDetailView.as_view()),
     path("proposals/<uuid:pk>/approve/", payouts.ProposalApproveView.as_view()),
+    path("proposals/<uuid:pk>/signing-payload/", payouts.ProposalSigningPayloadView.as_view()),
+    path("proposals/<uuid:pk>/signatures/", payouts.ProposalSignatureView.as_view()),
+    path("devices/", devices.DeviceListView.as_view()),
+    path("devices/attest-nonce/", devices.AttestNonceView.as_view()),
+    path("devices/<uuid:pk>/revoke/", devices.DeviceRevokeView.as_view()),
     path("proposals/<uuid:pk>/decline/", payouts.ProposalDeclineView.as_view()),
     path("proposals/<uuid:pk>/cancel/", payouts.ProposalCancelView.as_view()),
     path("proposals/<uuid:pk>/paid/", payouts.ProposalPaidView.as_view()),

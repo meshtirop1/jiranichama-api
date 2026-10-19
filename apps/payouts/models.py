@@ -71,8 +71,9 @@ class Proposal(models.Model):
 
 
 class Approval(models.Model):
-    """One official's answer to a proposal, confirmed with an SMS code (approve) or
-    given with a reason (decline). Insert only; one per official per proposal."""
+    """One official's answer to a proposal: approved with the phone's key (fingerprint,
+    face or phone PIN) or an SMS code, or declined with a reason. Insert only; one per
+    official per proposal."""
 
     class Decision(models.TextChoices):
         APPROVE = "approve"
@@ -84,7 +85,12 @@ class Approval(models.Model):
     role = models.CharField(max_length=16)
     decision = models.CharField(max_length=8, choices=Decision.choices)
     reason = models.CharField(max_length=300, blank=True, default="")
-    challenge_id = models.UUIDField(null=True, blank=True)
+    challenge_id = models.UUIDField(null=True, blank=True)  # approved by SMS code
+    # Approved with the phone's key (6.7): the exact payload signed and the signature.
+    device = models.ForeignKey("devices.Device", on_delete=models.PROTECT, null=True,
+                               blank=True, related_name="+")
+    payload_hash = models.CharField(max_length=64, blank=True, default="")
+    signature = models.BinaryField(null=True, blank=True)
     at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

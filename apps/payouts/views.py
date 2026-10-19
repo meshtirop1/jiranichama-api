@@ -24,10 +24,17 @@ def _name(m: Membership) -> str:
 
 class ApprovalSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
+    method = serializers.SerializerMethodField(
+        help_text="device (fingerprint, face or phone PIN), sms, or null for a decline.")
 
     class Meta:
         model = Approval
-        fields = ["name", "role", "decision", "reason", "at"]
+        fields = ["name", "role", "decision", "reason", "method", "at"]
+
+    def get_method(self, a) -> str | None:
+        if a.decision != Approval.Decision.APPROVE:
+            return None
+        return "device" if a.device_id else "sms"
 
     def get_name(self, a) -> str:
         return _name(a.membership)
@@ -359,3 +366,41 @@ class RotationNextView(APIView):
         services.expire_due(chama)
         p = rot.propose_next(chama, me)
         return Response(_out(p, me), status=status.HTTP_201_CREATED)
+
+
+class SigningPayloadSerializer(serializers.Serializer):
+    device_id = serializers.UUIDField()
+    payload = serializers.JSONField()
+    payload_hash = serializers.CharField()
+
+
+class SignatureSerializer(serializers.Serializer):
+    device_id = serializers.UUIDField()
+    nonce = serializers.CharField(max_length=64)
+    payload_hash = serializers.CharField(max_length=64)
+    signature = serializers.CharField(help_text="Base64 DER ECDSA signature.")
+
+
+class ProposalSigningPayloadView(APIView):
+    """What the phone shows and signs, with a fresh single-use nonce."""
+
+    @extend_schema(request=None, responses=SigningPayloadSerializer)
+    def post(self, request, pk):
+        p, me = _proposal_for(request, pk)
+        return Response(services.start_device_approve(p, me))
+
+
+class ProposalSignatureView(APIView):
+    """An approval signed by the phone's key after the official's fingerprint, face or
+    phone PIN. A payload changed since it was shown returns 409."""
+
+    @extend_schema(request=SignatureSerializer, responses=ProposalSerializer)
+    def post(self, request, pk):
+        p, me = _proposal_for(request, pk)
+        s = SignatureSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        v = s.validated_data
+        p = services.approve_with_device(p, me, device_id=v["device_id"], nonce=v["nonce"],
+                                         payload_hash=v["payload_hash"],
+                                         signature_b64=v["signature"])
+        return Response(_out(p, me))
