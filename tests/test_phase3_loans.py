@@ -255,6 +255,7 @@ def test_unanswered_guarantees_expire_and_requests_lapse(setup):
 def test_loans_through_the_api(api, setup, sms_outbox):
     c, chair, treasurer, secretary, mary, john = setup
     api.force_authenticate(mary.user)
+    assert api.get(f"/api/v1/chamas/{c.id}/").json()["loans_on"] is True
     r = api.get(f"/api/v1/chamas/{c.id}/loans/quote/?amount_cents=3000000&term_months=3")
     assert r.json()["eligible"] is True
     r = api.post(f"/api/v1/chamas/{c.id}/loans/",
