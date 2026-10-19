@@ -19,6 +19,7 @@ from apps.reconciliation import views as recon
 from apps.referrals import views as referrals
 from apps.reports import views as reports
 from apps.rules import views as rules
+from apps.staff import support_views as support
 from apps.votes import views as votes
 
 urlpatterns = [
@@ -88,6 +89,9 @@ urlpatterns = [
     path("disputes/<uuid:pk>/disagree/", disputes.DisputeDisagreeView.as_view()),
     path("chamas/<uuid:pk>/analytics/", reports.AnalyticsView.as_view()),
     path("partners/", referrals.PartnerListView.as_view()),
+    path("chamas/<uuid:pk>/support/", support.SupportGrantListView.as_view()),
+    path("support-grants/<uuid:pk>/confirm/", support.SupportConfirmView.as_view()),
+    path("support-grants/<uuid:pk>/revoke/", support.SupportRevokeView.as_view()),
     path("chamas/<uuid:pk>/referrals/", referrals.ReferralListView.as_view()),
     path("referrals/<uuid:pk>/withdraw/", referrals.ReferralWithdrawView.as_view()),
     path("chamas/<uuid:pk>/investments/", investments.InvestmentListView.as_view()),

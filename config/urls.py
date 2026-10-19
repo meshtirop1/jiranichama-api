@@ -9,6 +9,7 @@ from apps.staff.site import staff_site
 urlpatterns = [
     path("healthz", healthz),
     path("staff/", staff_site.urls),
+    path("console/", include("apps.console.urls")),
     path("api/v1/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/v1/", include("config.api_urls")),
     path("verify/<str:code>/", VerifyPageView.as_view()),

@@ -1,0 +1,16 @@
+{% extends "console/base.html" %}
+{% block title %}{{ f.key }}{% endblock %}
+{% block content %}
+<h1>{{ f.key }}</h1>
+<p class="sub">{{ f.description|default:"" }}</p>
+<div class="card" style="margin-bottom:16px"><strong>On for:</strong>
+  {% for n in allowed %}<span class="pill">{{ n }}</span> {% empty %}<span class="muted">no chama listed</span>{% endfor %}</div>
+<form method="post" class="card">{% csrf_token %}
+  <label><input type="checkbox" name="enabled_for_all" {% if form.enabled_for_all.value %}checked{% endif %}> On for every chama</label>
+  {{ form.add_prefix.label_tag }}{{ form.add_prefix }}{{ form.add_prefix.errors }}
+  {{ form.remove_prefix.label_tag }}{{ form.remove_prefix }}{{ form.remove_prefix.errors }}
+  {{ form.reason.label_tag }}{{ form.reason }}{{ form.reason.errors }}
+  {{ form.case_ref.label_tag }}{{ form.case_ref }}{{ form.case_ref.errors }}
+  <button>Save (audited)</button>
+</form>
+{% endblock %}

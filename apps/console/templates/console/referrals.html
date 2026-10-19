@@ -1,0 +1,19 @@
+{% extends "console/base.html" %}
+{% block title %}Referrals{% endblock %}
+{% block content %}
+<h1>Referrals</h1>
+<p class="sub">Introductions the members voted for. Pass on only what the hand-over shows, then mark it sent.</p>
+<table>
+  <tr><th>Chama</th><th>Partner</th><th>State</th><th>Hand-over</th><th></th></tr>
+  {% for row in rows %}{% with r=row.r %}
+  <tr><td>{{ r.chama.name }}</td><td>{{ r.partner.name }}<br><span class="muted">{{ r.partner.get_regulator_display }} {{ r.partner.licence_number }}</span></td>
+      <td><span class="pill{% if r.state == 'consented' %} warn{% endif %}">{{ r.state }}</span></td>
+      <td>{% if row.handover %}{{ row.handover.chama }} ({{ row.handover.type }}, {{ row.handover.members }} members)<br>
+          Contact: {{ row.handover.contact_name }}, {{ row.handover.contact_phone }}{% else %}<span class="muted">-</span>{% endif %}</td>
+      <td>{% if row.handover %}
+        <form method="post">{% csrf_token %}<input type="hidden" name="referral" value="{{ r.id }}">
+          {{ form.reason.label_tag }}{{ form.reason }}{{ form.case_ref.label_tag }}{{ form.case_ref }}
+          <button>Mark sent</button></form>{% endif %}</td></tr>
+  {% endwith %}{% empty %}<tr><td colspan="5" class="muted">No referrals.</td></tr>{% endfor %}
+</table>
+{% endblock %}

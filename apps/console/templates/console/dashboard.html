@@ -1,0 +1,33 @@
+{% extends "console/base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<p class="sub">The platform at a glance. Chama records are visible only inside a support grant.</p>
+
+{% if audit_problems %}<div class="notice bad"><strong>The audit log chain is broken:</strong> {{ audit_problems|join:"; " }}</div>{% endif %}
+
+<div class="grid">
+  <div class="card stat"><div class="n">{{ chamas_total }}</div><div class="l">Chamas</div></div>
+  <div class="card stat"><div class="n">{{ active }}</div><div class="l">Active chamas</div></div>
+  <div class="card stat"><div class="n">{{ members }}</div><div class="l">Active members</div></div>
+  <div class="card stat"><div class="n">{{ users_week }}</div><div class="l">Used the app this week</div></div>
+  <div class="card stat"><div class="n">{{ entries_day }}</div><div class="l">Records written today</div></div>
+  <div class="card stat"><div class="n">{{ sms_day }} · {{ ussd_day }}</div><div class="l">SMS · USSD steps (24 h)</div></div>
+</div>
+
+<h2>Queues</h2>
+<table>
+  <tr><th>Queue</th><th class="num">Waiting</th></tr>
+  {% for name, url, n in queues %}
+  <tr><td><a href="{{ url }}">{{ name }}</a></td>
+      <td class="num">{% if n %}<span class="pill warn">{{ n }}</span>{% else %}<span class="pill">0</span>{% endif %}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>Chamas by state</h2>
+<table>
+  <tr><th>State</th><th class="num">Chamas</th></tr>
+  {% for state, n in chamas.items %}<tr><td>{{ state }}</td><td class="num">{{ n }}</td></tr>{% empty %}
+  <tr><td colspan="2" class="muted">No chamas yet.</td></tr>{% endfor %}
+</table>
+{% endblock %}

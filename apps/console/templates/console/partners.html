@@ -1,0 +1,14 @@
+{% extends "console/base.html" %}
+{% block title %}Partners{% endblock %}
+{% block content %}
+<h1>Partners</h1>
+<p class="sub">Licensed partners only (CBK, SASRA or IRA). Check the licence on the regulator's register before adding one.</p>
+<table>
+  <tr><th>Partner</th><th>Product</th><th>Regulator</th><th>Licence</th><th>Active</th></tr>
+  {% for p in rows %}<tr><td>{{ p.name }}</td><td>{{ p.get_product_display }}</td><td>{{ p.get_regulator_display }}</td><td>{{ p.licence_number }}</td>
+    <td>{% if p.active %}<span class="pill">yes</span>{% else %}<span class="pill warn">no</span>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="5" class="muted">No partners yet.</td></tr>{% endfor %}
+</table>
+<h2>Add a partner</h2>
+<form method="post" class="card">{% csrf_token %}{{ form.as_p }}<button>Add (audited)</button></form>
+{% endblock %}
