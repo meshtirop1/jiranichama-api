@@ -30,7 +30,9 @@ switch stands in until then.
 3. **Approvals.** Each official sees a plain summary ("APPROVE paying Mary KES 20,000 for
    merry-go-round turn") and approves with an SMS code naming exactly that
    (`POST /proposals/{id}/approve/`, two steps). The proposer may approve; one person
-   counts once. **The payee never approves**, even as an official. Enough approvals: the
+   counts once. **The payee never approves**, even as an official. Officials whose phone
+   holds a signing key approve with their fingerprint instead, and SMS is refused for
+   them ([Phone signing keys](device-keys.md)). Enough approvals: the
    proposal is `approved`.
 4. **Decline** with a reason (`/decline/`). When the officials left cannot reach the
    number needed, the proposal is `rejected`.
@@ -62,7 +64,7 @@ The alert entry stays on the chain either way: nothing is ever deleted.
 
 ## Not yet (later Phase 2 slices)
 
-Phone-chip signatures with fingerprint or face instead of SMS codes (6.7); members' votes;
+Members' votes;
 the merry-go-round rotation (turns, draw, arrears handling); the 72-hour escalation of
 an unexplained debit to a dispute; reminders when a Paid debit does not appear; retro
 approvals; amount mismatches handled as partial matches (today a different amount is

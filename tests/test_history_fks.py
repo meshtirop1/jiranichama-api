@@ -34,6 +34,7 @@ HISTORY_MODELS = {
     "payouts.MoneyOutConsent",
     "payouts.Rotation",
     "payouts.RotationTurn",
+    "devices.Device",
     "documents.DocumentAccess",
 }
 OUR_APPS = {"core", "flags", "accounts", "notify", "chamas", "ledger", "staff", "devices",
