@@ -17,7 +17,8 @@ from apps.rules.models import version_at
 ADVANCE_MONTHS = 12
 
 # Entries that move a member's contribution total for a period.
-_CONTRIBUTION_TYPES = ("contribution",)
+# A correction decided in a dispute (5.14) puts a member's savings right.
+_CONTRIBUTION_TYPES = ("contribution", "correction")
 
 
 def paid_by_period(membership: Membership) -> dict[str, int]:

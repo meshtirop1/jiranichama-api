@@ -256,6 +256,10 @@ def _tell_subject(vote: Vote) -> None:
         from apps.payouts.services import on_vote_closed
 
         on_vote_closed(vote)
+    elif vote.subject.startswith("disputes.dispute:"):
+        from apps.disputes.services import on_vote_closed as dispute_vote_closed
+
+        dispute_vote_closed(vote)
     elif vote.subject.startswith("fines.waiver:"):
         from apps.fines.waivers import on_vote_closed as waiver_vote_closed
 

@@ -68,6 +68,14 @@ SCHEMA_V1 = _obj(
             "every_days": {**_int, "minimum": 7, "maximum": 31},
         }),
         "kyc": _obj(["payer"], {"payer": {"enum": ["chama", "member"]}}),
+        # Disputes (5.14). Optional; defaults in disputes.services.DEFAULTS.
+        "disputes": _obj(["decided_by", "officials", "response_hours",
+                          "allow_officials_only"], {
+            "decided_by": {"enum": ["officials", "vote"]},
+            "officials": {**_int, "minimum": 1, "maximum": 5},
+            "response_hours": {**_int, "minimum": 24, "maximum": 336},
+            "allow_officials_only": {"type": "boolean"},
+        }),
         # Fine waivers (5.9). Optional; defaults in fines.waivers.DEFAULTS.
         "waivers": _obj(["officials", "member_vote"], {
             "officials": {**_int, "minimum": 1, "maximum": 5},

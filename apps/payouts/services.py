@@ -257,9 +257,18 @@ def _content_hash(p: Proposal) -> str:
     })).hexdigest()
 
 
+def _require_not_disputed(p: Proposal) -> None:
+    from apps.disputes.services import open_on_proposal
+
+    if open_on_proposal(p.id):
+        raise Problem("disputed", "A member has raised a dispute about this; it is paused "
+                                  "until the dispute is settled.", status.HTTP_409_CONFLICT)
+
+
 def _require_can_answer(p: Proposal, by: Membership) -> None:
     expire_due(p.chama)
     p.refresh_from_db()
+    _require_not_disputed(p)
     if p.state != Proposal.State.COLLECTING:
         raise Problem("not_collecting", "This proposal is not waiting for approvals.",
                       status.HTTP_409_CONFLICT)
@@ -414,6 +423,7 @@ def mark_paid(p: Proposal, by: Membership, bank_reference: str) -> Proposal:
         if p.state != Proposal.State.APPROVED:
             raise Problem("not_approved", "Only an approved proposal can be marked paid.",
                           status.HTTP_409_CONFLICT)
+        _require_not_disputed(p)
         p.state = Proposal.State.PAID_PENDING_MATCH
         p.bank_reference = (bank_reference or "").strip()[:100]
         p.paid_by, p.paid_at = by, timezone.now()

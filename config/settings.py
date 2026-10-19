@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "apps.votes",
     "apps.meetings",
     "apps.loans",
+    "apps.disputes",
 ]
 
 MIDDLEWARE = [

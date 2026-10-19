@@ -3,6 +3,7 @@ from django.urls import include, path
 from apps.chamas import views as chamas
 from apps.contributions import views as contrib
 from apps.devices import views as devices
+from apps.disputes import views as disputes
 from apps.documents import views as docs
 from apps.feeds import views as feeds
 from apps.fines import views as fines
@@ -63,6 +64,15 @@ urlpatterns = [
     path("chamas/<uuid:pk>/money-out/", payouts.MoneyOutView.as_view()),
     path("chamas/<uuid:pk>/proposals/", payouts.ProposalListView.as_view()),
     path("chamas/<uuid:pk>/rotation/", payouts.RotationView.as_view()),
+    path("chamas/<uuid:pk>/disputes/", disputes.DisputeListView.as_view()),
+    path("disputes/<uuid:pk>/", disputes.DisputeDetailView.as_view()),
+    path("disputes/<uuid:pk>/evidence/", disputes.DisputeEvidenceView.as_view()),
+    path("disputes/<uuid:pk>/respond/", disputes.DisputeRespondView.as_view()),
+    path("disputes/<uuid:pk>/withdraw/", disputes.DisputeWithdrawView.as_view()),
+    path("disputes/<uuid:pk>/escalate/", disputes.DisputeEscalateView.as_view()),
+    path("disputes/<uuid:pk>/outcome/", disputes.DisputeOutcomeView.as_view()),
+    path("disputes/<uuid:pk>/agree/", disputes.DisputeAgreeView.as_view()),
+    path("disputes/<uuid:pk>/disagree/", disputes.DisputeDisagreeView.as_view()),
     path("chamas/<uuid:pk>/fines/", fines.FineListView.as_view()),
     path("fines/<uuid:pk>/waiver/", fines.WaiverRequestView.as_view()),
     path("waivers/<uuid:pk>/approve/", fines.WaiverApproveView.as_view()),

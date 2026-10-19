@@ -118,7 +118,7 @@ def _render_en(r: dict) -> list[Clause]:
     ]
     out[-4:-4] = (_rotation_en(r.get("rotation")) + _votes_en(r.get("votes"))
                   + _changes_en(r.get("rule_changes")) + _meetings_en(r.get("meetings"))
-                  + _loans_en(r.get("loans")))
+                  + _loans_en(r.get("loans")) + _disputes_en(r.get("disputes")))
     return out
 
 
@@ -169,6 +169,36 @@ def _meetings_sw(m: dict | None) -> list[Clause]:
                        f"wanaweza kupinga ndani ya siku {m['objection_days']}. Kumbukumbu "
                        "zisizopingwa zinafungwa na haziwezi kubadilika."),
     ]
+
+
+_DISPUTE_DEFAULTS = {"decided_by": "officials", "officials": 2, "response_hours": 72,
+                     "allow_officials_only": True}
+
+
+def _disputes_en(d: dict | None) -> list[Clause]:
+    d = {**_DISPUTE_DEFAULTS, **(d or {})}
+    who = ("a vote of the members" if d["decided_by"] == "vote"
+           else f"{_plural(d['officials'], 'official')} not involved in it")
+    private = (" A personal matter may be shown to officials only."
+               if d["allow_officials_only"] else "")
+    return [Clause("14.1", f"Any member may raise a problem with a record. Every member sees "
+                           f"it.{private} Those involved have {d['response_hours']} hours to "
+                           f"respond; then it is settled by {who}, and the outcome is "
+                           "written into the records. Money out still waiting for approval "
+                           "pauses until it is settled.")]
+
+
+def _disputes_sw(d: dict | None) -> list[Clause]:
+    d = {**_DISPUTE_DEFAULTS, **(d or {})}
+    who = ("kura ya wanachama" if d["decided_by"] == "vote"
+           else f"viongozi {d['officials']} wasiohusika")
+    private = (" Jambo la binafsi linaweza kuonyeshwa kwa viongozi tu."
+               if d["allow_officials_only"] else "")
+    return [Clause("14.1", f"Mwanachama yeyote anaweza kuleta tatizo kuhusu rekodi. Kila "
+                           f"mwanachama analiona.{private} Wanaohusika wana saa "
+                           f"{d['response_hours']} kujibu; kisha linamalizwa na {who}, na "
+                           "uamuzi unaandikwa kwenye rekodi. Pesa za kutoka zinazosubiri "
+                           "kuidhinishwa zinasimama hadi limalizwe.")]
 
 
 def _rate(bp: int) -> str:
@@ -379,5 +409,5 @@ def _render_sw(r: dict) -> list[Clause]:
     ]
     out[-4:-4] = (_rotation_sw(r.get("rotation")) + _votes_sw(r.get("votes"))
                   + _changes_sw(r.get("rule_changes")) + _meetings_sw(r.get("meetings"))
-                  + _loans_sw(r.get("loans")))
+                  + _loans_sw(r.get("loans")) + _disputes_sw(r.get("disputes")))
     return out

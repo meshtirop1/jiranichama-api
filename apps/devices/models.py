@@ -25,6 +25,7 @@ class SigningChallenge(models.Model):
         CAST_BALLOT = "cast_ballot"
         GUARANTEE_LOAN = "guarantee_loan"
         APPROVE_WAIVER = "approve_waiver"
+        DECIDE_DISPUTE = "decide_dispute"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,

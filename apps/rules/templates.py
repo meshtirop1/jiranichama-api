@@ -37,6 +37,8 @@ _BASE = {
     "rule_changes": {"notice_days": 14, "vote_days": 7, "quorum_pct": 50, "pass_pct": 66,
                      "cooling_days": 30},
     "waivers": {"officials": 2, "member_vote": False},
+    "disputes": {"decided_by": "officials", "officials": 2, "response_hours": 72,
+                 "allow_officials_only": True},
     "meetings": {"absence_fine_cents": 0, "late_fine_cents": 0, "late_after_minutes": 15,
                  "apology_excuses": True, "objection_days": 7},
 }

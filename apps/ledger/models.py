@@ -29,6 +29,7 @@ class EntryType(models.TextChoices):
     MINUTES_SEALED = "minutes_sealed"
     LOAN_INTEREST = "loan_interest"
     LOAN_REPAYMENT = "loan_repayment"
+    DISPUTE_RESOLVED = "dispute_resolved"
     DEVICE_REGISTERED = "device_registered"
     ROLE_CHANGED = "role_changed"
     SEAL = "seal"
