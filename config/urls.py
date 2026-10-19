@@ -3,6 +3,7 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView
 
 from apps.core.views import healthz
+from apps.documents.views import VerifyPageView
 from apps.staff.site import staff_site
 
 urlpatterns = [
@@ -10,6 +11,7 @@ urlpatterns = [
     path("staff/", staff_site.urls),
     path("api/v1/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/v1/", include("config.api_urls")),
+    path("verify/<str:code>/", VerifyPageView.as_view()),
 ]
 
 if settings.DEBUG and settings.DEV_SMS_FILE:
