@@ -173,6 +173,15 @@ def _activate(device: Device) -> None:
         .update(state=Device.State.ACTIVE)
     device.refresh_from_db()
     _announce(device)
+    _install_elected(device.user)
+
+
+def _install_elected(user) -> None:
+    from apps.elections.models import Election
+    from apps.elections.services import try_install
+
+    for e in Election.objects.filter(candidate__user=user, state=Election.State.WON):
+        try_install(e)
 
 
 def _check_vouched(device: Device) -> None:

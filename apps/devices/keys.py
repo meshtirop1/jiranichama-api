@@ -106,6 +106,7 @@ def register(user, *, public_key_b64: str, platform: str, label: str, chain_b64:
         changes.after_create(device)
         if device.state == Device.State.ACTIVE:
             _announce(device)
+            changes._install_elected(user)
     return device
 
 

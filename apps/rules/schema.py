@@ -68,6 +68,11 @@ SCHEMA_V1 = _obj(
             "every_days": {**_int, "minimum": 7, "maximum": 31},
         }),
         "kyc": _obj(["payer"], {"payer": {"enum": ["chama", "member"]}}),
+        # Elections (5.12). Optional; defaults in elections.services.DEFAULTS.
+        "elections": _obj(["term_months", "vote_days"], {
+            "term_months": {**_int, "minimum": 6, "maximum": 60},
+            "vote_days": {**_int, "minimum": 1, "maximum": 30},
+        }),
         # Disputes (5.14). Optional; defaults in disputes.services.DEFAULTS.
         "disputes": _obj(["decided_by", "officials", "response_hours",
                           "allow_officials_only"], {

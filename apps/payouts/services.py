@@ -122,6 +122,15 @@ def _rules_check(chama: Chama, *, amount_cents: int, payee: Membership | None, t
     tiers = version.rules["approvals"]["tiers"]
     i, tier = next((i, t) for i, t in enumerate(tiers, start=1)
                    if t["up_to_cents"] is None or amount_cents <= t["up_to_cents"])
+    signers = Membership.objects.filter(chama=chama, role__in=OFFICIAL_ROLES,
+                                        state=Membership.State.ACTIVE)
+    if payee is not None:
+        signers = signers.exclude(pk=payee.pk)
+    if signers.count() < tier["officials"]:
+        refusal = _refuse("election_needed", f"4.{i}",
+                          f"This needs {tier['officials']} officials to approve, and only "
+                          f"{signers.count()} can. The chama needs an election first.")
+        return tier, refusal, version
     if payee is not None and not allow_arrears:
         behind = position(payee, today).arrears_cents
         if behind > 0:

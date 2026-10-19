@@ -91,3 +91,8 @@ contribution_first}`. Only the table-banking template has it, as `{3, 300, flat,
 `disputes: {decided_by: officials|vote, officials: 1-5, response_hours: 24-336,
 allow_officials_only: bool}`, in every template as `{officials, 2, 72, true}`. Clause 14.1.
 With `officials`, `officials` may not exceed the number of officials minus one.
+
+## Elections (schema v1, optional section)
+
+`elections: {term_months: 6-60, vote_days: 1-30}`, in every template as `{24, 7}`.
+Clause 15.1.

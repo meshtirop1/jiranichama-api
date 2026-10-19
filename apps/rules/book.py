@@ -118,7 +118,8 @@ def _render_en(r: dict) -> list[Clause]:
     ]
     out[-4:-4] = (_rotation_en(r.get("rotation")) + _votes_en(r.get("votes"))
                   + _changes_en(r.get("rule_changes")) + _meetings_en(r.get("meetings"))
-                  + _loans_en(r.get("loans")) + _disputes_en(r.get("disputes")))
+                  + _loans_en(r.get("loans")) + _disputes_en(r.get("disputes"))
+                  + _elections_en(r.get("elections")))
     return out
 
 
@@ -169,6 +170,25 @@ def _meetings_sw(m: dict | None) -> list[Clause]:
                        f"wanaweza kupinga ndani ya siku {m['objection_days']}. Kumbukumbu "
                        "zisizopingwa zinafungwa na haziwezi kubadilika."),
     ]
+
+
+def _elections_en(e: dict | None) -> list[Clause]:
+    e = {"term_months": 24, "vote_days": 7, **(e or {})}
+    return [Clause("15.1", f"Officials are elected by a vote of the members, open for "
+                           f"{_plural(e['vote_days'], 'day')}, for {e['term_months']} months. A "
+                           "new official starts once their phone is set up to sign; until "
+                           "then the outgoing official stays. If an official leaves suddenly, "
+                           "the others may name an acting official, whom the members confirm "
+                           "within 30 days.")]
+
+
+def _elections_sw(e: dict | None) -> list[Clause]:
+    e = {"term_months": 24, "vote_days": 7, **(e or {})}
+    return [Clause("15.1", f"Viongozi wanachaguliwa kwa kura ya wanachama, iliyo wazi kwa siku "
+                           f"{e['vote_days']}, kwa miezi {e['term_months']}. Kiongozi mpya "
+                           "anaanza simu yake ikishawekwa kutia sahihi; hadi hapo kiongozi "
+                           "anayeondoka anabaki. Kiongozi akiondoka ghafla, wengine wanaweza "
+                           "kumteua kaimu, ambaye wanachama wanamthibitisha ndani ya siku 30.")]
 
 
 _DISPUTE_DEFAULTS = {"decided_by": "officials", "officials": 2, "response_hours": 72,
@@ -409,5 +429,6 @@ def _render_sw(r: dict) -> list[Clause]:
     ]
     out[-4:-4] = (_rotation_sw(r.get("rotation")) + _votes_sw(r.get("votes"))
                   + _changes_sw(r.get("rule_changes")) + _meetings_sw(r.get("meetings"))
-                  + _loans_sw(r.get("loans")) + _disputes_sw(r.get("disputes")))
+                  + _loans_sw(r.get("loans")) + _disputes_sw(r.get("disputes"))
+                  + _elections_sw(r.get("elections")))
     return out
