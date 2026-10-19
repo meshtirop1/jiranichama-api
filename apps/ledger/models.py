@@ -27,6 +27,8 @@ class EntryType(models.TextChoices):
     VOTE_RESULT = "vote_result"
     MEETING_CLOSED = "meeting_closed"
     MINUTES_SEALED = "minutes_sealed"
+    LOAN_INTEREST = "loan_interest"
+    LOAN_REPAYMENT = "loan_repayment"
     DEVICE_REGISTERED = "device_registered"
     ROLE_CHANGED = "role_changed"
     SEAL = "seal"

@@ -6,6 +6,7 @@ from apps.devices import views as devices
 from apps.documents import views as docs
 from apps.feeds import views as feeds
 from apps.ledger import views as ledger
+from apps.loans import views as loans
 from apps.meetings import views as meetings
 from apps.notify import views as notify
 from apps.payouts import views as payouts
@@ -61,6 +62,13 @@ urlpatterns = [
     path("chamas/<uuid:pk>/money-out/", payouts.MoneyOutView.as_view()),
     path("chamas/<uuid:pk>/proposals/", payouts.ProposalListView.as_view()),
     path("chamas/<uuid:pk>/rotation/", payouts.RotationView.as_view()),
+    path("chamas/<uuid:pk>/loans/", loans.LoanListView.as_view()),
+    path("chamas/<uuid:pk>/loans/quote/", loans.LoanQuoteView.as_view()),
+    path("loans/<uuid:pk>/", loans.LoanDetailView.as_view()),
+    path("loans/<uuid:pk>/cancel/", loans.LoanCancelView.as_view()),
+    path("loans/<uuid:pk>/guarantors/", loans.LoanGuarantorView.as_view()),
+    path("guarantees/<uuid:pk>/accept/", loans.GuaranteeAcceptView.as_view()),
+    path("guarantees/<uuid:pk>/decline/", loans.GuaranteeDeclineView.as_view()),
     path("chamas/<uuid:pk>/meetings/", meetings.MeetingListView.as_view()),
     path("meetings/<uuid:pk>/", meetings.MeetingDetailView.as_view()),
     path("meetings/<uuid:pk>/cancel/", meetings.MeetingCancelView.as_view()),

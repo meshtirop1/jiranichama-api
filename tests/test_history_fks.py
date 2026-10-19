@@ -51,10 +51,13 @@ HISTORY_MODELS = {
     "meetings.Attendance",
     "meetings.Minutes",
     "meetings.MinutesObjection",
+    "loans.Loan",
+    "loans.Guarantee",
+    "loans.LoanReminder",
 }
 OUR_APPS = {"core", "flags", "accounts", "notify", "chamas", "ledger", "staff", "devices",
             "rules", "fines", "contributions", "feeds", "reconciliation", "documents",
-            "payouts", "votes", "meetings"}
+            "payouts", "votes", "meetings", "loans"}
 
 
 def _label(model) -> str:

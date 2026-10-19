@@ -28,7 +28,8 @@ from .models import ReconciliationGap, ReconciliationRun
 
 BREACH_AFTER_DAYS = 7
 BANK_TYPES = ("contribution", "fine_paid", "payout", "bank_charge",
-              "unapproved_debit_detected", "interest_earned")
+              "unapproved_debit_detected", "interest_earned", "loan_disbursed",
+              "loan_repayment")
 
 
 def _kes(cents: int) -> str:

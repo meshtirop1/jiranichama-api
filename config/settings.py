@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "apps.payouts",
     "apps.votes",
     "apps.meetings",
+    "apps.loans",
 ]
 
 MIDDLEWARE = [
@@ -217,6 +218,8 @@ CELERY_BEAT_SCHEDULE = {
     "meeting-reminders": {"task": "apps.meetings.tasks.meeting_reminders",
                           "schedule": crontab(minute="*/10")},
     "seal-minutes": {"task": "apps.meetings.tasks.seal_minutes", "schedule": crontab(minute=30)},
+    "loans-daily": {"task": "apps.loans.tasks.loans_daily",
+                    "schedule": crontab(hour=7, minute=30)},
     "expire-proposals": {"task": "apps.payouts.tasks.expire_proposals",
                          "schedule": crontab(minute=15)},
     "expire-stale-setups": {"task": "apps.chamas.tasks.expire_setups",

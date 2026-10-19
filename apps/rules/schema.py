@@ -68,6 +68,21 @@ SCHEMA_V1 = _obj(
             "every_days": {**_int, "minimum": 7, "maximum": 31},
         }),
         "kyc": _obj(["payer"], {"payer": {"enum": ["chama", "member"]}}),
+        # Loans (5.8). Optional; a chama without it has no loans. Behind the "loans" flag.
+        "loans": _obj(["min_months", "savings_multiple_pct", "interest", "monthly_rate_bp",
+                       "max_term_months", "guarantors", "grace_days", "late_penalty_cents",
+                       "default_after_missed", "contribution_first"], {
+            "min_months": {**_int, "minimum": 0, "maximum": 60},
+            "savings_multiple_pct": {**_int, "minimum": 0, "maximum": 1000},
+            "interest": {"enum": ["flat", "reducing"]},
+            "monthly_rate_bp": {**_int, "minimum": 0, "maximum": 1000},
+            "max_term_months": {**_int, "minimum": 1, "maximum": 60},
+            "guarantors": {**_int, "minimum": 0, "maximum": 10},
+            "grace_days": {**_int, "minimum": 0, "maximum": 30},
+            "late_penalty_cents": {**_int, "minimum": 0, "maximum": 10_000_000},
+            "default_after_missed": {**_int, "minimum": 1, "maximum": 12},
+            "contribution_first": {"type": "boolean"},
+        }),
         # Meetings (5.11). Optional; defaults in meetings.services.DEFAULTS.
         "meetings": _obj(["absence_fine_cents", "late_fine_cents", "late_after_minutes",
                           "apology_excuses", "objection_days"], {
