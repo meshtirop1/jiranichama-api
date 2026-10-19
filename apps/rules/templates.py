@@ -36,6 +36,8 @@ _BASE = {
     "votes": {"quorum_pct": 50, "pass_pct": 50, "secret": False},
     "rule_changes": {"notice_days": 14, "vote_days": 7, "quorum_pct": 50, "pass_pct": 66,
                      "cooling_days": 30},
+    "meetings": {"absence_fine_cents": 0, "late_fine_cents": 0, "late_after_minutes": 15,
+                 "apology_excuses": True, "objection_days": 7},
 }
 
 TEMPLATE_VERSION = 1

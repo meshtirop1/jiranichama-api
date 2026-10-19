@@ -26,4 +26,4 @@ See [Opening balances and cash at meetings](../flows/opening-and-cash.md).
 - `services.raise_late_fines(chama, today)`: raises late fines for periods whose grace
   ended. Hourly via Celery beat.
 
-Waivers, meeting fines and caps across several fine types arrive in Phase 3.
+Meeting fines (absence 11.1, lateness 11.2) are raised when the secretary closes attendance; see [meetings](meetings.md). `Fine.meeting` links them, and they are unique per member, rule and meeting. Waivers and caps across several fine types arrive later in Phase 3.

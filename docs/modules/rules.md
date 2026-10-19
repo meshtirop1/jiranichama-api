@@ -66,3 +66,9 @@ include it; the rule book adds clauses 8.1 and 8.2 when present.
 cooling_days: 0-365}`, in every template as `{14, 7, 50, 66, 30}`. The rule book's clause
 10.1 says it. The flow is in [rule changes](../flows/rule-changes.md). A version's states:
 `scheduled` (adopted by vote, waiting for its 1st of the month), `in_force`, `superseded`.
+
+## Meetings (schema v1, optional section)
+
+`meetings: {absence_fine_cents, late_fine_cents, late_after_minutes: 0-180,
+apology_excuses: bool, objection_days: 1-30}`, in every template as `{0, 0, 15, true, 7}`.
+Clauses 11.1 (attendance, absence fine), 11.2 (lateness) and 11.3 (minutes).

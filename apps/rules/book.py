@@ -111,12 +111,57 @@ def _render_en(r: dict) -> list[Clause]:
                       "correction."),
     ]
     out[-4:-4] = (_rotation_en(r.get("rotation")) + _votes_en(r.get("votes"))
-                  + _changes_en(r.get("rule_changes")))
+                  + _changes_en(r.get("rule_changes")) + _meetings_en(r.get("meetings")))
     return out
 
 
 _CHANGE_DEFAULTS = {"notice_days": 14, "vote_days": 7, "quorum_pct": 50, "pass_pct": 66,
                     "cooling_days": 30}
+
+
+_MEETING_DEFAULTS = {"absence_fine_cents": 0, "late_fine_cents": 0, "late_after_minutes": 15,
+                     "apology_excuses": True, "objection_days": 7}
+
+
+def _meetings_en(m: dict | None) -> list[Clause]:
+    m = {**_MEETING_DEFAULTS, **(m or {})}
+    absent = (f"A member who misses a meeting is fined {kes(m['absence_fine_cents'])}"
+              if m["absence_fine_cents"] else "There is no fine for missing a meeting")
+    absent += (", unless they sent an apology before it started." if m["apology_excuses"]
+               and m["absence_fine_cents"] else ".")
+    late = (f"A member who arrives more than {_plural(m['late_after_minutes'], 'minute')} "
+            f"after the start is fined {kes(m['late_fine_cents'])}." if m["late_fine_cents"]
+            else f"Arriving more than {_plural(m['late_after_minutes'], 'minute')} after the "
+                 "start is recorded as late, without a fine.")
+    return [
+        Clause("11.1", "The secretary schedules meetings and members are reminded 2 days and "
+                       "2 hours before. " + absent),
+        Clause("11.2", late),
+        Clause("11.3", f"The secretary shares the minutes with every member, who may object "
+                       f"within {_plural(m['objection_days'], 'day')}. Minutes without "
+                       "objection are then sealed and cannot change."),
+    ]
+
+
+def _meetings_sw(m: dict | None) -> list[Clause]:
+    m = {**_MEETING_DEFAULTS, **(m or {})}
+    absent = (f"Mwanachama asiyehudhuria mkutano anatozwa faini ya "
+              f"{kes(m['absence_fine_cents'])}" if m["absence_fine_cents"]
+              else "Hakuna faini ya kutohudhuria mkutano")
+    absent += (", isipokuwa alituma udhuru kabla ya mkutano kuanza." if m["apology_excuses"]
+               and m["absence_fine_cents"] else ".")
+    late = (f"Mwanachama anayefika zaidi ya dakika {m['late_after_minutes']} baada ya kuanza "
+            f"anatozwa faini ya {kes(m['late_fine_cents'])}." if m["late_fine_cents"]
+            else f"Kufika zaidi ya dakika {m['late_after_minutes']} baada ya kuanza "
+                 "kunaandikwa kama kuchelewa, bila faini.")
+    return [
+        Clause("11.1", "Katibu anapanga mikutano na wanachama wanakumbushwa siku 2 na saa 2 "
+                       "kabla. " + absent),
+        Clause("11.2", late),
+        Clause("11.3", f"Katibu anawashirikisha wanachama wote kumbukumbu za mkutano, ambao "
+                       f"wanaweza kupinga ndani ya siku {m['objection_days']}. Kumbukumbu "
+                       "zisizopingwa zinafungwa na haziwezi kubadilika."),
+    ]
 
 
 def _changes_en(c: dict | None) -> list[Clause]:
@@ -259,5 +304,5 @@ def _render_sw(r: dict) -> list[Clause]:
                       "mapya yanayoonekana."),
     ]
     out[-4:-4] = (_rotation_sw(r.get("rotation")) + _votes_sw(r.get("votes"))
-                  + _changes_sw(r.get("rule_changes")))
+                  + _changes_sw(r.get("rule_changes")) + _meetings_sw(r.get("meetings")))
     return out

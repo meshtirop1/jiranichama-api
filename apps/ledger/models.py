@@ -25,6 +25,8 @@ class EntryType(models.TextChoices):
     RULE_VERSION_ADOPTED = "rule_version_adopted"
     ROTATION_SET = "rotation_set"
     VOTE_RESULT = "vote_result"
+    MEETING_CLOSED = "meeting_closed"
+    MINUTES_SEALED = "minutes_sealed"
     DEVICE_REGISTERED = "device_registered"
     ROLE_CHANGED = "role_changed"
     SEAL = "seal"
