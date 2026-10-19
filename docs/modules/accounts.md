@@ -22,3 +22,6 @@ and when it was used.
 Staff are users with `is_staff`, created with `manage.py create_staff`. They sign in to
 the [staff console](../flows/staff-console.md) with a password and an authenticator code;
 they never use the member app's SMS sign-in for the console.
+
+`authentication.AppJWTAuthentication` is the API's JWT authentication; it also notes
+`User.last_app_at` (at most hourly), which decides who gets SMS receipts.

@@ -133,6 +133,11 @@ def apply_payment(*, txn: BankTransaction, member: Membership, amount_cents: int
                       "fine_id": str(fine.id)}))
         fine.state = Fine.State.REVERSED
         fine.save(update_fields=["state"])
+    if entries and base.get("method") != "payout_deduction":
+        from apps.notify.receipts import send_payment_receipt
+
+        ids = [e.id for e in entries]
+        transaction.on_commit(lambda: send_payment_receipt(member.id, ids))
     return entries
 
 

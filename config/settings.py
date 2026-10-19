@@ -111,6 +111,8 @@ MEDIA_URL = "/never-served/"
 SMS_INBOUND_TOKEN = env("SMS_INBOUND_TOKEN", default="")
 SMS_INBOUND_ALLOWED_IPS = env.list("SMS_INBOUND_ALLOWED_IPS", default=[])
 SMS_COMMANDS_PER_HOUR = env.int("SMS_COMMANDS_PER_HOUR", default=10)
+# Payment receipts go by SMS to members who have not opened the app in this many days.
+RECEIPT_SMS_IF_AWAY_DAYS = env.int("RECEIPT_SMS_IF_AWAY_DAYS", default=30)
 # M-Pesa Daraja C2B (6.9). Our public base URL for Safaricom's callbacks, the platform's
 # Daraja app credentials (used only to register callback URLs), and Safaricom's IPs.
 DARAJA_BASE_URL = env("DARAJA_BASE_URL", default="https://sandbox.safaricom.co.ke")
@@ -144,7 +146,7 @@ SILENCED_SYSTEM_CHECKS = env.list("DJANGO_SILENCED_CHECKS", default=[])
 # --- API ------------------------------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "apps.accounts.authentication.AppJWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",

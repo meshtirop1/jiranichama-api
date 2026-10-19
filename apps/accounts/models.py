@@ -52,6 +52,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
     anonymised_at = models.DateTimeField(null=True, blank=True)
+    # When they last used the app (at most hourly); members away get SMS receipts.
+    last_app_at = models.DateTimeField(null=True, blank=True)
 
     objects = UserManager()
 
