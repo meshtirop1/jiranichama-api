@@ -44,7 +44,14 @@ TEMPLATE_VERSION = 1
 
 TEMPLATES: dict[str, dict] = {
     "merry_go_round": {**_BASE, "rotation": {"order": "draw", "arrears": "skip"}},
-    "table_banking": {**_BASE, "statements": {"every_days": 7}},
+    # Table banking lends to members (5.8); loans stay off behind the "loans" flag until
+    # the lending opinion (decision 4).
+    "table_banking": {**_BASE, "statements": {"every_days": 7},
+                      "loans": {"min_months": 3, "savings_multiple_pct": 300,
+                                "interest": "flat", "monthly_rate_bp": 100,
+                                "max_term_months": 12, "guarantors": 2, "grace_days": 3,
+                                "late_penalty_cents": 20_000, "default_after_missed": 2,
+                                "contribution_first": True}},
     "welfare": {
         **_BASE,
         "contributions": {**_BASE["contributions"], "amount_cents": 50_000},

@@ -72,3 +72,11 @@ cooling_days: 0-365}`, in every template as `{14, 7, 50, 66, 30}`. The rule book
 `meetings: {absence_fine_cents, late_fine_cents, late_after_minutes: 0-180,
 apology_excuses: bool, objection_days: 1-30}`, in every template as `{0, 0, 15, true, 7}`.
 Clauses 11.1 (attendance, absence fine), 11.2 (lateness) and 11.3 (minutes).
+
+## Loans (schema v1, optional section)
+
+`loans: {min_months, savings_multiple_pct, interest: flat|reducing, monthly_rate_bp,
+max_term_months, guarantors, grace_days, late_penalty_cents, default_after_missed,
+contribution_first}`. Only the table-banking template has it, as `{3, 300, flat, 100, 12,
+2, 3, KES 200, 2, true}`. Without it a chama has no loans. Clauses 12.1-12.4. See
+[loans](../flows/loans.md).
