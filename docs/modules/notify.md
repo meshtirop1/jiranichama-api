@@ -23,3 +23,8 @@ class with a `send(to, text)` method, listed second in `SMS_BACKENDS`.
 Kiswahili words) for known members, within the hourly limit, and logs each message as
 `InboundSms` (hash, command, replied; never the text). The hook is `SmsInboundHook`.
 See [SMS commands](../flows/sms-commands.md).
+
+## Receipts (`receipts.py`)
+
+`send_payment_receipt` (after commit, from `reconciliation.services.apply_payment`): one
+SMS per payment to members away from the app. See [Payments](../flows/payments.md).
