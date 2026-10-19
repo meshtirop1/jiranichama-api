@@ -38,7 +38,7 @@ _BASE = {
 TEMPLATE_VERSION = 1
 
 TEMPLATES: dict[str, dict] = {
-    "merry_go_round": _BASE,
+    "merry_go_round": {**_BASE, "rotation": {"order": "draw", "arrears": "skip"}},
     "table_banking": {**_BASE, "statements": {"every_days": 7}},
     "welfare": {
         **_BASE,

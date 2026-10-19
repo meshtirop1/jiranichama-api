@@ -23,6 +23,7 @@ class EntryType(models.TextChoices):
     UNAPPROVED_DEBIT_DETECTED = "unapproved_debit_detected"
     MEMBERSHIP = "membership"
     RULE_VERSION_ADOPTED = "rule_version_adopted"
+    ROTATION_SET = "rotation_set"
     DEVICE_REGISTERED = "device_registered"
     ROLE_CHANGED = "role_changed"
     SEAL = "seal"

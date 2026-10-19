@@ -32,6 +32,8 @@ HISTORY_MODELS = {
     "payouts.Approval",
     "payouts.UnapprovedDebit",
     "payouts.MoneyOutConsent",
+    "payouts.Rotation",
+    "payouts.RotationTurn",
     "documents.DocumentAccess",
 }
 OUR_APPS = {"core", "flags", "accounts", "notify", "chamas", "ledger", "staff", "devices",
