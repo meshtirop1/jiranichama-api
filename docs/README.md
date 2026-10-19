@@ -9,6 +9,10 @@ owns.
 - [Writing to the ledger](flows/ledger-append.md): how a money fact is chained, signed and checked.
 - [Phone sign-in](flows/phone-sign-in.md): SMS code, PIN and tokens.
 - [Staff console](flows/staff-console.md): two-factor login and the audit log.
+- [Setting up a chama](flows/chama-setup.md): create, invite, adopt the rules, go live.
+- [Bank statements](flows/statements.md): the bank's email or a two-official upload, and the checks.
+- [Payments](flows/payments.md): matching, the rules engine, assign and "not me", late fines.
+- [Opening balances and cash at meetings](flows/opening-and-cash.md).
 
 ## Modules
 
@@ -19,6 +23,11 @@ owns.
 - [flags](modules/flags.md)
 - [chamas](modules/chamas.md)
 - [staff](modules/staff.md)
+- [rules](modules/rules.md): schema, templates, rule book, allocation engine.
+- [devices](modules/devices.md): SMS signing codes.
+- [feeds](modules/feeds.md): statements, parsers, bank transactions.
+- [reconciliation](modules/reconciliation.md)
+- [contributions and fines](modules/contributions-and-fines.md)
 
 ## Operations
 
@@ -26,13 +35,17 @@ owns.
 
 ## Where we are
 
-Phase 0 (foundations) of the proposal. Not built yet, in plan order: Phase 1 records core
-(chamas, rules engine, statements, matching), Phase 2 money out (signing keys, proposals,
-reconciliation, ID checks), Phase 3 governance and loans, Phase 4 basic phones.
+Phase 0 (foundations) is done. Phase 1 (records core) is in progress: chama setup and
+adoption, rules engine v1, statements by bank email or two-official upload, matching,
+contributions and late fines are built. Opening balances and cash at meetings are built
+too. Still to come in Phase 1: member and chama statements (PDF), typing in unreadable
+statement lines, and the full rules editor. Then Phase 2 money out, Phase 3 governance and loans, Phase 4 basic
+phones.
 
 ## Not in Phase 0, on purpose
 
-- `Idempotency-Key` handling on writes arrives with the first money-writing endpoints
-  (Phase 1). Sign-in does not need it: a repeated code request just sends another code.
+- `Idempotency-Key` is required on writes that create money facts or records (creating a
+  chama, uploading a statement, assigning a payment, "not me"). Sign-in does not need it:
+  a repeated code request just sends another code.
 - KMS envelope encryption for personal data. Phase 0 uses Fernet keys from the
   environment behind the same `encrypt` / `decrypt` calls, so callers will not change.

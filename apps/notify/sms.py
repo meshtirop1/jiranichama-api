@@ -38,6 +38,25 @@ class ConsoleBackend:
         return SmsResult(ok=True, provider=self.name)
 
 
+class DevFileBackend:
+    """Local development only: appends every message, code included, to
+    ``settings.DEV_SMS_FILE`` so an emulator test can read sign-in codes. Refuses to
+    load unless DEBUG is on and the file is configured."""
+
+    name = "dev_file"
+
+    def __init__(self):
+        if not settings.DEBUG or not settings.DEV_SMS_FILE:
+            raise RuntimeError("DevFileBackend is for local development only")
+
+    def send(self, to: str, text: str) -> SmsResult:
+        import json
+
+        with open(settings.DEV_SMS_FILE, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"to": to, "text": text}) + "\n")
+        return SmsResult(ok=True, provider=self.name)
+
+
 class AfricasTalkingBackend:
     name = "africastalking"
     timeout = 10

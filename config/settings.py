@@ -39,6 +39,12 @@ INSTALLED_APPS = [
     "apps.chamas",
     "apps.ledger",
     "apps.staff",
+    "apps.devices",
+    "apps.rules",
+    "apps.fines",
+    "apps.contributions",
+    "apps.feeds",
+    "apps.reconciliation",
 ]
 
 MIDDLEWARE = [
@@ -92,6 +98,10 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# Private files (bank statements). Local disk in development; production moves to the
+# private S3 bucket with Object Lock (6.6) behind the same storage API.
+MEDIA_ROOT = env.path("MEDIA_ROOT", default=BASE_DIR / "media")
+MEDIA_URL = "/never-served/"
 
 # --- Security -------------------------------------------------------------------------
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -114,7 +124,12 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "apps.core.problems.problem_exception_handler",
-    "DEFAULT_THROTTLE_RATES": {"otp": "20/hour", "otp_verify": "60/hour"},
+    # Per-IP limits on sign-in codes. Raised only for local end-to-end runs, where every
+    # test user signs in from 127.0.0.1.
+    "DEFAULT_THROTTLE_RATES": {
+        "otp": env("OTP_THROTTLE_RATE", default="20/hour"),
+        "otp_verify": env("OTP_VERIFY_THROTTLE_RATE", default="60/hour"),
+    },
     "UNAUTHENTICATED_USER": None,
 }
 
@@ -151,6 +166,10 @@ CELERY_TASK_ROUTES = {
 CELERY_BEAT_SCHEDULE = {
     "publish-outbox": {"task": "apps.core.tasks.publish_outbox", "schedule": 30.0},
     "sign-pending-entries": {"task": "apps.ledger.tasks.sign_pending", "schedule": 60.0},
+    "raise-late-fines": {"task": "apps.fines.tasks.raise_due_fines",
+                         "schedule": crontab(minute=5)},
+    "expire-stale-setups": {"task": "apps.chamas.tasks.expire_setups",
+                            "schedule": crontab(hour=2, minute=0)},
     "verify-chains-nightly": {
         "task": "apps.ledger.tasks.verify_chains",
         "schedule": crontab(hour=1, minute=0),
@@ -171,10 +190,23 @@ AFRICASTALKING_USERNAME = env("AFRICASTALKING_USERNAME", default="sandbox")
 AFRICASTALKING_API_KEY = env("AFRICASTALKING_API_KEY", default="")
 AFRICASTALKING_SENDER_ID = env("AFRICASTALKING_SENDER_ID", default="")
 AFRICASTALKING_SANDBOX = env.bool("AFRICASTALKING_SANDBOX", default=True)
+# Local development only (see apps.notify.sms.DevFileBackend). Ignored unless DEBUG is on.
+DEV_SMS_FILE = env("DEV_SMS_FILE", default="") if DEBUG else ""
+
+# Statements
+STATEMENT_MAX_BYTES = env.int("STATEMENT_MAX_BYTES", default=5 * 1024 * 1024)
+STATEMENT_INBOX_DOMAIN = env("STATEMENT_INBOX_DOMAIN", default="statements.jiranichama.co.ke")
+MAIL_HOOK_TOKEN = env("MAIL_HOOK_TOKEN", default="")
+MAIL_HOOK_ALLOWED_IPS = env.list("MAIL_HOOK_ALLOWED_IPS", default=[])
+# Bank sending domains for e-statements, e.g. {"equity": ["equitybank.co.ke"]}.
+# Empty until each bank's real sending domain is confirmed: until then every statement
+# email is held for staff instead of accepted.
+BANK_STATEMENT_SENDERS = env.json("BANK_STATEMENT_SENDERS", default={})
 
 OTP_TTL_SECONDS = 300
 OTP_MAX_ATTEMPTS = 5
-OTP_MAX_PER_WINDOW = 3
+# Codes per phone per window. Raised only for local end-to-end runs.
+OTP_MAX_PER_WINDOW = env.int("OTP_MAX_PER_WINDOW", default=3)
 OTP_WINDOW_SECONDS = 600
 
 LOGGING = {

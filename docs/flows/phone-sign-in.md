@@ -13,7 +13,9 @@ sign-in they set a 6-digit app PIN.
    account is new and has a PIN. A new phone number creates the account here.
 3. `POST /api/v1/auth/pin/` with `pin` sets the PIN; changing it later needs
    `current_pin`. Very common PINs (`123456`, `000000`…) are refused.
-4. `POST /api/v1/auth/refresh/` swaps a refresh token for new tokens;
+4. `PATCH /api/v1/auth/me/` with `display_name` (and `language`): the name other members
+   see. The app asks for it with the PIN. `GET /auth/me/` reads it back.
+5. `POST /api/v1/auth/refresh/` swaps a refresh token for new tokens;
    `POST /api/v1/auth/logout/` ends the session by blacklisting the refresh token.
 
 ## Why it is built this way
@@ -35,6 +37,10 @@ sign-in they set a 6-digit app PIN.
 | Codes per phone | 3 per 10 minutes |
 | Code requests per IP | 20 per hour |
 | Verify attempts per IP | 60 per hour |
+
+The two per-IP limits can be changed with `OTP_THROTTLE_RATE` and
+`OTP_VERIFY_THROTTLE_RATE`; only local end-to-end runs raise them, because every test user
+signs in from 127.0.0.1.
 
 A wrong try is saved before the refusal is returned. (An early draft raised inside the
 database transaction, which rolled the counter back and allowed unlimited guesses; the

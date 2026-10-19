@@ -13,6 +13,7 @@ from . import services
 from .phones import phone_hint
 from .serializers import (
     LogoutSerializer,
+    ProfileSerializer,
     RequestCodeResponseSerializer,
     RequestCodeSerializer,
     SetPinSerializer,
@@ -69,6 +70,26 @@ class SetPinView(APIView):
         services.set_pin(request.user, s.validated_data["pin"],
                          s.validated_data.get("current_pin"))
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProfileView(APIView):
+    """The signed-in person's name and language. Members see each other by name in their
+    chamas, so a name is asked for once, at sign-up."""
+
+    @extend_schema(responses=ProfileSerializer)
+    def get(self, request):
+        return Response(ProfileSerializer(request.user).data)
+
+    @extend_schema(request=ProfileSerializer, responses=ProfileSerializer)
+    def patch(self, request):
+        s = ProfileSerializer(data=request.data, partial=True)
+        s.is_valid(raise_exception=True)
+        user = request.user
+        for field in ("display_name", "language"):
+            if field in s.validated_data:
+                setattr(user, field, s.validated_data[field])
+        user.save(update_fields=["display_name", "language"])
+        return Response(ProfileSerializer(user).data)
 
 
 class LogoutView(APIView):

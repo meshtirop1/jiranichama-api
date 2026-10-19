@@ -1,0 +1,112 @@
+{
+  "about": "Golden cases for engine.allocate, worked out by hand. Base rules: the merry_go_round template (KES 1,000 due on the 5th, 2 grace days, order arrears -> fines -> current, late fine KES 200). 'contributions' overrides parts of that section.",
+  "cases": [
+    {
+      "name": "on time, exact amount",
+      "amount_cents": 100000, "value_date": "2026-03-04",
+      "dues": [["2026-03", 100000], ["2026-04", 100000]], "fines": [],
+      "slices": [{"kind": "contribution", "amount_cents": 100000, "period": "2026-03", "outcome": "on_time", "fine_id": null}],
+      "fines_to_reverse": []
+    },
+    {
+      "name": "last day of grace is still on time",
+      "amount_cents": 100000, "value_date": "2026-03-07",
+      "dues": [["2026-03", 100000]], "fines": [],
+      "slices": [{"kind": "contribution", "amount_cents": 100000, "period": "2026-03", "outcome": "on_time", "fine_id": null}],
+      "fines_to_reverse": []
+    },
+    {
+      "name": "the day after grace is late",
+      "amount_cents": 100000, "value_date": "2026-03-08",
+      "dues": [["2026-03", 100000]], "fines": [],
+      "slices": [{"kind": "contribution", "amount_cents": 100000, "period": "2026-03", "outcome": "late", "fine_id": null}],
+      "fines_to_reverse": []
+    },
+    {
+      "name": "arrears, then the fine, then the current month",
+      "amount_cents": 220000, "value_date": "2026-04-06",
+      "dues": [["2026-03", 100000], ["2026-04", 100000]],
+      "fines": [["F-MAR", "2026-03", 20000]],
+      "slices": [
+        {"kind": "contribution", "amount_cents": 100000, "period": "2026-03", "outcome": "late", "fine_id": null},
+        {"kind": "fine", "amount_cents": 20000, "period": "2026-03", "outcome": "fine_paid", "fine_id": "F-MAR"},
+        {"kind": "contribution", "amount_cents": 100000, "period": "2026-04", "outcome": "on_time", "fine_id": null}
+      ],
+      "fines_to_reverse": []
+    },
+    {
+      "name": "partial payment stops where the money runs out",
+      "amount_cents": 150000, "value_date": "2026-04-06",
+      "dues": [["2026-03", 100000], ["2026-04", 100000]],
+      "fines": [["F-MAR", "2026-03", 20000]],
+      "slices": [
+        {"kind": "contribution", "amount_cents": 100000, "period": "2026-03", "outcome": "late", "fine_id": null},
+        {"kind": "fine", "amount_cents": 20000, "period": "2026-03", "outcome": "fine_paid", "fine_id": "F-MAR"},
+        {"kind": "contribution", "amount_cents": 30000, "period": "2026-04", "outcome": "on_time", "fine_id": null}
+      ],
+      "fines_to_reverse": []
+    },
+    {
+      "name": "extra money goes to months ahead, then a credit",
+      "amount_cents": 250000, "value_date": "2026-03-04",
+      "dues": [["2026-03", 100000], ["2026-04", 100000]], "fines": [],
+      "slices": [
+        {"kind": "contribution", "amount_cents": 100000, "period": "2026-03", "outcome": "on_time", "fine_id": null},
+        {"kind": "contribution", "amount_cents": 100000, "period": "2026-04", "outcome": "advance", "fine_id": null},
+        {"kind": "contribution", "amount_cents": 50000, "period": null, "outcome": "credit", "fine_id": null}
+      ],
+      "fines_to_reverse": []
+    },
+    {
+      "name": "a fine raised before an on-time payment reached us is reversed",
+      "amount_cents": 100000, "value_date": "2026-03-06",
+      "dues": [["2026-03", 100000]],
+      "fines": [["F-MAR", "2026-03", 20000]],
+      "slices": [{"kind": "contribution", "amount_cents": 100000, "period": "2026-03", "outcome": "on_time", "fine_id": null}],
+      "fines_to_reverse": ["F-MAR"]
+    },
+    {
+      "name": "the in-error fine stays when the money went to arrears first",
+      "amount_cents": 100000, "value_date": "2026-03-06",
+      "dues": [["2026-02", 100000], ["2026-03", 100000]],
+      "fines": [["F-FEB", "2026-02", 20000], ["F-MAR", "2026-03", 20000]],
+      "slices": [
+        {"kind": "contribution", "amount_cents": 100000, "period": "2026-02", "outcome": "late", "fine_id": null}
+      ],
+      "fines_to_reverse": []
+    },
+    {
+      "name": "current month first when the rules say so",
+      "contributions": {"allocation_order": ["current", "arrears", "fines"]},
+      "amount_cents": 100000, "value_date": "2026-04-04",
+      "dues": [["2026-03", 100000], ["2026-04", 100000]], "fines": [],
+      "slices": [{"kind": "contribution", "amount_cents": 100000, "period": "2026-04", "outcome": "on_time", "fine_id": null}],
+      "fines_to_reverse": []
+    },
+    {
+      "name": "no grace days",
+      "contributions": {"grace_days": 0},
+      "amount_cents": 100000, "value_date": "2026-03-06",
+      "dues": [["2026-03", 100000]], "fines": [],
+      "slices": [{"kind": "contribution", "amount_cents": 100000, "period": "2026-03", "outcome": "late", "fine_id": null}],
+      "fines_to_reverse": []
+    },
+    {
+      "name": "an opening-balance fine is payable at once",
+      "amount_cents": 120000, "value_date": "2026-03-04",
+      "dues": [["2026-03", 100000]],
+      "fines": [["F-OPEN", "2026-03", 20000, false]],
+      "slices": [
+        {"kind": "fine", "amount_cents": 20000, "period": "2026-03", "outcome": "fine_paid", "fine_id": "F-OPEN"},
+        {"kind": "contribution", "amount_cents": 100000, "period": "2026-03", "outcome": "on_time", "fine_id": null}
+      ],
+      "fines_to_reverse": []
+    },
+    {
+      "name": "nothing to allocate",
+      "amount_cents": 0, "value_date": "2026-03-04",
+      "dues": [["2026-03", 100000]], "fines": [],
+      "slices": [], "fines_to_reverse": []
+    }
+  ]
+}
