@@ -187,6 +187,8 @@ CELERY_BEAT_SCHEDULE = {
                          "schedule": crontab(minute=5)},
     "reconcile-daily": {"task": "apps.reconciliation.tasks.reconcile_daily",
                         "schedule": crontab(hour=6, minute=0)},
+    "statement-reminders": {"task": "apps.reconciliation.tasks.remind_overdue_statements",
+                            "schedule": crontab(hour=7, minute=0)},
     "close-votes": {"task": "apps.votes.tasks.close_due_votes", "schedule": crontab(minute=10)},
     "expire-proposals": {"task": "apps.payouts.tasks.expire_proposals",
                          "schedule": crontab(minute=15)},

@@ -23,6 +23,7 @@ from apps.feeds.models import BankTransaction, Statement
 from apps.ledger.models import LedgerEntry
 from apps.notify.sms import SmsFailed, send_sms
 
+from .freshness import status as freshness_status
 from .models import ReconciliationGap, ReconciliationRun
 
 BREACH_AFTER_DAYS = 7
@@ -153,4 +154,5 @@ def summary(chama: Chama) -> dict:
         "days_open": (timezone.localdate() - gap.opened_on).days if gap else 0,
         "breach_after_days": BREACH_AFTER_DAYS,
         "history": [{"on": k, "gap_cents": v} for k, v in list(days.items())[:14]],
+        "statement": freshness_status(chama),
     }

@@ -82,6 +82,7 @@ approved proposals, or an unapproved-debit alert).
 
 ## Not yet
 
-PDF parsing, typing in a whole statement's totals when the bank's format is unknown, statement freshness alerts and
-the weekly money-out rule, and bank feeds arrive in later PRs. Each accepted statement is
+PDF parsing, typing in a whole statement's totals when the bank's format is unknown, the weekly money-out rule,
+and bank feeds arrive in later PRs. An overdue statement brings
+[reminders](statement-reminders.md). Each accepted statement is
 followed by a [reconciliation](reconciliation.md).

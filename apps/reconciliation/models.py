@@ -78,3 +78,24 @@ class ReconciliationGap(models.Model):
 
     class Meta:
         db_table = "reconciliation_gap"
+
+
+class StatementReminder(models.Model):
+    """One overdue-statement reminder: a level reached in one overdue spell (identified by
+    the day the statement fell due). Unique, so each level is sent once. Only the count
+    of texts sent is filled in afterwards."""
+
+    id = models.BigAutoField(primary_key=True)
+    chama = models.ForeignKey("chamas.Chama", on_delete=models.PROTECT,
+                              related_name="statement_reminders")
+    due_on = models.DateField()
+    level = models.PositiveSmallIntegerField()
+    sent = models.PositiveIntegerField(default=0)
+    at = models.DateTimeField(auto_now_add=True)
+
+    MUTABLE = ["sent"]
+
+    class Meta:
+        db_table = "reconciliation_statement_reminder"
+        constraints = [models.UniqueConstraint(fields=["chama", "due_on", "level"],
+                                               name="one_reminder_per_level")]
