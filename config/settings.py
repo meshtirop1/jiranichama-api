@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "apps.contributions",
     "apps.feeds",
     "apps.reconciliation",
+    "apps.documents",
 ]
 
 MIDDLEWARE = [
@@ -102,6 +103,8 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # private S3 bucket with Object Lock (6.6) behind the same storage API.
 MEDIA_ROOT = env.path("MEDIA_ROOT", default=BASE_DIR / "media")
 MEDIA_URL = "/never-served/"
+# Printed (and in the QR code) on every statement PDF; the page is served by this API.
+VERIFY_BASE_URL = env("VERIFY_BASE_URL", default="https://api.jiranichama.co.ke/verify/")
 
 # --- Security -------------------------------------------------------------------------
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -129,6 +132,8 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "otp": env("OTP_THROTTLE_RATE", default="20/hour"),
         "otp_verify": env("OTP_VERIFY_THROTTLE_RATE", default="60/hour"),
+        # The public statement check page (no sign-in).
+        "verify": env("VERIFY_THROTTLE_RATE", default="30/minute"),
     },
     "UNAUTHENTICATED_USER": None,
 }

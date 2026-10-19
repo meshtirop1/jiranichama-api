@@ -2,6 +2,7 @@ from django.urls import include, path
 
 from apps.chamas import views as chamas
 from apps.contributions import views as contrib
+from apps.documents import views as docs
 from apps.feeds import views as feeds
 from apps.ledger import views as ledger
 from apps.reconciliation import views as recon
@@ -26,6 +27,7 @@ urlpatterns = [
     path("memberships/<uuid:pk>/position/", chamas.PositionView.as_view()),
     path("statements/<uuid:pk>/", feeds.StatementDetailView.as_view()),
     path("statements/<uuid:pk>/confirm/", feeds.StatementConfirmView.as_view()),
+    path("statements/<uuid:pk>/typed-lines/", feeds.StatementTypedLinesView.as_view()),
     path("bank-transactions/<uuid:pk>/assign/", recon.AssignView.as_view()),
     path("bank-transactions/<uuid:pk>/not-me/", recon.NotMeView.as_view()),
     path("hooks/mail/<str:token>/inbound/", feeds.MailInboundHook.as_view()),
@@ -36,4 +38,11 @@ urlpatterns = [
     path("cash-receipts/<uuid:pk>/confirm/", contrib.CashConfirmView.as_view()),
     path("cash-receipts/<uuid:pk>/decline/", contrib.CashDeclineView.as_view()),
     path("bank-transactions/<uuid:pk>/bank-cash/", contrib.BankCashView.as_view()),
+    path("memberships/<uuid:pk>/statement/", docs.MemberStatementView.as_view()),
+    path("memberships/<uuid:pk>/statement/pdf/", docs.MemberStatementPdfView.as_view()),
+    path("chamas/<uuid:pk>/statement/", docs.ChamaStatementView.as_view()),
+    path("chamas/<uuid:pk>/statement/pdf/", docs.ChamaStatementPdfView.as_view()),
+    path("documents/<uuid:pk>/", docs.DocumentView.as_view()),
+    path("documents/<uuid:pk>/file/", docs.DocumentFileView.as_view()),
+    path("verify/<str:code>/", docs.VerifyView.as_view()),
 ]

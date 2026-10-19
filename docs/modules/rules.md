@@ -37,3 +37,13 @@ Kiswahili rule book is a first draft for a native speaker to review before the p
 
 Add or change a golden case first, by hand, then make the code pass it. A rule version
 stores its template name and schema version, so old chamas keep the rules they adopted.
+
+## Errors the app can translate
+
+`validation.check` returns `RuleError(path, message, code)`. `PUT /chamas/{id}/rules/`
+sends them as `errors: [{path, code, message}]`. `path` names the setting
+(`contributions/due_day`, `approvals/tiers/1/officials`). `code` is stable, so the app shows
+the reason in English or Kiswahili. Codes: `out_of_range` (any schema failure),
+`tiers_last_unlimited`, `tiers_only_last_unlimited`, `tiers_order`, `tiers_officials_order`,
+`tiers_too_many_officials`, `fine_needs_amount`, `fine_cap_below_fine`. `message` stays as
+the English explanation for logs and staff.

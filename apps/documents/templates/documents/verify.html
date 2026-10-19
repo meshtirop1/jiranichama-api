@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Check a statement · JiraniChama</title>
+<style>
+  :root { --brand: #1B6B4A; --ok: #1B6B4A; --bad: #B3261E; --muted: #5F6B66; }
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; background: #F6F8F7; color: #1A1C1B; }
+  main { max-width: 560px; margin: 0 auto; padding: 24px 16px; }
+  h1 { color: var(--brand); font-size: 22px; margin: 0 0 16px; }
+  .card { background: #fff; border-radius: 12px; padding: 16px; border: 1px solid #D5DDD9; }
+  .verdict { font-weight: 600; font-size: 18px; margin: 0 0 12px; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); }
+  dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; }
+  dt { color: var(--muted); } dd { margin: 0; overflow-wrap: anywhere; }
+  code { font-size: 13px; }
+  p.note { color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Check a statement / Hakiki taarifa</h1>
+  <div class="card">
+  {% if r %}
+    {% if r.sealed %}
+      <p class="verdict ok">✓ Genuine: JiraniChama issued this statement. / Halali.</p>
+    {% else %}
+      <p class="verdict bad">✗ The record of this statement does not check out. Do not rely on it. / Usiitegemee.</p>
+    {% endif %}
+    <dl>
+      <dt>Chama</dt><dd>{{ r.chama_name }}</dd>
+      {% if r.member_code %}<dt>Member</dt><dd>{{ r.member_code }}</dd>{% endif %}
+      <dt>Period</dt><dd>{{ r.period_from }} – {{ r.period_to }}</dd>
+      <dt>Issued</dt><dd>{{ r.issued_at|slice:":10" }}</dd>
+      <dt>Code</dt><dd><code>{{ code }}</code></dd>
+      <dt>Fingerprint</dt><dd><code>{{ r.fingerprint }}</code></dd>
+      <dt>Sealed as</dt><dd>entry #{{ r.seal_entry_seq }}, receipt {{ r.seal_receipt }}</dd>
+    </dl>
+    <p class="note">The fingerprint above must match the one printed at the foot of every page.
+      If any figure on the paper differs from the chama's records, the fingerprint will not match.</p>
+  {% else %}
+    <p class="verdict bad">No statement has the code {{ code }}.</p>
+    <p class="note">Check the code at the foot of the statement and try again.</p>
+  {% endif %}
+  </div>
+  <p class="note">JiraniChama keeps chama records. It never holds a chama's money.</p>
+</main>
+</body>
+</html>

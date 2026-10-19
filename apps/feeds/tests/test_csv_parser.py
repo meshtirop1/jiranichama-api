@@ -52,11 +52,19 @@ def test_made_up_references_are_stable_across_uploads():
     assert [x.reference for x in a.lines] == [y.reference for y in b.lines]
 
 
-def test_unreadable_lines_are_reported_by_number():
+def test_unreadable_lines_are_kept_for_typing_in():
     bad = PREAMBLE_STYLE.replace(b'05/03/2026,CASH', b'yesterday,CASH')
+    parsed = parse("equity", "x.csv", bad)
+    assert [u.line_no for u in parsed.unreadable] == [9]
+    assert parsed.unreadable[0].cells[:2] == ["yesterday", "CASH DEPOSIT"]
+    assert len(parsed.lines) == 2
+
+
+def test_unreadable_lines_without_stated_balances_refuse_the_file():
+    bad = NEWEST_FIRST_NO_PREAMBLE.replace(b"05-Mar-2026", b"??")
     with pytest.raises(StatementUnreadable) as exc:
-        parse("equity", "x.csv", bad)
-    assert exc.value.lines == [9]
+        parse("kcb", "x.csv", bad)
+    assert exc.value.lines == [3]
 
 
 def test_pdf_goes_to_staff():

@@ -26,9 +26,12 @@ HISTORY_MODELS = {
     "contributions.OpeningBalanceLine",
     "contributions.OpeningObjection",
     "contributions.CashReceipt",
+    "documents.IssuedDocument",
+    "feeds.TypedLine",
+    "documents.DocumentAccess",
 }
 OUR_APPS = {"core", "flags", "accounts", "notify", "chamas", "ledger", "staff", "devices",
-            "rules", "fines", "contributions", "feeds", "reconciliation"}
+            "rules", "fines", "contributions", "feeds", "reconciliation", "documents"}
 
 
 def _label(model) -> str:

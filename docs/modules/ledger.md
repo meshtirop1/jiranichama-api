@@ -16,6 +16,9 @@ The chama's list of every money fact, written once and never edited. The full fl
 - `services.append()` is the only way to write an entry. No other code inserts into these
   tables.
 - Amounts are integer cents, signed (a correction is negative).
+- `seal` entries carry no money: each one records a statement PDF we issued (its
+  fingerprint and file hash), so it cannot be re-issued with other figures. Positions and
+  statements ignore them. See [Member and chama statements](../flows/member-statements.md).
 - Every foreign key into or out of these tables is `PROTECT`. A test fails the build if
   one is ever `CASCADE` or `SET_NULL`.
 - Changing anything in `hashing.py` breaks every existing chain. Bump `HASH_VERSION` and

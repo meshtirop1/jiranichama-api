@@ -9,6 +9,7 @@ domain) is accepted without anyone handling the file.
 import base64
 import hashlib
 import hmac
+from datetime import date
 
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -25,7 +26,7 @@ from apps.devices import signing
 from apps.devices.models import SigningChallenge
 
 from . import checks, parsers
-from .models import BankTransaction, Statement
+from .models import BankTransaction, Statement, TypedLine
 
 CONFIRMERS = OFFICIAL_ROLES + ("auditor",)
 
@@ -59,7 +60,20 @@ def _build(chama: Chama, *, route: str, filename: str, data: bytes, uploaded_by=
                                  "lines": exc.lines}])
         parsed = None
 
-    if parsed is not None:
+    if parsed is not None and parsed.unreadable:
+        # Only the account and dates can be checked now; the balances are checked once an
+        # official has typed in the lines we could not read (submit_typed_lines).
+        problems, _ = checks.check(parsed, account, timezone.localdate())
+        problems = [p for p in problems if p["code"] in checks.UPLOAD_ONLY]
+        fields.update(
+            parser=parsed.parser, period_from=parsed.period_from, period_to=parsed.period_to,
+            opening_cents=parsed.opening_cents, closing_cents=parsed.closing_cents,
+            parsed_lines=[line.as_dict() for line in parsed.lines],
+            unreadable_lines=[u.as_dict() for u in parsed.unreadable],
+            problems=problems, newest_first=parsed.newest_first,
+            state=Statement.State.REJECTED if problems else Statement.State.NEEDS_TYPING,
+        )
+    elif parsed is not None:
         problems, flags = checks.check(parsed, account, timezone.localdate())
         fields.update(
             parser=parsed.parser, period_from=parsed.period_from, period_to=parsed.period_to,
@@ -106,11 +120,105 @@ def upload(chama: Chama, by: Membership, *, filename: str, data: bytes) -> State
                   uploaded_by=by.user)
 
 
+def all_lines(statement: Statement) -> list[tuple[parsers.ParsedLine, int | None]]:
+    """Every line in date order: those read from the file, and those typed in (with who
+    typed them), in the order they appear in the file."""
+    read = [(parsers.ParsedLine.from_dict(raw), None) for raw in statement.parsed_lines]
+    typed = [(parsers.ParsedLine(t.line_no, t.value_date, t.narration, t.reference,
+                                 t.credit_cents, t.debit_cents, t.balance_cents), t.typed_by_id)
+             for t in statement.typed_lines.all()]
+    if not typed:
+        return read
+    return sorted(read + typed, key=lambda pair: pair[0].line_no,
+                  reverse=statement.newest_first)
+
+
 def _confirm_hash(statement: Statement) -> str:
+    lines = all_lines(statement)
+    typed = [line.as_dict() for line, who in lines if who is not None]
     return hashlib.sha256(canonical_bytes({
         "statement": str(statement.id), "sha256": statement.sha256,
-        "closing_cents": statement.closing_cents, "lines": len(statement.parsed_lines),
+        "closing_cents": statement.closing_cents, "lines": len(lines), "typed": typed,
     })).hexdigest()
+
+
+def _invalid(message: str, line_no=None) -> Problem:
+    extra = {"line": line_no} if line_no is not None else {}
+    return Problem("typed_line_invalid", message, status.HTTP_400_BAD_REQUEST, **extra)
+
+
+def _clean_typed(statement: Statement, raw: dict, today: date) -> parsers.ParsedLine:
+    try:
+        line_no = int(raw["line_no"])
+        value_date = date.fromisoformat(str(raw["value_date"]))
+        credit = int(raw.get("credit_cents") or 0)
+        debit = int(raw.get("debit_cents") or 0)
+        balance = raw.get("balance_cents")
+        balance = None if balance in (None, "") else int(balance)
+    except (KeyError, TypeError, ValueError):
+        raise _invalid("Each line needs its number, a date like 2026-10-31 and an "
+                       "amount.") from None
+    if credit < 0 or debit < 0 or (credit > 0) == (debit > 0):
+        raise _invalid(f"Line {line_no}: enter money in or money out, not both.", line_no)
+    if value_date > today:
+        raise _invalid(f"Line {line_no}: the date is in the future.", line_no)
+    narration = (raw.get("narration") or "").strip()[:200]
+    reference = (raw.get("reference") or "").strip()[:100]
+    if not reference:
+        # A stable reference, like the parser gives a line without one, marked as typed.
+        base = f"{statement.id}|{line_no}|{value_date}|{narration}|{credit}|{debit}"
+        reference = "jc-typed:" + hashlib.sha256(base.encode()).hexdigest()[:24]
+    return parsers.ParsedLine(line_no, value_date, narration, reference, credit, debit,
+                              balance)
+
+
+def submit_typed_lines(statement: Statement, by: Membership, lines: list[dict]) -> Statement:
+    """An official types in the lines the parser could not read: all of them at once, and
+    only if the whole statement then adds up and passes every check. Otherwise nothing is
+    saved and they see what is wrong. Afterwards a different official confirms (5.5)."""
+    if by.role not in CONFIRMERS:
+        raise Problem("not_allowed", "Only an official types in statement lines.",
+                      status.HTTP_403_FORBIDDEN)
+    today = timezone.localdate()
+    with transaction.atomic():
+        statement = (Statement.objects.select_for_update().select_related("bank_account")
+                     .get(pk=statement.pk))
+        if statement.state != Statement.State.NEEDS_TYPING:
+            raise Problem("not_needs_typing", "This statement has no lines waiting to be "
+                                              "typed in.", status.HTTP_409_CONFLICT)
+        wanted = sorted(u["line_no"] for u in statement.unreadable_lines)
+        typed = [_clean_typed(statement, raw, today) for raw in lines]
+        if sorted(t.line_no for t in typed) != wanted:
+            raise Problem("typed_lines_incomplete", "Type in every line that could not be "
+                                                    "read, once each.",
+                          status.HTTP_400_BAD_REQUEST, lines=wanted)
+        read = [parsers.ParsedLine.from_dict(raw) for raw in statement.parsed_lines]
+        merged = sorted(read + typed, key=lambda line: line.line_no,
+                        reverse=statement.newest_first)
+        parsed = parsers.ParsedStatement(
+            parser=statement.parser, account_no=statement.bank_account.account_no,
+            period_from=min(line.value_date for line in merged),
+            period_to=max(line.value_date for line in merged),
+            opening_cents=statement.opening_cents, closing_cents=statement.closing_cents,
+            lines=merged)
+        problems, _ = checks.check(parsed, statement.bank_account, today)
+        if problems:
+            raise Problem("typed_lines_do_not_add_up",
+                          "With these lines the statement does not check out. Look again "
+                          "at the amounts and dates on the bank's statement.",
+                          status.HTTP_400_BAD_REQUEST, problems=problems)
+        TypedLine.objects.bulk_create([
+            TypedLine(statement=statement, line_no=t.line_no, value_date=t.value_date,
+                      narration=t.narration, reference=t.reference,
+                      credit_cents=t.credit_cents, debit_cents=t.debit_cents,
+                      balance_cents=t.balance_cents, typed_by=by.user)
+            for t in typed])
+        statement.period_from, statement.period_to = parsed.period_from, parsed.period_to
+        # Someone typed figures in, so even a bank-emailed statement now needs a second
+        # official's confirmation.
+        statement.state = Statement.State.AWAITING_CONFIRMATION
+        statement.save(update_fields=["period_from", "period_to", "state"])
+    return statement
 
 
 def _require_confirmer(statement: Statement, by: Membership) -> None:
@@ -123,6 +231,10 @@ def _require_confirmer(statement: Statement, by: Membership) -> None:
     if statement.uploaded_by_id == by.user_id:
         raise Problem("second_official_required", "A different official must confirm the "
                                                   "statement you uploaded.",
+                      status.HTTP_403_FORBIDDEN)
+    if statement.typed_lines.filter(typed_by=by.user).exists():
+        raise Problem("second_official_required", "A different official must confirm the "
+                                                  "lines you typed in.",
                       status.HTTP_403_FORBIDDEN)
 
 
@@ -158,13 +270,13 @@ def confirm(statement: Statement, by: Membership, *, challenge_id, sms_code: str
 
 def ingest(statement: Statement) -> list[BankTransaction]:
     """Turn an accepted statement's lines into bank transactions. Lines already seen from
-    an earlier statement are skipped (they share the bank's reference). Credits go to
-    matching; debits wait for Phase 2's debit matching."""
+    an earlier statement are skipped (they share the bank's reference). Typed-in lines
+    keep who typed them. Credits go to matching; debits wait for Phase 2's debit
+    matching."""
     from apps.reconciliation.services import match_credit
 
     created = []
-    for raw in statement.parsed_lines:
-        line = parsers.ParsedLine.from_dict(raw)
+    for line, typed_by in all_lines(statement):
         credit = line.credit_cents > 0
         txn = BankTransaction(
             chama=statement.chama, bank_account=statement.bank_account,
@@ -175,6 +287,7 @@ def ingest(statement: Statement) -> list[BankTransaction]:
             value_date=line.value_date, balance_cents=line.balance_cents, statement=statement,
             state=BankTransaction.State.UNMATCHED if credit
             else BankTransaction.State.DEBIT_PENDING,
+            typed_by_id=typed_by,
         )
         txn.set_narration(line.narration)
         try:

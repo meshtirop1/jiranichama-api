@@ -89,7 +89,8 @@ def record(txn: BankTransaction, member: Membership, *, method: str, decided_by=
                             value_date=txn.value_date, version=version,
                             base={"bank_ref": txn.external_ref,
                                   "value_date": txn.value_date.isoformat(),
-                                  "method": method, "match_id": match.id})
+                                  "method": method, "match_id": match.id,
+                                  **({"typed_in": True} if txn.typed_by_id else {})})
     txn.state = BankTransaction.State.RECORDED
     txn.save(update_fields=["state"])
     return entries
