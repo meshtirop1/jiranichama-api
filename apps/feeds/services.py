@@ -299,6 +299,15 @@ def ingest(statement: Statement) -> list[BankTransaction]:
             if twin is not None:
                 # The same payment, already recorded from M-Pesa (5.3 step 4).
                 txn.state, txn.duplicate_of = BankTransaction.State.DUPLICATE, twin
+        if txn.duplicate_of_id is None:
+            from .bank_feed import twin as feed_twin
+
+            first = feed_twin(bank_account=statement.bank_account, source=txn.source,
+                              direction=txn.direction, amount_cents=txn.amount_cents,
+                              value_date=txn.value_date, reference=txn.external_ref)
+            if first is not None:
+                # Already read from the bank's own API (Phase 4).
+                txn.state, txn.duplicate_of = BankTransaction.State.DUPLICATE, first
         try:
             with transaction.atomic():
                 txn.save()

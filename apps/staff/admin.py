@@ -1,9 +1,10 @@
 """Registers the Phase 0 models on the staff console (not the default admin site)."""
 
+from django import forms
 from django.contrib import admin
 
 from apps.chamas.models import Chama, Membership
-from apps.feeds.models import DarajaChannel
+from apps.feeds.models import BankFeed, DarajaChannel
 from apps.flags.models import FeatureFlag
 from apps.ledger.models import LedgerEntry
 
@@ -56,3 +57,54 @@ class DarajaChannelAdmin(AuditedModelAdmin):
             audit.record(actor=request.user, action="register:feeds.darajachannel",
                          target=f"feeds.darajachannel:{channel.pk}",
                          reason="Register C2B URLs with Safaricom", case_ref="daraja")
+
+
+class BankFeedForm(forms.ModelForm):
+    """Credentials are typed in and stored encrypted; they are never shown again."""
+
+    api_key = forms.CharField(required=False, widget=forms.PasswordInput)
+    merchant_code = forms.CharField(required=False)
+    consumer_secret = forms.CharField(required=False, widget=forms.PasswordInput)
+    private_key_pem = forms.CharField(required=False, widget=forms.Textarea,
+                                      help_text="The account holder's RSA private key (PEM).")
+
+    class Meta:
+        model = BankFeed
+        fields = ("chama", "bank_account", "provider", "account_number", "country_code",
+                  "start_date", "active")
+
+    def save(self, commit=True):
+        feed = super().save(commit=False)
+        typed = {k: self.cleaned_data.get(k) for k in
+                 ("api_key", "merchant_code", "consumer_secret", "private_key_pem")}
+        if all(typed.values()):
+            feed.set_credentials(typed)
+        if commit:
+            feed.save()
+        return feed
+
+
+@admin.register(BankFeed, site=staff_site)
+class BankFeedAdmin(AuditedModelAdmin):
+    """A chama's bank account read through the bank's API. Add it once the chama has
+    authorised read-only access; "Pull now" reads it at once (otherwise hourly)."""
+
+    form = BankFeedForm
+    list_display = ("chama", "provider", "account_number", "active", "last_balance_cents",
+                    "last_pulled_at", "last_error")
+    readonly_fields = ("last_balance_cents", "balance_at", "last_pulled_at", "last_error",
+                       "opening_cents")
+    actions = ["pull_now"]
+
+    @admin.action(description="Pull now")
+    def pull_now(self, request, queryset):
+        from apps.feeds.bank_feed import pull
+
+        for feed in queryset:
+            p = pull(feed)
+            note = p.error or f"{p.new_lines} new lines"
+            self.message_user(request, f"{feed}: {note}",
+                              level="error" if p.error else "info")
+            audit.record(actor=request.user, action="pull:feeds.bankfeed",
+                         target=f"feeds.bankfeed:{feed.pk}", reason="Pull bank feed now",
+                         case_ref="bank-feed")

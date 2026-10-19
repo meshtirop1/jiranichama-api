@@ -67,22 +67,31 @@ def records_cents(chama: Chama, baseline: int) -> int:
 
 def reconcile(chama: Chama, today: date | None = None) -> ReconciliationRun | None:
     today = today or timezone.localdate()
+    from apps.feeds.bank_feed import latest
+
     accepted = Statement.objects.filter(chama=chama, state=Statement.State.ACCEPTED)
     first = accepted.order_by("period_from", "created_at").first()
     last = accepted.order_by("-period_to", "-created_at").first()
-    if first is None:
+    feed = latest(chama)
+    if first is None and (feed is None or feed.opening_cents is None):
         return None
+    baseline = first.opening_cents if first is not None else feed.opening_cents
+    # The bank's balance: from its own API when that is newer than the last statement.
+    use_feed = feed is not None and (
+        last is None or timezone.localdate(feed.balance_at) >= last.period_to)
+    bank = feed.last_balance_cents if use_feed else last.closing_cents
     with transaction.atomic():
         Chama.objects.select_for_update().get(pk=chama.pk)
-        records = records_cents(chama, first.opening_cents)
+        records = records_cents(chama, baseline)
         unmatched = (BankTransaction.objects.filter(
             chama=chama, state=BankTransaction.State.UNMATCHED,
             direction=BankTransaction.Direction.CREDIT)
             .exclude(source=BankTransaction.Source.DARAJA)
             .aggregate(t=Sum("amount_cents"))["t"] or 0)
-        gap = last.closing_cents - records
+        gap = bank - records
         run = ReconciliationRun.objects.create(
-            chama=chama, on=today, statement=last, bank_cents=last.closing_cents,
+            chama=chama, on=today, statement=None if use_feed else last, bank_cents=bank,
+            source="bank_api" if use_feed else "statement",
             records_cents=records, gap_cents=gap, unmatched_cents=unmatched)
         current = (ReconciliationGap.objects.select_for_update()
                    .filter(chama=chama, state__in=[ReconciliationGap.State.OPEN,
@@ -160,7 +169,9 @@ def summary(chama: Chama) -> dict:
     return {
         "status": status,
         "checked_on": run.on.isoformat() if run else None,
-        "bank_as_of": run.statement.period_to.isoformat() if run else None,
+        "bank_as_of": ((run.statement.period_to if run.statement_id
+                        else timezone.localdate(run.at)).isoformat() if run else None),
+        "bank_source": run.source if run else None,
         "bank_cents": run.bank_cents if run else None,
         "records_cents": run.records_cents if run else None,
         "gap_cents": run.gap_cents if run else 0,

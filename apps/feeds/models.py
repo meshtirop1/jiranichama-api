@@ -175,3 +175,62 @@ class DarajaChannel(models.Model):
 
     def __str__(self):
         return f"{self.kind} {self.shortcode} ({self.chama})"
+
+
+class BankFeed(models.Model):
+    """A chama's bank account read through the bank's own API (Phase 4): Equity's Jenga
+    first. Read-only scopes only; we never ask for payment permissions. The credentials
+    are stored encrypted and set by staff once the chama has authorised it."""
+
+    class Provider(models.TextChoices):
+        JENGA = "jenga", "Equity Jenga"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    chama = models.ForeignKey(Chama, on_delete=models.PROTECT, related_name="bank_feeds")
+    bank_account = models.ForeignKey(BankAccount, on_delete=models.PROTECT, related_name="+")
+    provider = models.CharField(max_length=10, choices=Provider.choices,
+                                default=Provider.JENGA)
+    account_number = models.CharField(max_length=40)
+    country_code = models.CharField(max_length=2, default="KE")
+    credentials_enc = models.BinaryField(default=b"", blank=True)
+    start_date = models.DateField(help_text="Lines from this date are read.")
+    active = models.BooleanField(default=True)
+    # Worked out on the first pull for a chama with no statement yet: the balance the
+    # records start from.
+    opening_cents = models.BigIntegerField(null=True, blank=True)
+    last_balance_cents = models.BigIntegerField(null=True, blank=True)
+    balance_at = models.DateTimeField(null=True, blank=True)
+    last_pulled_at = models.DateTimeField(null=True, blank=True)
+    last_error = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "feeds_bank_feed"
+
+    def __str__(self):
+        return f"{self.get_provider_display()} {self.account_number[-4:]} ({self.chama})"
+
+    def set_credentials(self, creds: dict) -> None:
+        import json
+
+        self.credentials_enc = encrypt(json.dumps(creds))
+
+    def credentials(self) -> dict:
+        import json
+
+        return json.loads(decrypt(self.credentials_enc)) if self.credentials_enc else {}
+
+
+class BankFeedPull(models.Model):
+    """One read of a bank feed: the balance seen and how many new lines. Insert only."""
+
+    id = models.BigAutoField(primary_key=True)
+    feed = models.ForeignKey(BankFeed, on_delete=models.PROTECT, related_name="pulls")
+    balance_cents = models.BigIntegerField(null=True, blank=True)
+    lines = models.PositiveIntegerField(default=0)
+    new_lines = models.PositiveIntegerField(default=0)
+    error = models.CharField(max_length=300, blank=True)
+    at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "feeds_bank_feed_pull"

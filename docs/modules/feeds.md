@@ -32,3 +32,12 @@ staff console). `receive` stores a C2B confirmation once per TransID and matches
 line as `duplicate`; `register_urls` registers our callbacks with Safaricom. The hook view
 is `DarajaHook` (`/hooks/daraja/{token}/{validation|confirmation}/`).
 See [M-Pesa paybill](../flows/paybill.md).
+
+## Bank feeds (`jenga.py`, `bank_feed.py`)
+
+`BankFeed` (a chama's account read through its bank's API; credentials encrypted) and
+`BankFeedPull` (one read: balance, lines, new lines or the error; append-only).
+`jenga.Client` signs and makes the Jenga calls; `bank_feed.pull` turns lines into
+`bank_api` transactions, marks lines already recorded elsewhere as duplicates (`twin`,
+also used by statement ingest), matches the rest and runs the reconciliation. Hourly task
+`pull_bank_feeds`. See [bank feeds](../flows/bank-feeds.md).
