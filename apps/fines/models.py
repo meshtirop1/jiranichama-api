@@ -48,3 +48,52 @@ class Fine(models.Model):
         if self.state in (self.State.REVERSED, self.State.WAIVED):
             return 0
         return max(self.amount_cents - self.paid_cents, 0)
+
+
+class Waiver(models.Model):
+    """A member's request to have a fine waived (5.9 step 5). It needs the approvals the
+    rules set for waivers (default two officials) and, if the rules say, a members' vote.
+    Nobody approves a waiver of their own fine."""
+
+    class State(models.TextChoices):
+        REQUESTED = "requested"
+        WAIVED = "waived"
+        REFUSED = "refused"    # declined, voted down, or the fine was paid meanwhile
+        EXPIRED = "expired"    # approvals not in by the deadline
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    fine = models.ForeignKey(Fine, on_delete=models.PROTECT, related_name="waivers")
+    requested_by = models.ForeignKey(Membership, on_delete=models.PROTECT, related_name="+")
+    reason = models.CharField(max_length=500)
+    needs_officials = models.PositiveSmallIntegerField()
+    needs_vote = models.BooleanField(default=False)
+    deadline_at = models.DateTimeField()
+    state = models.CharField(max_length=10, choices=State.choices, default=State.REQUESTED)
+    state_reason = models.CharField(max_length=300, blank=True)
+    entry = models.ForeignKey(LedgerEntry, on_delete=models.PROTECT, null=True, blank=True,
+                              related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    MUTABLE = ["state", "state_reason", "entry_id"]
+
+    class Meta:
+        db_table = "fines_waiver"
+
+
+class WaiverDecision(models.Model):
+    class Decision(models.TextChoices):
+        APPROVE = "approve"
+        DECLINE = "decline"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    waiver = models.ForeignKey(Waiver, on_delete=models.PROTECT, related_name="decisions")
+    membership = models.ForeignKey(Membership, on_delete=models.PROTECT, related_name="+")
+    decision = models.CharField(max_length=8, choices=Decision.choices)
+    reason = models.CharField(max_length=300, blank=True)
+    challenge_id = models.UUIDField(null=True, blank=True)
+    at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "fines_waiver_decision"
+        constraints = [models.UniqueConstraint(fields=["waiver", "membership"],
+                                               name="one_decision_per_official")]

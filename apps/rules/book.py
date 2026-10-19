@@ -86,6 +86,12 @@ def _render_en(r: dict) -> list[Clause]:
     out.append(Clause("3.4", "Cash paid at a meeting counts from the day it was handed over if "
                              f"it reaches the bank within {_plural(cash_days, 'day')}; "
                              "otherwise from the day it was banked."))
+    w = {"officials": 2, "member_vote": False, **(r.get("waivers") or {})}
+    out.append(Clause("3.5", f"A member may ask for a fine to be waived, with a reason. It "
+                             f"needs {_plural(w['officials'], 'official')}"
+                             + (" and a vote of the members" if w["member_vote"] else "")
+                             + ". Nobody decides a waiver of their own fine, and every "
+                               "member sees each waiver and its reason."))
     for i, tier in enumerate(a["tiers"], start=1):
         amount = (f"up to {kes(tier['up_to_cents'])}" if tier["up_to_cents"] is not None
                   else "above that" if i > 1 else "of any amount")
@@ -339,6 +345,12 @@ def _render_sw(r: dict) -> list[Clause]:
     out.append(Clause("3.4", "Pesa taslimu iliyolipwa mkutanoni inahesabiwa tangu siku "
                              "ilipokabidhiwa ikifika benki ndani ya siku "
                              f"{cash_days}; la sivyo tangu siku ilipowekwa benki."))
+    w = {"officials": 2, "member_vote": False, **(r.get("waivers") or {})}
+    out.append(Clause("3.5", "Mwanachama anaweza kuomba faini isamehewe, kwa sababu. "
+                             f"Inahitaji viongozi {w['officials']}"
+                             + (" na kura ya wanachama" if w["member_vote"] else "")
+                             + ". Hakuna anayeamua msamaha wa faini yake mwenyewe, na kila "
+                               "mwanachama anaona kila msamaha na sababu yake."))
     for i, tier in enumerate(a["tiers"], start=1):
         amount = (f"hadi {kes(tier['up_to_cents'])}" if tier["up_to_cents"] is not None
                   else "zaidi ya hapo" if i > 1 else "ya kiasi chochote")

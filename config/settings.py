@@ -218,6 +218,7 @@ CELERY_BEAT_SCHEDULE = {
     "meeting-reminders": {"task": "apps.meetings.tasks.meeting_reminders",
                           "schedule": crontab(minute="*/10")},
     "seal-minutes": {"task": "apps.meetings.tasks.seal_minutes", "schedule": crontab(minute=30)},
+    "expire-waivers": {"task": "apps.fines.tasks.expire_waivers", "schedule": crontab(minute=40)},
     "loans-daily": {"task": "apps.loans.tasks.loans_daily",
                     "schedule": crontab(hour=7, minute=30)},
     "expire-proposals": {"task": "apps.payouts.tasks.expire_proposals",

@@ -11,3 +11,11 @@ def raise_due_fines() -> int:
     today = timezone.localdate()
     return sum(raise_late_fines(c, today)
                for c in Chama.objects.filter(state=Chama.State.ACTIVE).iterator())
+
+
+@shared_task
+def expire_waivers() -> int:
+    """Hourly: waivers not decided by their deadline expire."""
+    from .waivers import expire_due
+
+    return expire_due()
