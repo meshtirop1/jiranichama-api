@@ -147,13 +147,14 @@ def propose(chama: Chama, by: Membership, *, kind: str, amount_cents: int, purpo
     """``allow_arrears`` and ``deduct_cents`` are for a merry-go-round turn paid less what
     the member owes (rule 8.2 "deduct"); see rotation.propose_next."""
     _money_out(chama)
-    _official(by)
+    if kind != Proposal.Kind.LOAN:  # a loan is proposed by the borrower (loans.services)
+        _official(by)
     if amount_cents <= 0:
         raise Problem("invalid_amount", "Enter the amount.")
     purpose = (purpose or "").strip()[:200]
     if not purpose:
         raise Problem("purpose_required", "Say what the money is for.")
-    if kind == Proposal.Kind.PAYOUT:
+    if kind in (Proposal.Kind.PAYOUT, Proposal.Kind.LOAN):
         if payee is None or payee.chama_id != chama.id or not payee.is_current:
             raise Problem("invalid_member", "Choose a member of this chama.")
         payee_name = payee.user.display_name or payee.member_code
@@ -448,8 +449,14 @@ def _write_payout(p: Proposal, txn: BankTransaction, extra: dict | None = None):
     if p.deduct_cents:
         extra = {**(extra or {}), "deducted_for_arrears": p.deduct_cents,
                  "paid_by_bank": p.amount_cents}
+    if p.kind == Proposal.Kind.LOAN:
+        from apps.loans.models import Loan
+
+        loan = Loan.objects.filter(proposal=p).first()
+        extra = {**(extra or {}), "loan_id": str(loan.id) if loan else None}
     entry = ledger.append(
-        chama=p.chama, type="payout", source="proposal", source_id=p.id,
+        chama=p.chama, type="loan_disbursed" if p.kind == Proposal.Kind.LOAN else "payout",
+        source="proposal", source_id=p.id,
         amount_cents=-(p.amount_cents + p.deduct_cents), member=p.payee_membership,
         rule_version_id=p.rule_version_id, signatures=signatures,
         decision={"kind": p.kind, "payee": p.payee_name, "purpose": p.purpose,
@@ -472,6 +479,10 @@ def _write_payout(p: Proposal, txn: BankTransaction, extra: dict | None = None):
     from .rotation import on_paid
 
     on_paid(p)
+    if p.kind == Proposal.Kind.LOAN:
+        from apps.loans.services import on_paid as loan_paid
+
+        loan_paid(p)
     return entry
 
 
