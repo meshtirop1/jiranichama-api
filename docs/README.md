@@ -22,6 +22,8 @@ owns.
 - [Overdue bank statements](flows/statement-reminders.md): treasurer, then officials, then every member.
 - [M-Pesa paybill](flows/paybill.md): Daraja C2B, matched the same minute, never counted twice.
 - [SMS commands](flows/sms-commands.md): BAL, DUE, FINES, RULES, VERIFY and YES/NO votes from basic phones.
+- [Bank feeds](flows/bank-feeds.md): Equity Jenga balance and lines, matched like statements, never counted twice.
+- [USSD menu](flows/ussd.md): read-only menu for any phone: balance, due, loan, fines, rules, verify.
 - [Public anchoring](flows/anchoring.md): nightly Merkle root of every chain, OpenTimestamps, off-site email.
 - [Leaving and death](flows/exits.md): what comes back, notice, settlement from savings, next of kin.
 - [Elections](flows/elections.md): members elect officials; the role starts with the phone key; acting officials; bank mandate; money out waits when too few officials remain.
@@ -64,7 +66,7 @@ Phase 0 (foundations) is done. Phase 1 (records core) is in progress: chama setu
 adoption, rules engine v1, statements by bank email or two-official upload, matching,
 contributions and late fines are built. Opening balances, cash at meetings, and member
 and chama statements (sealed PDFs with a public check) are built too. Still to come in
-Phase 1: nothing beyond polish. Unreadable statement lines can be typed in by an official and confirmed by another, and the app edits every rule setting (rule errors carry stable codes). Phase 2 has started: money out (proposals, approvals by SMS code, debits matched back, unapproved-debit alerts) the merry-go-round rotation, approvals signed with the phone's key (fingerprint) for officials with the app, daily reconciliation of the bank against the records, members' votes on large payouts, overdue-statement reminders, M-Pesa paybill notifications, SMS commands, votes, receipts and joining for basic phones, and nightly public anchoring. Phase 2 is complete. Phase 3 (governance and loans) is complete: rule changes by members' vote, meetings with attendance, meeting fines and minutes, loans with guarantors (behind the loans flag until the lending opinion), fine waivers, disputes, phone changes, elections, and leaving and deaths. Next: Phase 4, USSD and bank feeds.
+Phase 1: nothing beyond polish. Unreadable statement lines can be typed in by an official and confirmed by another, and the app edits every rule setting (rule errors carry stable codes). Phase 2 has started: money out (proposals, approvals by SMS code, debits matched back, unapproved-debit alerts) the merry-go-round rotation, approvals signed with the phone's key (fingerprint) for officials with the app, daily reconciliation of the bank against the records, members' votes on large payouts, overdue-statement reminders, M-Pesa paybill notifications, SMS commands, votes, receipts and joining for basic phones, and nightly public anchoring. Phase 2 is complete. Phase 3 (governance and loans) is complete: rule changes by members' vote, meetings with attendance, meeting fines and minutes, loans with guarantors (behind the loans flag until the lending opinion), fine waivers, disputes, phone changes, elections, and leaving and deaths. Phase 4 (basic phones and bank feeds) is complete: the USSD menu, the LOAN SMS command, and bank feeds through Equity's Jenga API (to be checked in UAT). Next: Phase 5 (after the pilot).
 
 ## Not in Phase 0, on purpose
 

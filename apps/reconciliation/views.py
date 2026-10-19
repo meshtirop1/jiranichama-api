@@ -85,6 +85,7 @@ class ReconciliationSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=["no_statement", "match", "open", "breach"])
     checked_on = serializers.DateField(allow_null=True)
     bank_as_of = serializers.DateField(allow_null=True)
+    bank_source = serializers.CharField(allow_null=True, help_text="statement or bank_api")
     bank_cents = serializers.IntegerField(allow_null=True)
     records_cents = serializers.IntegerField(allow_null=True)
     gap_cents = serializers.IntegerField()

@@ -48,3 +48,9 @@ amount and dates.
 
 A bank feed's live balance in place of the last statement (Phase 4 bank APIs), push
 notifications alongside the SMS, and turning a breach into a dispute (5.14).
+
+## With a bank feed (Phase 4)
+
+When the chama's bank is read through its API, the check uses the feed's balance whenever
+it is at least as recent as the last statement (`bank_source: bank_api`). See
+[bank feeds](bank-feeds.md).

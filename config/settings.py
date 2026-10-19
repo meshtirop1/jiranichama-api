@@ -121,6 +121,13 @@ ANCHOR_EMAIL_TO = env.list("ANCHOR_EMAIL_TO", default=[])
 SMS_INBOUND_TOKEN = env("SMS_INBOUND_TOKEN", default="")
 SMS_INBOUND_ALLOWED_IPS = env.list("SMS_INBOUND_ALLOWED_IPS", default=[])
 SMS_COMMANDS_PER_HOUR = env.int("SMS_COMMANDS_PER_HOUR", default=10)
+# USSD menu (4.9): Africa's Talking calls /hooks/ussd/{USSD_TOKEN}/.
+USSD_TOKEN = env("USSD_TOKEN", default="")
+# Bank feeds (Phase 4): Equity Jenga. UAT until a live pull has been checked.
+JENGA_BASE_URL = env("JENGA_BASE_URL", default="https://uat.finserve.africa")
+JENGA_STATEMENT_LIMIT = env.int("JENGA_STATEMENT_LIMIT", default=500)
+USSD_ALLOWED_IPS = env.list("USSD_ALLOWED_IPS", default=[])
+USSD_REQUESTS_PER_HOUR = env.int("USSD_REQUESTS_PER_HOUR", default=60)
 # Payment receipts go by SMS to members who have not opened the app in this many days.
 RECEIPT_SMS_IF_AWAY_DAYS = env.int("RECEIPT_SMS_IF_AWAY_DAYS", default=30)
 # M-Pesa Daraja C2B (6.9). Our public base URL for Safaricom's callbacks, the platform's
@@ -228,6 +235,7 @@ CELERY_BEAT_SCHEDULE = {
                         "schedule": crontab(minute=50)},
     "settle-exits": {"task": "apps.exits.tasks.settle_exits",
                      "schedule": crontab(hour=7, minute=45)},
+    "bank-feeds": {"task": "apps.feeds.tasks.pull_bank_feeds", "schedule": crontab(minute=5)},
     "loans-daily": {"task": "apps.loans.tasks.loans_daily",
                     "schedule": crontab(hour=7, minute=30)},
     "expire-proposals": {"task": "apps.payouts.tasks.expire_proposals",

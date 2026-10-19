@@ -39,8 +39,10 @@ class ReconciliationRun(models.Model):
     chama = models.ForeignKey("chamas.Chama", on_delete=models.PROTECT,
                               related_name="reconciliations")
     on = models.DateField()
-    statement = models.ForeignKey("feeds.Statement", on_delete=models.PROTECT,
-                                  related_name="+")
+    statement = models.ForeignKey("feeds.Statement", on_delete=models.PROTECT, null=True,
+                                  blank=True, related_name="+")
+    # Where the bank's balance came from: the last statement, or the bank's API.
+    source = models.CharField(max_length=10, default="statement")
     bank_cents = models.BigIntegerField()
     records_cents = models.BigIntegerField()
     gap_cents = models.BigIntegerField()

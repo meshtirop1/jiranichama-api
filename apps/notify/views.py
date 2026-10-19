@@ -24,6 +24,34 @@ def dev_sms_outbox(request):
     return JsonResponse({"messages": messages[-20:]})
 
 
+class UssdHook(APIView):
+    """Africa's Talking USSD callback (sessionId, serviceCode, phoneNumber, text). The
+    reply is plain text starting with CON or END. Checked by a secret path token and an
+    optional IP allowlist."""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes: list = []
+
+    @extend_schema(exclude=True)
+    def post(self, request, token):
+        import hmac
+
+        from django.http import HttpResponse
+
+        from .ussd import handle
+
+        expected = settings.USSD_TOKEN
+        if not expected or not hmac.compare_digest(expected, token or ""):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        allowed = settings.USSD_ALLOWED_IPS
+        if allowed and request.META.get("REMOTE_ADDR") not in allowed:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        data = request.data
+        reply = handle(str(data.get("phoneNumber") or ""), str(data.get("text") or ""),
+                       str(data.get("sessionId") or ""))
+        return HttpResponse(reply, content_type="text/plain; charset=utf-8")
+
+
 class SmsInboundHook(APIView):
     """Messages members send to our shortcode (Africa's Talking incoming SMS callback:
     from, text, id). Checked by a secret path token and an optional IP allowlist. The
