@@ -1,0 +1,39 @@
+{% extends "console/base.html" %}
+{% block title %}Feeds{% endblock %}
+{% block content %}
+<h1>Bank and M-Pesa feeds</h1>
+<p class="sub">Read-only connections to chamas' accounts, set up once the chama has authorised them. Credentials are stored encrypted and never shown again.</p>
+
+<h2>Bank feeds</h2>
+<table>
+  <tr><th>Feed</th><th class="num">Balance (cents)</th><th>Last pulled</th><th>Status</th><th></th></tr>
+  {% for f in feeds %}
+  <tr><td>{{ f }}</td><td class="num">{{ f.last_balance_cents|default:"-" }}</td>
+      <td>{{ f.last_pulled_at|date:"d M H:i"|default:"never" }}</td>
+      <td>{% if f.last_error %}<span class="pill bad">{{ f.last_error|truncatechars:60 }}</span>{% elif f.active %}<span class="pill">on</span>{% else %}<span class="pill warn">off</span>{% endif %}</td>
+      <td><form method="post">{% csrf_token %}<input type="hidden" name="form" value="pull"><input type="hidden" name="feed" value="{{ f.id }}">
+        <input name="reason" placeholder="Reason" required><input name="case_ref" placeholder="Ticket" required>
+        <button class="light">Pull now</button></form></td></tr>
+  {% empty %}<tr><td colspan="5" class="muted">No bank feeds.</td></tr>{% endfor %}
+</table>
+
+<h2>Add a bank feed (Equity Jenga)</h2>
+<form method="post" class="card">{% csrf_token %}<input type="hidden" name="form" value="add">
+  <div class="two"><div>{{ form.prefix.label_tag }}{{ form.prefix }}{{ form.prefix.errors }}</div>
+  <div>{{ form.account_number.label_tag }}{{ form.account_number }}{{ form.account_number.errors }}</div></div>
+  {{ form.start_date.label_tag }}{{ form.start_date }}{{ form.start_date.errors }}
+  <div class="two"><div>{{ form.api_key.label_tag }}{{ form.api_key }}</div><div>{{ form.merchant_code.label_tag }}{{ form.merchant_code }}</div></div>
+  {{ form.consumer_secret.label_tag }}{{ form.consumer_secret }}
+  {{ form.private_key_pem.label_tag }}{{ form.private_key_pem }}
+  {{ form.reason.label_tag }}{{ form.reason }}{{ form.reason.errors }}
+  {{ form.case_ref.label_tag }}{{ form.case_ref }}{{ form.case_ref.errors }}
+  <button>Add feed (audited)</button>
+</form>
+
+<h2>M-Pesa paybills and tills</h2>
+<table>
+  <tr><th>Chama</th><th>Kind</th><th>Shortcode</th><th>Registered with Safaricom</th></tr>
+  {% for d in daraja %}<tr><td>{{ d.chama.name }}</td><td>{{ d.kind }}</td><td>{{ d.shortcode }}</td><td>{{ d.registered_at|date:"d M Y"|default:"not yet" }}</td></tr>
+  {% empty %}<tr><td colspan="4" class="muted">None. Add them in the staff site for now.</td></tr>{% endfor %}
+</table>
+{% endblock %}

@@ -23,6 +23,8 @@ owns.
 - [M-Pesa paybill](flows/paybill.md): Daraja C2B, matched the same minute, never counted twice.
 - [SMS commands](flows/sms-commands.md): BAL, DUE, FINES, RULES, VERIFY and YES/NO votes from basic phones.
 - [Numbers for running the chama](flows/analytics.md): month by month, who is behind, attendance, loans, money.
+- [Admin web console](flows/admin-console.md): staff dashboard, queues, chamas, flags, feeds, partners, audit log.
+- [Support access](flows/support-access.md): officials let support read some records for a while; every member is told.
 - [Referrals](flows/referrals.md): licensed partners only, with the members' recorded consent.
 - [Investments](flows/investments.md): land, shares, funds; valuations confirmed by a second official; income through the bank.
 - [Bank feeds](flows/bank-feeds.md): Equity Jenga balance and lines, matched like statements, never counted twice.

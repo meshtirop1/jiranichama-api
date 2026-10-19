@@ -34,6 +34,7 @@ class EntryType(models.TextChoices):
     VALUATION = "valuation"
     INVESTMENT_INCOME = "investment_income"
     REFERRAL_CONSENT = "referral_consent"
+    SUPPORT_ACCESS = "support_access"
     DEVICE_REGISTERED = "device_registered"
     ROLE_CHANGED = "role_changed"
     SEAL = "seal"

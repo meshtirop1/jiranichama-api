@@ -1,0 +1,14 @@
+{% extends "console/base.html" %}
+{% block title %}Feature flags{% endblock %}
+{% block content %}
+<h1>Feature flags</h1>
+<p class="sub">Unfinished or pilot-only features. Off unless turned on for everyone or for listed chamas. Loans stay off until the lending opinion.</p>
+<table>
+  <tr><th>Flag</th><th>About</th><th>For everyone</th><th class="num">Chamas listed</th></tr>
+  {% for f in rows %}
+  <tr><td><a href="{% url 'console:flag' f.key %}">{{ f.key }}</a></td><td class="muted">{{ f.description }}</td>
+      <td>{% if f.enabled_for_all %}<span class="pill">on</span>{% else %}<span class="pill warn">off</span>{% endif %}</td>
+      <td class="num">{{ f.chama_allowlist|length }}</td></tr>
+  {% empty %}<tr><td colspan="4" class="muted">No flags.</td></tr>{% endfor %}
+</table>
+{% endblock %}

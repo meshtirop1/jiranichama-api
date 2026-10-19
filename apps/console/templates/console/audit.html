@@ -1,0 +1,13 @@
+{% extends "console/base.html" %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<h1>Audit log</h1>
+<p class="sub">Every staff action and every opening of a chama's records, chained so an edited or deleted row is found.</p>
+{% if problems %}<div class="notice bad">{{ problems|join:"; " }}</div>{% else %}<p><span class="pill">Chain intact</span></p>{% endif %}
+<table>
+  <tr><th>#</th><th>When</th><th>Who</th><th>Action</th><th>Target</th><th>Reason</th><th>Ticket</th></tr>
+  {% for a in rows %}<tr><td>{{ a.seq }}</td><td>{{ a.at|date:"d M Y H:i" }}</td><td>{{ a.actor.display_name|default:a.actor_id }}</td>
+    <td>{{ a.action }}</td><td class="muted">{{ a.target }}</td><td>{{ a.reason }}</td><td>{{ a.case_ref }}</td></tr>
+  {% empty %}<tr><td colspan="7" class="muted">Nothing yet.</td></tr>{% endfor %}
+</table>
+{% endblock %}

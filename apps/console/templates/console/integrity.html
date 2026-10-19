@@ -1,0 +1,35 @@
+{% extends "console/base.html" %}
+{% block title %}Integrity{% endblock %}
+{% block content %}
+<h1>Integrity alerts</h1>
+<p class="sub">Records that disagree with the bank for more than 7 days, bank feeds that fail, the public anchor and the audit log.</p>
+
+<h2>Reconciliation breaches</h2>
+<table>
+  <tr><th>Chama</th><th>Open since</th><th class="num">Gap</th><th class="num">Members told</th></tr>
+  {% for g in gaps %}
+  <tr><td><a href="{% url 'console:chama' g.chama_id %}">{{ g.chama.name }}</a></td>
+      <td>{{ g.opened_on }}</td><td class="num">KES {{ g.amount_cents|floatformat:"0"|slice:":-2"|default:"0" }}</td>
+      <td class="num">{{ g.alerted }}</td></tr>
+  {% empty %}<tr><td colspan="4" class="muted">No breaches.</td></tr>{% endfor %}
+</table>
+
+<h2>Bank feeds failing</h2>
+<table>
+  <tr><th>Feed</th><th>Last pulled</th><th>Error</th></tr>
+  {% for f in feeds %}
+  <tr><td>{{ f }}</td><td>{{ f.last_pulled_at|date:"d M H:i"|default:"never" }}</td><td>{{ f.last_error }}</td></tr>
+  {% empty %}<tr><td colspan="3" class="muted">All feeds are working.</td></tr>{% endfor %}
+</table>
+
+<h2>Public anchor</h2>
+{% if anchor %}
+<p>Last anchor {{ anchor.at|date:"d M Y H:i" }} · {{ anchor.leaves|length }} chamas ·
+   OpenTimestamps <span class="pill{% if anchor.ots_status != 'confirmed' %} warn{% endif %}">{{ anchor.ots_status }}</span>
+   · emailed {% if anchor.emailed %}<span class="pill">yes</span>{% else %}<span class="pill bad">no</span>{% endif %}</p>
+{% else %}<p class="muted">No anchor yet.</p>{% endif %}
+
+<h2>Audit log</h2>
+{% if audit_problems %}<div class="notice bad">{{ audit_problems|join:"; " }}</div>
+{% else %}<p><span class="pill">Chain intact</span></p>{% endif %}
+{% endblock %}

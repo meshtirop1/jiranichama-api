@@ -50,6 +50,7 @@ HISTORY_MODELS = {
     "investments.Investment",
     "investments.Valuation",
     "referrals.Referral",
+    "staff.SupportGrant",
     "documents.DocumentAccess",
     "meetings.Meeting",
     "meetings.Apology",

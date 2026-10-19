@@ -1,0 +1,46 @@
+{% extends "console/base.html" %}
+{% block title %}{{ c.name }}{% endblock %}
+{% block content %}
+<h1>{{ c.name }}</h1>
+<p class="sub">{{ c.get_type_display }} · {{ c.member_code_prefix }} · <span class="pill">{{ c.state }}</span> · {{ c.mode }} · {{ members }} active members</p>
+
+<div class="two">
+  <div class="card"><strong>Feature flags on</strong><br>{% for f in flags %}<span class="pill">{{ f }}</span> {% empty %}<span class="muted">None</span>{% endfor %}</div>
+  <div class="card"><strong>Feeds</strong><br>
+    {% for d in daraja %}M-Pesa {{ d.kind }} {{ d.shortcode }}{% if not d.active %} (off){% endif %}<br>{% endfor %}
+    {% for f in feeds %}{{ f }}{% if f.last_error %} <span class="pill bad">error</span>{% endif %}<br>{% endfor %}
+    {% if not daraja and not feeds %}<span class="muted">Statements only</span>{% endif %}</div>
+</div>
+
+<h2>Records</h2>
+{% if not grant %}
+  <div class="notice">This chama has not given support access. Its officials can do it in the app under <em>Running the chama → Get help</em>.</div>
+{% elif not viewing %}
+  <div class="notice warn">Support access is open for <strong>{{ grant.areas|join:", " }}</strong> until {{ grant.ends_at|date:"d M Y H:i" }} ({{ grant.reason }}). Opening the records is logged with your reason and ticket.</div>
+  <form method="post" class="card">{% csrf_token %}{{ form.as_p }}<button>Open the records (read only)</button></form>
+{% else %}
+  <div class="notice warn">Read only, logged. Access: {{ grant.areas|join:", " }}, until {{ grant.ends_at|date:"d M Y H:i" }}.</div>
+  <div class="card"><strong>Bank check:</strong> {{ reconciliation.status }} · bank {{ reconciliation.bank_cents|default:"-" }} · records {{ reconciliation.records_cents|default:"-" }} (cents)</div>
+
+  {% if member_rows %}<h2>Members</h2>
+  <table><tr><th>Code</th><th>Name</th><th>Role</th><th>State</th><th>Joined</th></tr>
+  {% for m in member_rows %}<tr><td>{{ m.member_code }}</td><td>{{ m.user.display_name }}</td><td>{{ m.role }}</td><td>{{ m.state }}</td><td>{{ m.joined_on|default:"-" }}</td></tr>{% endfor %}</table>{% endif %}
+
+  {% if statements is not None %}<h2>Statements</h2>
+  <table><tr><th>Period</th><th>Route</th><th>State</th><th class="num">Closing (cents)</th></tr>
+  {% for s in statements %}<tr><td>{{ s.period_from }} – {{ s.period_to }}</td><td>{{ s.route }}</td><td>{{ s.state }}</td><td class="num">{{ s.closing_cents }}</td></tr>
+  {% empty %}<tr><td colspan="4" class="muted">None.</td></tr>{% endfor %}</table>{% endif %}
+
+  {% if entries is not None %}<h2>Latest records</h2>
+  <table><tr><th>#</th><th>Type</th><th>Member</th><th class="num">Amount (cents)</th><th>Period</th><th>Receipt</th><th>At</th></tr>
+  {% for e in entries %}<tr><td>{{ e.seq }}</td><td>{{ e.type }}</td><td>{{ e.member_code|default:"-" }}</td><td class="num">{{ e.amount_cents }}</td><td>{{ e.period|default:"-" }}</td><td>{{ e.receipt_code }}</td><td>{{ e.at|date:"d M Y" }}</td></tr>{% endfor %}</table>{% endif %}
+
+  {% if clauses %}<h2>Rule book</h2>
+  <table>{% for cl in clauses %}<tr><td style="width:60px">{{ cl.ref }}</td><td>{{ cl.text }}</td></tr>{% endfor %}</table>{% endif %}
+
+  {% if disputes is not None %}<h2>Disputes</h2>
+  <table><tr><th>Raised</th><th>By</th><th>About</th><th>State</th></tr>
+  {% for d in disputes %}<tr><td>{{ d.created_at|date:"d M Y" }}</td><td>{{ d.raised_by.member_code }}</td><td>{{ d.text|truncatechars:90 }}</td><td>{{ d.state }}</td></tr>
+  {% empty %}<tr><td colspan="4" class="muted">None.</td></tr>{% endfor %}</table>{% endif %}
+{% endif %}
+{% endblock %}
