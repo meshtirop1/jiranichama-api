@@ -15,11 +15,15 @@ _validator = Draft202012Validator(SCHEMA_V1)
 
 @dataclass
 class RuleError:
+    """``code`` is stable, so the app can say it in the member's language; ``message`` is
+    the English explanation."""
+
     path: str
     message: str
+    code: str = "out_of_range"
 
     def as_dict(self) -> dict:
-        return {"path": self.path, "message": self.message}
+        return {"path": self.path, "code": self.code, "message": self.message}
 
 
 class RulesInvalid(ValueError):
@@ -52,18 +56,22 @@ def _cross_field(rules: dict) -> list[RuleError]:
 
     if tiers[-1]["up_to_cents"] is not None:
         errors.append(RuleError("approvals/tiers",
-                                "The last tier must cover any amount (no upper limit)."))
+                                "The last tier must cover any amount (no upper limit).",
+                                "tiers_last_unlimited"))
     if any(t["up_to_cents"] is None for t in tiers[:-1]):
         errors.append(RuleError("approvals/tiers",
-                                "Only the last tier can be without an upper limit."))
+                                "Only the last tier can be without an upper limit.",
+                                "tiers_only_last_unlimited"))
     limits = [t["up_to_cents"] for t in tiers if t["up_to_cents"] is not None]
     if limits != sorted(limits) or len(set(limits)) != len(limits):
-        errors.append(RuleError("approvals/tiers", "Tier limits must go up in order."))
+        errors.append(RuleError("approvals/tiers", "Tier limits must go up in order.",
+                                "tiers_order"))
 
     counts = [t["officials"] for t in tiers]
     if counts != sorted(counts):
         errors.append(RuleError("approvals/tiers",
-                                "A larger amount cannot need fewer officials."))
+                                "A larger amount cannot need fewer officials.",
+                                "tiers_officials_order"))
     for i, tier in enumerate(tiers):
         # Platform rule: the person paid never approves, so a payout to any one official
         # must still be approvable by the others (proposal v1.1, 6.8).
@@ -72,14 +80,17 @@ def _cross_field(rules: dict) -> list[RuleError]:
                 f"approvals/tiers/{i}/officials",
                 f"With {officials} officials, at most {officials - 1} can be required, "
                 "because nobody approves a payout to themselves.",
+                "tiers_too_many_officials",
             ))
 
     fine = rules["fines"]["late_contribution"]
     cap = fine["monthly_cap_cents"]
     if fine["enabled"] and fine["amount_cents"] == 0:
         errors.append(RuleError("fines/late_contribution/amount_cents",
-                                "A late fine that is switched on needs an amount."))
+                                "A late fine that is switched on needs an amount.",
+                                "fine_needs_amount"))
     if cap is not None and cap < fine["amount_cents"]:
         errors.append(RuleError("fines/late_contribution/monthly_cap_cents",
-                                "The monthly cap cannot be lower than one fine."))
+                                "The monthly cap cannot be lower than one fine.",
+                                "fine_cap_below_fine"))
     return errors
