@@ -13,8 +13,9 @@ from apps.core.idempotency import idempotent
 from apps.core.problems import Problem
 from apps.core.two_step import ChallengeSentSerializer, ConfirmSerializer, code_sent
 
+from . import rotation as rot
 from . import services
-from .models import Approval, MoneyOutConsent, Proposal, UnapprovedDebit
+from .models import Approval, MoneyOutConsent, Proposal, RotationTurn, UnapprovedDebit
 
 
 def _name(m: Membership) -> str:
@@ -275,3 +276,86 @@ class UnapprovedExplainView(APIView):
         s.is_valid(raise_exception=True)
         return Response(UnapprovedDebitSerializer(
             services.explain(ud, me, s.validated_data["explanation"])).data)
+
+
+class RotationStartSerializer(serializers.Serializer):
+    order = serializers.ListField(child=serializers.UUIDField(), required=False,
+                                  help_text="Membership ids, for a fixed order.")
+
+
+class RotationTurnSerializer(serializers.ModelSerializer):
+    member_code = serializers.CharField(source="membership.member_code")
+    name = serializers.SerializerMethodField()
+    membership_id = serializers.UUIDField()
+    proposal_id = serializers.UUIDField(allow_null=True)
+    proposal_state = serializers.CharField(source="proposal.state", default=None)
+
+    class Meta:
+        model = RotationTurn
+        fields = ["position", "membership_id", "member_code", "name", "state", "note",
+                  "proposal_id", "proposal_state"]
+
+    def get_name(self, t) -> str:
+        return _name(t.membership)
+
+
+class RotationSerializer(serializers.Serializer):
+    settings = serializers.JSONField(allow_null=True)
+    cycle_no = serializers.IntegerField(allow_null=True)
+    method = serializers.CharField(allow_null=True)
+    seed = serializers.CharField(allow_null=True)
+    receipt = serializers.CharField(allow_null=True)
+    running = serializers.BooleanField()
+    pot_cents = serializers.IntegerField(allow_null=True)
+    next_position = serializers.IntegerField(allow_null=True)
+    turns = RotationTurnSerializer(many=True)
+
+
+def _rotation_data(chama) -> dict:
+    r = rot.latest(chama)
+    running = r is not None and rot.current(chama) is not None
+    turns = (r.turns.select_related("membership__user", "proposal").order_by("position")
+             if r else [])
+    nxt = rot.next_turn(r) if running else None
+    return {
+        "settings": rot.settings_for(chama),
+        "cycle_no": r.cycle_no if r else None,
+        "method": r.method if r else None,
+        "seed": r.seed if r else None,
+        "receipt": r.entry.receipt_code if r else None,
+        "running": running,
+        "pot_cents": rot.pot_cents(r) if r else None,
+        "next_position": nxt.position if nxt else None,
+        "turns": RotationTurnSerializer(turns, many=True).data,
+    }
+
+
+class RotationView(APIView):
+    """The merry-go-round: whose turn is next, and starting a cycle."""
+
+    @extend_schema(responses=RotationSerializer)
+    def get(self, request, pk):
+        chama, _ = chama_for(request, pk)
+        services.expire_due(chama)
+        return Response(_rotation_data(chama))
+
+    @extend_schema(request=RotationStartSerializer, responses={201: RotationSerializer})
+    @idempotent()
+    def post(self, request, pk):
+        chama, me = chama_for(request, pk)
+        s = RotationStartSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        rot.start(chama, me, order_ids=s.validated_data.get("order"))
+        return Response(_rotation_data(chama), status=status.HTTP_201_CREATED)
+
+
+class RotationNextView(APIView):
+    """Propose the next turn's payout, filled in from the rotation and the rules."""
+
+    @extend_schema(request=None, responses={201: ProposalSerializer})
+    @idempotent()
+    def post(self, request, pk):
+        chama, me = chama_for(request, pk)
+        services.expire_due(chama)
+        p = rot.propose_next(chama, me)
+        return Response(_out(p, me), status=status.HTTP_201_CREATED)

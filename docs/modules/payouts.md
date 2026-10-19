@@ -14,3 +14,7 @@ Money out: proposals, approvals, matching debits, unapproved debits. See
 - `tasks.py`: `expire_proposals`, hourly.
 - `views.py`: the endpoints. `can_answer` on a proposal tells the app whether the person
   asking may approve or decline it now.
+- `rotation.py`: merry-go-round cycles (`Rotation`, `RotationTurn`): `start` (fixed or a
+  draw seeded by the chain fingerprint), `draw_order`, `propose_next` (fills in the payout,
+  applies rule 8.2), `on_paid` (called when a payout is matched).
+  See [Merry-go-round rotation](../flows/rotation.md).

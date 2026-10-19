@@ -111,8 +111,8 @@ def _refuse(code: str, rule: str, message: str) -> dict:
     return {"code": code, "rule": rule, "message": message}
 
 
-def _rules_check(chama: Chama, *, amount_cents: int, payee: Membership | None, today
-                 ) -> tuple[dict, dict | None, object]:
+def _rules_check(chama: Chama, *, amount_cents: int, payee: Membership | None, today,
+                 allow_arrears: bool = False) -> tuple[dict, dict | None, object]:
     """Which approvals the amount needs, or why the rules refuse it (5.6 step 2)."""
     version = version_at(chama, today)
     if version is None:
@@ -120,7 +120,7 @@ def _rules_check(chama: Chama, *, amount_cents: int, payee: Membership | None, t
     tiers = version.rules["approvals"]["tiers"]
     i, tier = next((i, t) for i, t in enumerate(tiers, start=1)
                    if t["up_to_cents"] is None or amount_cents <= t["up_to_cents"])
-    if payee is not None:
+    if payee is not None and not allow_arrears:
         behind = position(payee, today).arrears_cents
         if behind > 0:
             return tier, _refuse("payee_in_arrears", "3.1",
@@ -146,7 +146,10 @@ def _rules_check(chama: Chama, *, amount_cents: int, payee: Membership | None, t
 
 def propose(chama: Chama, by: Membership, *, kind: str, amount_cents: int, purpose: str,
             payee: Membership | None = None, payee_name: str = "",
-            payee_account: str = "") -> Proposal:
+            payee_account: str = "", allow_arrears: bool = False,
+            deduct_cents: int = 0) -> Proposal:
+    """``allow_arrears`` and ``deduct_cents`` are for a merry-go-round turn paid less what
+    the member owes (rule 8.2 "deduct"); see rotation.propose_next."""
     _money_out(chama)
     _official(by)
     if amount_cents <= 0:
@@ -164,14 +167,14 @@ def propose(chama: Chama, by: Membership, *, kind: str, amount_cents: int, purpo
             raise Problem("payee_required", "Who is being paid?")
     today = timezone.localdate()
     tier, refusal, version = _rules_check(chama, amount_cents=amount_cents, payee=payee,
-                                          today=today)
+                                          today=today, allow_arrears=allow_arrears)
     now = timezone.now()
     return Proposal.objects.create(
         chama=chama, kind=kind, amount_cents=amount_cents, payee_membership=payee,
         payee_name=payee_name, payee_account=(payee_account or "").strip()[:120],
         purpose=purpose, proposed_by=by, rule_version_id=version.id,
         needs_officials=tier["officials"], needs_vote=tier["member_vote"],
-        refusal=refusal or {},
+        refusal=refusal or {}, deduct_cents=deduct_cents,
         deadline_at=None if refusal else
         now + timedelta(hours=version.rules["approvals"]["deadline_hours"]),
         state=Proposal.State.REFUSED if refusal else Proposal.State.COLLECTING,
@@ -329,17 +332,33 @@ def _write_payout(p: Proposal, txn: BankTransaction, extra: dict | None = None):
                   "at": a.at.isoformat()}
                  for a in p.approvals.filter(decision=Approval.Decision.APPROVE)
                  .select_related("membership").order_by("at")]
+    if p.deduct_cents:
+        extra = {**(extra or {}), "deducted_for_arrears": p.deduct_cents,
+                 "paid_by_bank": p.amount_cents}
     entry = ledger.append(
         chama=p.chama, type="payout", source="proposal", source_id=p.id,
-        amount_cents=-p.amount_cents, member=p.payee_membership,
+        amount_cents=-(p.amount_cents + p.deduct_cents), member=p.payee_membership,
         rule_version_id=p.rule_version_id,
         decision={"kind": p.kind, "payee": p.payee_name, "purpose": p.purpose,
                   "approved_by": approvers, "bank_ref": txn.external_ref,
                   "value_date": txn.value_date.isoformat(), **(extra or {})})
+    if p.deduct_cents:
+        # The second entry: what the member owed, paid out of their turn (rule 8.2), judged
+        # by the rules like any payment.
+        from apps.reconciliation.services import apply_payment
+
+        apply_payment(txn=txn, member=p.payee_membership, amount_cents=p.deduct_cents,
+                      value_date=txn.value_date, version=version_at(p.chama, txn.value_date),
+                      base={"method": "payout_deduction", "proposal": str(p.id),
+                            "bank_ref": txn.external_ref,
+                            "value_date": txn.value_date.isoformat()})
     p.state, p.matched_txn, p.entry = Proposal.State.PAID, txn, entry
     p.save(update_fields=["state", "matched_txn", "entry"])
     txn.state = BankTransaction.State.RECORDED
     txn.save(update_fields=["state"])
+    from .rotation import on_paid
+
+    on_paid(p)
     return entry
 
 

@@ -15,6 +15,7 @@ owns.
 - [Opening balances and cash at meetings](flows/opening-and-cash.md).
 - [Member and chama statements](flows/member-statements.md): figures, sealed PDFs, the public check.
 - [Money out](flows/money-out.md): proposals, approvals, matching debits, unapproved-debit alerts.
+- [Merry-go-round rotation](flows/rotation.md): the checkable draw, whose turn is next, arrears.
 
 ## Modules
 
@@ -43,7 +44,7 @@ Phase 0 (foundations) is done. Phase 1 (records core) is in progress: chama setu
 adoption, rules engine v1, statements by bank email or two-official upload, matching,
 contributions and late fines are built. Opening balances, cash at meetings, and member
 and chama statements (sealed PDFs with a public check) are built too. Still to come in
-Phase 1: nothing beyond polish. Unreadable statement lines can be typed in by an official and confirmed by another, and the app edits every rule setting (rule errors carry stable codes). Phase 2 has started: money out (proposals, approvals by SMS code, debits matched back, unapproved-debit alerts). Then the rest of Phase 2, Phase 3 governance and loans, Phase 4 basic
+Phase 1: nothing beyond polish. Unreadable statement lines can be typed in by an official and confirmed by another, and the app edits every rule setting (rule errors carry stable codes). Phase 2 has started: money out (proposals, approvals by SMS code, debits matched back, unapproved-debit alerts) and the merry-go-round rotation. Then the rest of Phase 2, Phase 3 governance and loans, Phase 4 basic
 phones.
 
 ## Not in Phase 0, on purpose

@@ -48,6 +48,8 @@ urlpatterns = [
     path("verify/<str:code>/", docs.VerifyView.as_view()),
     path("chamas/<uuid:pk>/money-out/", payouts.MoneyOutView.as_view()),
     path("chamas/<uuid:pk>/proposals/", payouts.ProposalListView.as_view()),
+    path("chamas/<uuid:pk>/rotation/", payouts.RotationView.as_view()),
+    path("chamas/<uuid:pk>/rotation/next/", payouts.RotationNextView.as_view()),
     path("proposals/<uuid:pk>/", payouts.ProposalDetailView.as_view()),
     path("proposals/<uuid:pk>/approve/", payouts.ProposalApproveView.as_view()),
     path("proposals/<uuid:pk>/decline/", payouts.ProposalDeclineView.as_view()),

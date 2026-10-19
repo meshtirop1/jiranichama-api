@@ -46,6 +46,9 @@ class Proposal(models.Model):
     needs_officials = models.PositiveSmallIntegerField(default=0)
     needs_vote = models.BooleanField(default=False)
     refusal = models.JSONField(default=dict, blank=True)  # {code, rule, message}
+    # A merry-go-round turn paid less what the member owed (rule 8.2 "deduct"): the bank
+    # pays amount_cents, and deduct_cents is recorded as their contributions.
+    deduct_cents = models.BigIntegerField(default=0)
     deadline_at = models.DateTimeField(null=True, blank=True)
     state = models.CharField(max_length=24, choices=State.choices)
     state_reason = models.CharField(max_length=300, blank=True, default="")
@@ -134,3 +137,55 @@ class MoneyOutConsent(models.Model):
         db_table = "payouts_money_out_consent"
         constraints = [models.UniqueConstraint(fields=["chama", "membership"],
                                                name="one_consent_per_official")]
+
+
+class Rotation(models.Model):
+    """One merry-go-round cycle: everyone's turn, in an order fixed by the officials or
+    drawn from the chain (5.6 step 9). Written once, with a ledger entry naming the order;
+    a draw's seed is the chain's latest fingerprint, so anyone can re-run it."""
+
+    class Method(models.TextChoices):
+        FIXED = "fixed"
+        DRAW = "draw"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    chama = models.ForeignKey(Chama, on_delete=models.PROTECT, related_name="rotations")
+    cycle_no = models.PositiveIntegerField()
+    method = models.CharField(max_length=8, choices=Method.choices)
+    seed = models.CharField(max_length=64, blank=True, default="")
+    entry = models.OneToOneField(LedgerEntry, on_delete=models.PROTECT, related_name="+")
+    started_by = models.ForeignKey(Membership, on_delete=models.PROTECT, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "payouts_rotation"
+        constraints = [models.UniqueConstraint(fields=["chama", "cycle_no"],
+                                               name="one_cycle_number")]
+
+
+class RotationTurn(models.Model):
+    """A member's place in a cycle. A member skipped for arrears gets a new turn at the
+    end; the skipped one stays, marked, for everyone to see."""
+
+    class State(models.TextChoices):
+        PENDING = "pending"
+        PAID = "paid"
+        SKIPPED = "skipped"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    rotation = models.ForeignKey(Rotation, on_delete=models.PROTECT, related_name="turns")
+    position = models.PositiveIntegerField()
+    membership = models.ForeignKey(Membership, on_delete=models.PROTECT, related_name="+")
+    state = models.CharField(max_length=8, choices=State.choices, default=State.PENDING)
+    proposal = models.ForeignKey(Proposal, on_delete=models.PROTECT, null=True, blank=True,
+                                 related_name="turns")
+    note = models.CharField(max_length=200, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    MUTABLE = ["state", "proposal_id", "note"]
+
+    class Meta:
+        db_table = "payouts_rotation_turn"
+        ordering = ["position"]
+        constraints = [models.UniqueConstraint(fields=["rotation", "position"],
+                                               name="one_member_per_position")]

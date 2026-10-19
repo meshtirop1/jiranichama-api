@@ -47,3 +47,8 @@ the reason in English or Kiswahili. Codes: `out_of_range` (any schema failure),
 `tiers_last_unlimited`, `tiers_only_last_unlimited`, `tiers_order`, `tiers_officials_order`,
 `tiers_too_many_officials`, `fine_needs_amount`, `fine_cap_below_fine`. `message` stays as
 the English explanation for logs and staff.
+
+## Rotation (schema v1, optional section)
+
+`rotation: {order: fixed|draw, arrears: skip|deduct|block}`. Only merry-go-round templates
+include it; the rule book adds clauses 8.1 and 8.2 when present.

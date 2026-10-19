@@ -110,7 +110,45 @@ def _render_en(r: dict) -> list[Clause]:
         Clause("P.4", "Records are never changed. A mistake is fixed by a new, visible "
                       "correction."),
     ]
+    out[-4:-4] = _rotation_en(r.get("rotation"))
     return out
+
+
+def _rotation_en(rot: dict | None) -> list[Clause]:
+    if not rot:
+        return []
+    order = ("in the order the officials set" if rot["order"] == "fixed"
+             else "in an order drawn from the records, which anyone can re-check")
+    arrears = {
+        "skip": "A member behind on contributions when their turn comes is moved to the end "
+                "of the order, and the next member is paid.",
+        "deduct": "A member behind on contributions when their turn comes is paid the pot less "
+                  "what they owe, and what they owe is recorded as paid.",
+        "block": "A member behind on contributions is not paid until they catch up; the "
+                 "rotation waits.",
+    }[rot["arrears"]]
+    return [Clause("8.1", f"Each month one member receives the pot (every member's "
+                          f"contribution), {order}, until everyone has had a turn."),
+            Clause("8.2", arrears)]
+
+
+def _rotation_sw(rot: dict | None) -> list[Clause]:
+    if not rot:
+        return []
+    order = ("kwa mpangilio uliowekwa na viongozi" if rot["order"] == "fixed"
+             else "kwa mpangilio uliochaguliwa kutoka kwenye kumbukumbu, ambao yeyote anaweza "
+                  "kuuhakiki")
+    arrears = {
+        "skip": "Mwanachama aliye na madeni ya michango zamu yake ikifika anahamishiwa mwisho "
+                "wa mpangilio, na anayefuata analipwa.",
+        "deduct": "Mwanachama aliye na madeni ya michango zamu yake ikifika analipwa mchango "
+                  "wote ukiondoa anachodaiwa, na deni hilo linarekodiwa kuwa limelipwa.",
+        "block": "Mwanachama aliye na madeni ya michango halipwi mpaka amalize deni; zamu "
+                 "inasubiri.",
+    }[rot["arrears"]]
+    return [Clause("8.1", f"Kila mwezi mwanachama mmoja anapokea mchango wote wa wanachama, "
+                          f"{order}, mpaka kila mmoja apate zamu."),
+            Clause("8.2", arrears)]
 
 
 def _render_sw(r: dict) -> list[Clause]:
@@ -172,4 +210,5 @@ def _render_sw(r: dict) -> list[Clause]:
         Clause("P.4", "Kumbukumbu hazibadilishwi kamwe. Kosa linarekebishwa kwa marekebisho "
                       "mapya yanayoonekana."),
     ]
+    out[-4:-4] = _rotation_sw(r.get("rotation"))
     return out

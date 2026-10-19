@@ -68,5 +68,10 @@ SCHEMA_V1 = _obj(
             "every_days": {**_int, "minimum": 7, "maximum": 31},
         }),
         "kyc": _obj(["payer"], {"payer": {"enum": ["chama", "member"]}}),
+        # Merry-go-round turns (5.6). Optional: other chama types have no rotation.
+        "rotation": _obj(["order", "arrears"], {
+            "order": {"enum": ["fixed", "draw"]},
+            "arrears": {"enum": ["skip", "deduct", "block"]},
+        }),
     },
 )
