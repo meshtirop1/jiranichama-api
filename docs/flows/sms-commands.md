@@ -43,7 +43,25 @@ When a vote opens (for example a payout above the vote level), every eligible me
 The provider vouches for the sender's number on incoming SMS. That is the same trust
 level as an SMS code, so a reply is a valid ballot for basic-phone members.
 
+## Joining from a basic phone (5.2a)
+
+1. An official invites by phone number with `by_sms` (and `language`, en or sw):
+   `POST /chamas/{id}/invites/ {"phone": "...", "by_sms": true, "language": "sw"}`. Only
+   plain **members** of an **active** chama can be invited this way: officials need the
+   app for approvals, and founding members adopt the rules in the app.
+2. The person gets an SMS with who invited them, the chama, the main rules
+   (contribution, due day, late fine) and "Reply YES ABC123 to join" (NDIYO in
+   Kiswahili). An official reads them the full rule book from the app.
+3. **YES <code>** from **the invited number** joins:
+   - their account is created if they have none (language from the invite);
+   - their membership starts today;
+   - a `membership` ledger entry notes `via: sms` and the rules' hash.
+   They get a welcome SMS: their member code, how much and when to pay, where (paybill or
+   bank account ending …), and "Send BAL any time".
+4. The code works from no other number. A stranger, or a used or expired code, gets **no
+   answer**, so we never text strangers or confirm that a code exists.
+
 ## Not yet
 
-USSD (Phase 4), the LOAN command (loans arrive in Phase 3), and joining a chama by SMS
-(5.2a).
+USSD (Phase 4), the LOAN command (loans arrive in Phase 3), and a members' vote on a new
+member when the rules ask for one (Phase 3).

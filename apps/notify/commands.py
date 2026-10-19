@@ -14,6 +14,7 @@ Read-only except votes. The sender is known by their number (hashed); numbers we
 know get no answer. Each number may send ``SMS_COMMANDS_PER_HOUR`` messages an hour.
 """
 
+import re
 from datetime import timedelta
 
 from django.conf import settings
@@ -205,6 +206,38 @@ def answer(user: User, text: str) -> tuple[str, str]:
     return command, f"JiraniChama: {reply}"
 
 
+_INVITE = re.compile(r"[A-Z0-9]{6}")
+SW_WORDS = {"SALIO", "DENI", "FAINI", "KANUNI", "HAKIKI", "NDIYO", "NDIO", "HAPANA", "MSAADA"}
+
+
+def _join(e164: str, h: str, code: str, sw: bool, provider_id: str, user) -> str | None:
+    """YES <invite code>: join from a basic phone (5.2a). Anyone may try, but only the
+    number the invite was sent to succeeds; others get no answer."""
+    from apps.chamas.services import accept_by_sms, welcome_text
+    from apps.core.problems import Problem
+
+    try:
+        membership = accept_by_sms(code, e164)
+    except Problem as p:
+        InboundSms.objects.create(phone_hash=h, user=user, command="join_refused",
+                                  provider_id=provider_id)
+        if user is None or p.problem_code == "invite_invalid":
+            return None  # never text a stranger, or confirm a code exists
+        reply = ("JiraniChama: tayari wewe ni mwanachama." if sw
+                 else "JiraniChama: you are already a member.")
+    else:
+        reply = welcome_text(membership)
+        user = membership.user
+    log = InboundSms.objects.create(phone_hash=h, user=user, command="join",
+                                    provider_id=provider_id)
+    try:
+        send_sms(e164, reply)
+    except SmsFailed:
+        return None
+    InboundSms.objects.filter(pk=log.pk).update(replied=True)
+    return reply
+
+
 def handle(from_number: str, text: str, provider_id: str = "") -> str | None:
     """One inbound message. Returns the reply sent, or None (unknown number, or over the
     hourly limit)."""
@@ -219,6 +252,10 @@ def handle(from_number: str, text: str, provider_id: str = "") -> str | None:
         InboundSms.objects.create(phone_hash=h, command="limited", provider_id=provider_id)
         return None
     user = User.objects.filter(phone_hash=h).first()
+    words = (text or "").strip().split()
+    if (len(words) == 2 and WORDS.get(words[0].upper()) == "yes"
+            and _INVITE.fullmatch(words[1].upper())):
+        return _join(e164, h, words[1], words[0].upper() in SW_WORDS, provider_id, user)
     if user is None:
         InboundSms.objects.create(phone_hash=h, command="unknown", provider_id=provider_id)
         return None

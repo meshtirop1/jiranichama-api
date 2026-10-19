@@ -134,7 +134,9 @@ class InviteCreateView(APIView):
         s = InviteCreateSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         inv = services.invite(chama, invited_by=request.user, role=s.validated_data["role"],
-                              phone=s.validated_data.get("phone"))
+                              phone=s.validated_data.get("phone"),
+                              by_sms=s.validated_data["by_sms"],
+                              language=s.validated_data["language"])
         return Response(InviteSerializer(inv).data, status=status.HTTP_201_CREATED)
 
 

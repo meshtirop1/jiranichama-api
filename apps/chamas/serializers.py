@@ -98,6 +98,9 @@ class MembershipSerializer(serializers.ModelSerializer):
 class InviteCreateSerializer(serializers.Serializer):
     role = serializers.ChoiceField(choices=Membership.Role.choices, default="member")
     phone = PhoneField(required=False)
+    by_sms = serializers.BooleanField(default=False, help_text="For someone without the app: "
+                                      "the invite goes by SMS; they reply YES <code>.")
+    language = serializers.ChoiceField(choices=["en", "sw"], default="en")
 
 
 class InviteSerializer(serializers.ModelSerializer):
