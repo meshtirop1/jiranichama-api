@@ -48,7 +48,10 @@ def issue(*, user, purpose: str, subject: str, content_hash: str, action_text: s
     if recent >= MAX_OPEN_PER_SUBJECT:
         raise Problem("signing_rate_limited", "Too many codes asked for. Wait 5 minutes.",
                       status.HTTP_429_TOO_MANY_REQUESTS)
-    code = f"{secrets.randbelow(10**6):06d}"
+    from apps.accounts.services import demo_code
+
+    demo = demo_code(user.phone)
+    code = demo or f"{secrets.randbelow(10**6):06d}"
     challenge = SigningChallenge(user=user, purpose=purpose, subject=subject,
                                  content_hash=content_hash, expires_at=now + TTL)
     challenge.code_hmac = _code_hmac(challenge.id, code)
@@ -58,7 +61,8 @@ def issue(*, user, purpose: str, subject: str, content_hash: str, action_text: s
         text = f"JiraniChama: nambari {code} ni ya {action_text}. Usimpe mtu yeyote."
     else:
         text = f"JiraniChama: {code} is your code to {action_text}. Never share this code."
-    send_sms(user.phone, text)
+    if not demo:  # a demo phone on a test server types the fixed code instead
+        send_sms(user.phone, text)
     return challenge
 
 

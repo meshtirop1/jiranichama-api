@@ -1,0 +1,16 @@
+[Unit]
+Description=JiraniChama API (test server)
+After=network.target postgresql.service redis-server.service
+
+[Service]
+User=deploy
+Group=deploy
+WorkingDirectory=/home/deploy/sites/jiranichama
+EnvironmentFile=/home/deploy/sites/jiranichama.env
+ExecStart=/home/deploy/sites/jiranichama/.venv/bin/gunicorn config.wsgi:application --workers 2 --bind 127.0.0.1:8111 --timeout 60 --access-logfile -
+Restart=always
+RestartSec=5
+MemoryMax=600M
+
+[Install]
+WantedBy=multi-user.target

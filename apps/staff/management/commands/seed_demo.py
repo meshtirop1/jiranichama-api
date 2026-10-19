@@ -1,7 +1,8 @@
 """A demo chama with a year of records, for trying the app on a phone or emulator.
 
-Development only: refuses to run unless DEBUG is on. Sign in on the app with the demo
-phone (default 0700 000 001); the code arrives on the dev SMS page (/dev/sms/).
+Development or a test server only (DEBUG on, or DEMO_SIGNIN_CODE set). Sign in on the
+app with the demo phone (default 0700 000 001); the code arrives on the dev SMS page
+(/dev/sms/), or is DEMO_SIGNIN_CODE on a test server.
 
     python manage.py seed_demo [--phone +254700000001] [--members 12] [--months 12]
 """
@@ -15,6 +16,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import User
+from apps.accounts.phones import normalise_phone, phone_hash
 from apps.chamas import services as chamas
 from apps.chamas.models import Chama, Membership
 from apps.fines.models import Fine
@@ -38,13 +40,13 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, phone, members, months, **opts):
-        if not settings.DEBUG:
-            raise CommandError("seed_demo runs only with DEBUG on.")
+        if not (settings.DEBUG or settings.DEMO_SIGNIN_CODE):
+            raise CommandError("seed_demo runs only in development or on a test server "
+                               "(DEMO_SIGNIN_CODE set).")
         rnd = random.Random(42)
         today = timezone.localdate()
         since = (today.replace(day=1) - timedelta(days=31 * months)).replace(day=1)
-        founder = User.objects.filter(phone_hash=User.hash_for(phone)).first() \
-            if hasattr(User, "hash_for") else None
+        founder = User.objects.filter(phone_hash=phone_hash(normalise_phone(phone))).first()
         if founder is None:
             founder = User.objects.create_user(phone, display_name=NAMES[0])
         chama = chamas.create_chama(founder=founder, name=f"Demo Chama {rnd.randint(100, 999)}",
@@ -53,9 +55,15 @@ class Command(BaseCommand):
                                 account_no="0123456789012", statement_route="upload")
         ms = [Membership.objects.get(chama=chama, user=founder)]
         roles = ["treasurer", "secretary"] + ["member"] * (members - 3)
+        base = int(normalise_phone(phone)[-9:])
         for i, role in enumerate(roles, start=1):
-            u = User.objects.create_user(f"+2547001{rnd.randint(10000, 99999)}",
-                                         display_name=NAMES[i % len(NAMES)])
+            # The next three after the chair get easy numbers (…002 treasurer, …003
+            # secretary, …004 member), so they can be demo phones too.
+            number = (f"+254{base + i:09d}" if i <= 3
+                      else f"+2547001{rnd.randint(10000, 99999)}")
+            u = User.objects.filter(phone_hash=phone_hash(number)).first()
+            if u is None:
+                u = User.objects.create_user(number, display_name=NAMES[i % len(NAMES)])
             locked = Chama.objects.select_for_update().get(pk=chama.pk)
             ms.append(Membership.objects.create(
                 chama=chama, user=u, role=role, member_code=chamas._next_member_code(locked)))
