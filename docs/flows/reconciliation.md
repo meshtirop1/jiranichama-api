@@ -18,6 +18,8 @@ home screen.
   These are not bank movements, so they do not count: opening balances (already in the
   first statement's opening balance), cash confirmed but not yet banked, fines raised, and
   reversals of fines raised.
+- **M-Pesa payments** that no statement has shown yet are left out until one does
+  ([M-Pesa paybill](paybill.md)).
 - **Records-only chamas** do not record money out in the app, so statement debits waiting
   for money-out mode count as accounted for. Turning money out on brings them in.
 

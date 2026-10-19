@@ -41,3 +41,9 @@ second assign-and-reject never reverses the first reversal. Phase 3 also opens a
 
 Every hour (`fines.tasks.raise_due_fines`), each unpaid period whose grace ended gets its
 late fine once: one per member, rule and period, so running the job twice is harmless.
+
+## From M-Pesa directly
+
+Chamas with their own paybill or till also get each payment from Safaricom within
+seconds (Daraja C2B), matched the same way; the later statement line is recorded as a
+duplicate of it. See [M-Pesa paybill](paybill.md).

@@ -3,9 +3,11 @@
 from django.contrib import admin
 
 from apps.chamas.models import Chama, Membership
+from apps.feeds.models import DarajaChannel
 from apps.flags.models import FeatureFlag
 from apps.ledger.models import LedgerEntry
 
+from . import audit
 from .site import AuditedModelAdmin, ReadOnlyAdmin, staff_site
 
 
@@ -30,3 +32,27 @@ class ChamaAdmin(ReadOnlyAdmin):
 @admin.register(Membership, site=staff_site)
 class MembershipAdmin(ReadOnlyAdmin):
     list_display = ("member_code", "chama", "role", "state")
+
+
+@admin.register(DarajaChannel, site=staff_site)
+class DarajaChannelAdmin(AuditedModelAdmin):
+    """A chama's own paybill or till. Add it once the chama has authorised it, then use
+    "Register with Safaricom" so payments reach us within seconds."""
+
+    list_display = ("shortcode", "kind", "chama", "active", "registered_at")
+    fields = ("chama", "shortcode", "kind", "active")
+    actions = ["register_with_safaricom"]
+
+    @admin.action(description="Register with Safaricom (C2B callback URLs)")
+    def register_with_safaricom(self, request, queryset):
+        from apps.feeds import daraja
+
+        for channel in queryset:
+            try:
+                daraja.register_urls(channel)
+                self.message_user(request, f"{channel.shortcode}: registered.")
+            except Exception as exc:  # shown to staff, not raised
+                self.message_user(request, f"{channel.shortcode}: {exc}", level="error")
+            audit.record(actor=request.user, action="register:feeds.darajachannel",
+                         target=f"feeds.darajachannel:{channel.pk}",
+                         reason="Register C2B URLs with Safaricom", case_ref="daraja")

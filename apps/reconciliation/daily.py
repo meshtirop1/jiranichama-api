@@ -42,6 +42,17 @@ def records_cents(chama: Chama, baseline: int) -> int:
                                                  reverses__type__in=BANK_TYPES)
                       .aggregate(t=Sum("amount_cents"))["t"] or 0)
     total = baseline + moves + reversed_moves
+    # An M-Pesa payment reaches us before the statement that shows it in the bank: until
+    # a statement line repeats it, it is not in the bank figure, so leave it out here too.
+    covered = BankTransaction.objects.filter(duplicate_of__isnull=False) \
+        .values_list("duplicate_of_id", flat=True)
+    waiting_ids = BankTransaction.objects.filter(
+        chama=chama, source=BankTransaction.Source.DARAJA).exclude(pk__in=covered) \
+        .values_list("id", flat=True)
+    ahead = (LedgerEntry.objects.filter(chama=chama, source="bank_txn",
+                                        source_id__in=waiting_ids)
+             .filter(type__in=BANK_TYPES).aggregate(t=Sum("amount_cents"))["t"] or 0)
+    total -= ahead
     if chama.mode == Chama.Mode.RECORDS_ONLY:
         waiting = (BankTransaction.objects.filter(
             chama=chama, state=BankTransaction.State.DEBIT_PENDING)
@@ -63,6 +74,7 @@ def reconcile(chama: Chama, today: date | None = None) -> ReconciliationRun | No
         unmatched = (BankTransaction.objects.filter(
             chama=chama, state=BankTransaction.State.UNMATCHED,
             direction=BankTransaction.Direction.CREDIT)
+            .exclude(source=BankTransaction.Source.DARAJA)
             .aggregate(t=Sum("amount_cents"))["t"] or 0)
         gap = last.closing_cents - records
         run = ReconciliationRun.objects.create(

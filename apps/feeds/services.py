@@ -290,6 +290,15 @@ def ingest(statement: Statement) -> list[BankTransaction]:
             typed_by_id=typed_by,
         )
         txn.set_narration(line.narration)
+        if credit:
+            from .daraja import daraja_twin
+
+            twin = daraja_twin(bank_account=statement.bank_account,
+                               amount_cents=txn.amount_cents, value_date=line.value_date,
+                               narration=line.narration, reference=line.reference)
+            if twin is not None:
+                # The same payment, already recorded from M-Pesa (5.3 step 4).
+                txn.state, txn.duplicate_of = BankTransaction.State.DUPLICATE, twin
         try:
             with transaction.atomic():
                 txn.save()
@@ -299,6 +308,8 @@ def ingest(statement: Statement) -> list[BankTransaction]:
     from apps.payouts.services import process_debit
 
     for txn in created:
+        if txn.state == BankTransaction.State.DUPLICATE:
+            continue
         if txn.direction == BankTransaction.Direction.CREDIT:
             match_credit(txn)
         else:

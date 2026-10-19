@@ -35,6 +35,7 @@ urlpatterns = [
     path("bank-transactions/<uuid:pk>/assign/", recon.AssignView.as_view()),
     path("bank-transactions/<uuid:pk>/not-me/", recon.NotMeView.as_view()),
     path("hooks/mail/<str:token>/inbound/", feeds.MailInboundHook.as_view()),
+    path("hooks/daraja/<str:token>/<str:step>/", feeds.DarajaHook.as_view()),
     path("chamas/<uuid:pk>/opening-balances/", contrib.OpeningView.as_view()),
     path("chamas/<uuid:pk>/opening-balances/confirm/", contrib.OpeningConfirmView.as_view()),
     path("opening-balance-lines/<uuid:pk>/object/", contrib.OpeningObjectView.as_view()),
