@@ -9,6 +9,7 @@ from apps.elections import views as elections
 from apps.exits import views as exits
 from apps.feeds import views as feeds
 from apps.fines import views as fines
+from apps.investments import views as investments
 from apps.ledger import views as ledger
 from apps.loans import views as loans
 from apps.meetings import views as meetings
@@ -83,6 +84,10 @@ urlpatterns = [
     path("disputes/<uuid:pk>/outcome/", disputes.DisputeOutcomeView.as_view()),
     path("disputes/<uuid:pk>/agree/", disputes.DisputeAgreeView.as_view()),
     path("disputes/<uuid:pk>/disagree/", disputes.DisputeDisagreeView.as_view()),
+    path("chamas/<uuid:pk>/investments/", investments.InvestmentListView.as_view()),
+    path("investments/<uuid:pk>/valuations/", investments.ValuationView.as_view()),
+    path("investments/<uuid:pk>/income/", investments.IncomeView.as_view()),
+    path("valuations/<uuid:pk>/confirm/", investments.ConfirmValuationView.as_view()),
     path("chamas/<uuid:pk>/fines/", fines.FineListView.as_view()),
     path("fines/<uuid:pk>/waiver/", fines.WaiverRequestView.as_view()),
     path("waivers/<uuid:pk>/approve/", fines.WaiverApproveView.as_view()),

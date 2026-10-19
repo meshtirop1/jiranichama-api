@@ -22,6 +22,7 @@ owns.
 - [Overdue bank statements](flows/statement-reminders.md): treasurer, then officials, then every member.
 - [M-Pesa paybill](flows/paybill.md): Daraja C2B, matched the same minute, never counted twice.
 - [SMS commands](flows/sms-commands.md): BAL, DUE, FINES, RULES, VERIFY and YES/NO votes from basic phones.
+- [Investments](flows/investments.md): land, shares, funds; valuations confirmed by a second official; income through the bank.
 - [Bank feeds](flows/bank-feeds.md): Equity Jenga balance and lines, matched like statements, never counted twice.
 - [USSD menu](flows/ussd.md): read-only menu for any phone: balance, due, loan, fines, rules, verify.
 - [Public anchoring](flows/anchoring.md): nightly Merkle root of every chain, OpenTimestamps, off-site email.
@@ -52,6 +53,7 @@ owns.
 - [votes](modules/votes.md): members' votes.
 - [meetings](modules/meetings.md): meetings, attendance, minutes.
 - [loans](modules/loans.md): loans and guarantees (flag off).
+- [investments](modules/investments.md): holdings, valuations, income.
 - [disputes](modules/disputes.md): disputes, the evidence pack.
 - [elections](modules/elections.md): elections, acting officials, role changes.
 - [exits](modules/exits.md): leaving and deaths.
