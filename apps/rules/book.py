@@ -82,6 +82,10 @@ def _render_en(r: dict) -> list[Clause]:
         out.append(Clause("3.2", "There is no fine for paying late."))
     out.append(Clause("3.3", f"A payment is used first for {_join(order, 'en')}, then for "
                              "months ahead."))
+    cash_days = c.get("cash_banking_days", 3)
+    out.append(Clause("3.4", "Cash paid at a meeting counts from the day it was handed over if "
+                             f"it reaches the bank within {_plural(cash_days, 'day')}; "
+                             "otherwise from the day it was banked."))
     for i, tier in enumerate(a["tiers"], start=1):
         amount = (f"up to {kes(tier['up_to_cents'])}" if tier["up_to_cents"] is not None
                   else "above that" if i > 1 else "of any amount")
@@ -138,6 +142,10 @@ def _render_sw(r: dict) -> list[Clause]:
         out.append(Clause("3.2", "Hakuna faini kwa kuchelewa kulipa."))
     out.append(Clause("3.3", f"Malipo yanatumika kwanza kwa {_join(order, 'sw')}, kisha kwa "
                              "miezi ijayo."))
+    cash_days = c.get("cash_banking_days", 3)
+    out.append(Clause("3.4", "Pesa taslimu iliyolipwa mkutanoni inahesabiwa tangu siku "
+                             "ilipokabidhiwa ikifika benki ndani ya siku "
+                             f"{cash_days}; la sivyo tangu siku ilipowekwa benki."))
     for i, tier in enumerate(a["tiers"], start=1):
         amount = (f"hadi {kes(tier['up_to_cents'])}" if tier["up_to_cents"] is not None
                   else "zaidi ya hapo" if i > 1 else "ya kiasi chochote")

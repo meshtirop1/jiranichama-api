@@ -20,7 +20,7 @@ def test_allocate(case):
         amount_cents=case["amount_cents"],
         value_date=date.fromisoformat(case["value_date"]),
         dues=[engine.Due(p, o) for p, o in case["dues"]],
-        fines=[engine.OpenFine(i, p, o) for i, p, o in case["fines"]],
+        fines=[engine.OpenFine(*f) for f in case["fines"]],
     )
     got = [{k: v for k, v in s.as_dict().items() if k != "rule_refs"} for s in result.slices]
     assert got == case["slices"]

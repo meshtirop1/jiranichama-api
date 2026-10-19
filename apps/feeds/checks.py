@@ -70,11 +70,17 @@ def _overlap_problems(parsed: ParsedStatement, account: BankAccount, last: State
     end = min(parsed.period_to, last.period_to)
     if start > end:
         return []
-    known = set(BankTransaction.objects.filter(
+    known = dict(BankTransaction.objects.filter(
         bank_account=account, source=BankTransaction.Source.STATEMENT,
-        value_date__gte=start, value_date__lte=end).values_list("external_ref", flat=True))
-    new = {line.reference for line in parsed.lines if start <= line.value_date <= end}
-    if known != new:
+        value_date__gte=start, value_date__lte=end).values_list("external_ref", "value_date"))
+    new = {line.reference: line.value_date for line in parsed.lines
+           if start <= line.value_date <= end}
+    missing = set(known) - set(new)
+    # A statement can be cut part-way through a day, so a later one may add lines on the
+    # last day the earlier one covered. Anything else that differs may be an alteration.
+    extra_earlier = {ref for ref, day in new.items()
+                     if ref not in known and day != last.period_to}
+    if missing or extra_earlier:
         return [_problem("overlap_differs",
                          f"Between {start} and {end} this statement differs from the one "
                          "already accepted. All officials have been told.")]

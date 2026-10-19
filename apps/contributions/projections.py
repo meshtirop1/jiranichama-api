@@ -62,7 +62,8 @@ def dues(membership: Membership, on: date) -> list[engine.Due]:
 
 
 def open_fines(membership: Membership) -> list[engine.OpenFine]:
-    return [engine.OpenFine(str(f.id), f.period, f.outstanding_cents)
+    return [engine.OpenFine(str(f.id), f.period, f.outstanding_cents,
+                            late=f.rule_ref == engine.REF_LATE_FINE)
             for f in Fine.objects.filter(membership=membership, state=Fine.State.RAISED)
             if f.outstanding_cents > 0]
 
@@ -70,6 +71,8 @@ def open_fines(membership: Membership) -> list[engine.OpenFine]:
 @dataclass
 class Position:
     contributed_cents: int
+    opening_cents: int
+    pending_cash_cents: int
     arrears_cents: int
     fines_cents: int
     credit_cents: int
@@ -86,8 +89,17 @@ def position(membership: Membership, on: date) -> Position:
     current = calendar.period_of(on)
     arrears = sum(d.outstanding_cents for d in owed if d.period < current)
     upcoming = [d for d in owed if d.period >= current and d.outstanding_cents > 0]
+    from .models import CashReceipt
+
+    opening = (LedgerEntry.objects.filter(member=membership, type="opening_balance")
+               .aggregate(t=Sum("amount_cents"))["t"] or 0)
+    pending = (CashReceipt.objects.filter(membership=membership,
+                                          state=CashReceipt.State.MEMBER_CONFIRMED)
+               .aggregate(t=Sum("amount_cents"))["t"] or 0)
     return Position(
-        contributed_cents=sum(v for k, v in paid.items() if k is not None),
+        contributed_cents=sum(v for k, v in paid.items() if k is not None) + opening,
+        opening_cents=opening,
+        pending_cash_cents=pending,
         arrears_cents=arrears,
         fines_cents=sum(f.outstanding_cents for f in open_fines(membership)),
         credit_cents=paid.get(None, 0),

@@ -28,6 +28,7 @@ SCHEMA_V1 = _obj(
                 "frequency": {"enum": ["monthly"]},
                 "due_day": {**_int, "minimum": 1, "maximum": 28},
                 "grace_days": {**_int, "minimum": 0, "maximum": 14},
+                "cash_banking_days": {**_int, "minimum": 0, "maximum": 14},
                 "allocation_order": {
                     "type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": True,
                     "items": {"enum": ["arrears", "fines", "current"]},

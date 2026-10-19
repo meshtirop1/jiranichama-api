@@ -205,7 +205,8 @@ BANK_STATEMENT_SENDERS = env.json("BANK_STATEMENT_SENDERS", default={})
 
 OTP_TTL_SECONDS = 300
 OTP_MAX_ATTEMPTS = 5
-OTP_MAX_PER_WINDOW = 3
+# Codes per phone per window. Raised only for local end-to-end runs.
+OTP_MAX_PER_WINDOW = env.int("OTP_MAX_PER_WINDOW", default=3)
 OTP_WINDOW_SECONDS = 600
 
 LOGGING = {

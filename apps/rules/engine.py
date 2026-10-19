@@ -24,6 +24,9 @@ class OpenFine:
     id: str
     period: str
     outstanding_cents: int
+    # Late-contribution fines can turn out to be raised in error (see allocate). Other
+    # fines, such as those brought in as opening balances, are always payable.
+    late: bool = True
 
 
 @dataclass
@@ -49,6 +52,12 @@ class Allocation:
     def as_dict(self) -> dict:
         return {"slices": [s.as_dict() for s in self.slices],
                 "fines_to_reverse": self.fines_to_reverse}
+
+
+def cash_banking_days(rules: dict) -> int:
+    """Cash paid at a meeting counts as paid on the day it was handed over, if it reaches
+    the bank within this many days (5.4). Otherwise it counts from the bank date."""
+    return rules["contributions"].get("cash_banking_days", 3)
 
 
 def late_fine_cents(rules: dict) -> int:
@@ -96,8 +105,10 @@ def allocate(*, rules: dict, amount_cents: int, value_date: date, dues: list[Due
             allocated[period] = allocated.get(period, 0) + take
             remaining -= take
 
-    payable_fines = [f for f in fines if calendar.grace_end(f.period, rules) < value_date]
-    in_error = [f for f in fines if calendar.grace_end(f.period, rules) >= value_date]
+    payable_fines = [f for f in fines
+                     if not f.late or calendar.grace_end(f.period, rules) < value_date]
+    in_error = [f for f in fines
+                if f.late and calendar.grace_end(f.period, rules) >= value_date]
 
     for step in rules["contributions"]["allocation_order"]:
         if remaining <= 0:

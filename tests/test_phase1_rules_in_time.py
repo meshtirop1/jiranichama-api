@@ -135,3 +135,24 @@ def test_overlapping_statement_skips_known_lines_and_catches_altered_ones(settin
     [bad] = feeds.receive_mail(_mail(chama, statement_csv(altered, opening_cents=0)))
     assert bad.state == "rejected"
     assert "overlap_differs" in [p["code"] for p in bad.problems]
+
+
+def test_a_later_statement_may_add_lines_on_the_last_day_covered(settings):
+    """Banks cut statements part-way through a day: the next one repeats that day's lines
+    and adds the later ones. That is not an alteration; dropping or adding a line on an
+    earlier, fully covered day is."""
+    settings.BANK_STATEMENT_SENDERS = {"equity": ["equitybank.example"]}
+    chama, (_, treasurer, _) = active_chama(since=START)
+    day1, day2 = date(2026, 2, 3), date(2026, 2, 4)
+    first = [(day1, "A", 0, 1_000), (day2, "B", 0, 2_000)]
+    feeds.receive_mail(_mail(chama, statement_csv(first, opening_cents=0)))
+
+    later_same_day = first + [(day2, "C later that day", 0, 3_000)]
+    [ok] = feeds.receive_mail(_mail(chama, statement_csv(later_same_day, opening_cents=0)))
+    assert ok.state == "accepted", ok.problems
+    assert chama.bank_transactions.count() == 3
+
+    sneaked_earlier = [(day1, "A", 0, 1_000), (day1, "X", 0, 500),
+                       (day2, "B", 0, 2_000), (day2, "C later that day", 0, 3_000)]
+    [bad] = feeds.receive_mail(_mail(chama, statement_csv(sneaked_earlier, opening_cents=0)))
+    assert "overlap_differs" in [p["code"] for p in bad.problems]

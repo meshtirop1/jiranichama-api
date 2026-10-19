@@ -15,6 +15,7 @@ _BASE = {
         "frequency": "monthly",
         "due_day": 5,
         "grace_days": 2,
+        "cash_banking_days": 3,
         "allocation_order": ["arrears", "fines", "current"],
     },
     "fines": {

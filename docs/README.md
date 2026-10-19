@@ -12,6 +12,7 @@ owns.
 - [Setting up a chama](flows/chama-setup.md): create, invite, adopt the rules, go live.
 - [Bank statements](flows/statements.md): the bank's email or a two-official upload, and the checks.
 - [Payments](flows/payments.md): matching, the rules engine, assign and "not me", late fines.
+- [Opening balances and cash at meetings](flows/opening-and-cash.md).
 
 ## Modules
 
@@ -36,9 +37,9 @@ owns.
 
 Phase 0 (foundations) is done. Phase 1 (records core) is in progress: chama setup and
 adoption, rules engine v1, statements by bank email or two-official upload, matching,
-contributions and late fines are built. Still to come in Phase 1: opening balances, cash
-at meetings, member and chama statements (PDF), typing in unreadable statement lines,
-and the app screens. Then Phase 2 money out, Phase 3 governance and loans, Phase 4 basic
+contributions and late fines are built. Opening balances and cash at meetings are built
+too. Still to come in Phase 1: member and chama statements (PDF), typing in unreadable
+statement lines, and the full rules editor. Then Phase 2 money out, Phase 3 governance and loans, Phase 4 basic
 phones.
 
 ## Not in Phase 0, on purpose

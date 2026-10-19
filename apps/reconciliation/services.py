@@ -83,14 +83,26 @@ def record(txn: BankTransaction, member: Membership, *, method: str, decided_by=
         raise Problem("no_rules_on_date", "The chama's rules did not exist on the payment "
                                           "date yet.", status.HTTP_409_CONFLICT)
 
-    allocation = engine.allocate(rules=version.rules, amount_cents=txn.amount_cents,
-                                 value_date=txn.value_date, dues=dues(member, txn.value_date),
-                                 fines=open_fines(member))
     match = Match.objects.create(bank_txn=txn, membership=member, method=method,
                                  decided_by=decided_by, reason=reason)
+    entries = apply_payment(txn=txn, member=member, amount_cents=txn.amount_cents,
+                            value_date=txn.value_date, version=version,
+                            base={"bank_ref": txn.external_ref,
+                                  "value_date": txn.value_date.isoformat(),
+                                  "method": method, "match_id": match.id})
+    txn.state = BankTransaction.State.RECORDED
+    txn.save(update_fields=["state"])
+    return entries
+
+
+def apply_payment(*, txn: BankTransaction, member: Membership, amount_cents: int, value_date,
+                  version, base: dict) -> list[LedgerEntry]:
+    """Split one payment (a bank line, or one member's share of banked cash) by the rules
+    in force on ``value_date``, and write the entries. Called inside a transaction."""
+    allocation = engine.allocate(rules=version.rules, amount_cents=amount_cents,
+                                 value_date=value_date, dues=dues(member, value_date),
+                                 fines=open_fines(member))
     entries = []
-    base = {"bank_ref": txn.external_ref, "value_date": txn.value_date.isoformat(),
-            "method": method, "match_id": match.id}
     for s in allocation.slices:
         if s.kind == "contribution":
             entries.append(ledger.append(
@@ -120,9 +132,6 @@ def record(txn: BankTransaction, member: Membership, *, method: str, decided_by=
                       "fine_id": str(fine.id)}))
         fine.state = Fine.State.REVERSED
         fine.save(update_fields=["state"])
-
-    txn.state = BankTransaction.State.RECORDED
-    txn.save(update_fields=["state"])
     return entries
 
 
