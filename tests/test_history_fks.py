@@ -54,6 +54,8 @@ HISTORY_MODELS = {
     "loans.Loan",
     "loans.Guarantee",
     "loans.LoanReminder",
+    "fines.Waiver",
+    "fines.WaiverDecision",
 }
 OUR_APPS = {"core", "flags", "accounts", "notify", "chamas", "ledger", "staff", "devices",
             "rules", "fines", "contributions", "feeds", "reconciliation", "documents",

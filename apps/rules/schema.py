@@ -68,6 +68,11 @@ SCHEMA_V1 = _obj(
             "every_days": {**_int, "minimum": 7, "maximum": 31},
         }),
         "kyc": _obj(["payer"], {"payer": {"enum": ["chama", "member"]}}),
+        # Fine waivers (5.9). Optional; defaults in fines.waivers.DEFAULTS.
+        "waivers": _obj(["officials", "member_vote"], {
+            "officials": {**_int, "minimum": 1, "maximum": 5},
+            "member_vote": {"type": "boolean"},
+        }),
         # Loans (5.8). Optional; a chama without it has no loans. Behind the "loans" flag.
         "loans": _obj(["min_months", "savings_multiple_pct", "interest", "monthly_rate_bp",
                        "max_term_months", "guarantors", "grace_days", "late_penalty_cents",

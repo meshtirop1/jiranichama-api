@@ -47,7 +47,7 @@ sends them as `errors: [{path, code, message}]`. `path` names the setting
 (`contributions/due_day`, `approvals/tiers/1/officials`). `code` is stable, so the app shows
 the reason in English or Kiswahili. Codes: `out_of_range` (any schema failure),
 `tiers_last_unlimited`, `tiers_only_last_unlimited`, `tiers_order`, `tiers_officials_order`,
-`tiers_too_many_officials`, `fine_needs_amount`, `fine_cap_below_fine`. `message` stays as
+`tiers_too_many_officials`, `fine_needs_amount`, `fine_cap_below_fine`, `waivers_too_many_officials`. `message` stays as
 the English explanation for logs and staff.
 
 ## Rotation (schema v1, optional section)
@@ -80,3 +80,8 @@ max_term_months, guarantors, grace_days, late_penalty_cents, default_after_misse
 contribution_first}`. Only the table-banking template has it, as `{3, 300, flat, 100, 12,
 2, 3, KES 200, 2, true}`. Without it a chama has no loans. Clauses 12.1-12.4. See
 [loans](../flows/loans.md).
+
+## Waivers (schema v1, optional section)
+
+`waivers: {officials: 1-5, member_vote: bool}`, in every template as `{2, false}`. Clause
+3.5. `officials` may not exceed the number of officials minus one.
