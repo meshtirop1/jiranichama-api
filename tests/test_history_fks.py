@@ -58,6 +58,7 @@ HISTORY_MODELS = {
     "fines.WaiverDecision",
     "disputes.Dispute",
     "disputes.DisputeMessage",
+    "devices.DeviceApproval",
 }
 OUR_APPS = {"core", "flags", "accounts", "notify", "chamas", "ledger", "staff", "devices",
             "rules", "fines", "contributions", "feeds", "reconciliation", "documents",

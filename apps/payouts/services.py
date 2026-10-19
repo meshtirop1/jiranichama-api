@@ -337,6 +337,9 @@ def signing_payload(p: Proposal, nonce: str) -> dict:
 
 
 def start_device_approve(p: Proposal, by: Membership) -> dict:
+    from apps.devices.changes import require_can_sign
+
+    require_can_sign(by.user)
     _require_can_answer(p, by)
     device = keys.active_device(by.user)
     if device is None:

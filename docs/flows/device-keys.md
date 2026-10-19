@@ -58,3 +58,25 @@ sms). The phone signatures are bound into the entry's hash through
 
 iOS (Secure Enclave and App Attest; the app falls back to SMS on iPhone for now), signing
 ballots (votes arrive later), and checking attestation certificate revocation lists.
+
+## Changing phones (5.12)
+
+- **With the old phone**: the new phone shows its public key (a QR code), the old phone
+  asks `POST /devices/{old}/handover/` for the payload naming both keys and a single-use
+  nonce, and signs it with the fingerprint. The new phone registers with that `handover`
+  (device id, nonce, signature). The new key is **active at once** and the old one is
+  revoked. A signature by any other key is refused.
+- **Without it** (lost, stolen, broken): the new phone signs in with the phone SMS code
+  and registers. The old key is **revoked at once**. The new key is `pending`:
+  - for an **official**, until every other official of each of their chamas vouches for
+    it with an SMS code (`POST /devices/{id}/vouch/`; officials see waiting phones at
+    `GET /chamas/{id}/new-phones/` and get an SMS). Where fewer than two other officials
+    exist, a members' vote decides instead; a vote that fails revokes the new key;
+  - for **anyone else**, for **24 hours** (`active_from`).
+- While a key is pending, its owner can read but **not sign anything**: no key signatures
+  and no approval-type SMS codes (approvals, votes, guarantees, waivers, disputes,
+  confirmations). Someone who took over the SIM gets the SMS code, but cannot use it.
+  Joining, adopting rules and registering a phone still work.
+- A key becomes active when its time comes (checked whenever it is asked for) or when the
+  last vouch arrives, and only then is the `device_registered` entry written in the
+  owner's chamas.

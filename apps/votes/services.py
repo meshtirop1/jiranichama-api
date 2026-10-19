@@ -256,6 +256,10 @@ def _tell_subject(vote: Vote) -> None:
         from apps.payouts.services import on_vote_closed
 
         on_vote_closed(vote)
+    elif vote.subject.startswith("device:"):
+        from apps.devices.changes import on_vote_closed as device_vote_closed
+
+        device_vote_closed(vote)
     elif vote.subject.startswith("disputes.dispute:"):
         from apps.disputes.services import on_vote_closed as dispute_vote_closed
 
