@@ -77,7 +77,8 @@ class BankTransaction(models.Model):
         UNMATCHED = "unmatched"
         RECORDED = "recorded"
         DUPLICATE = "duplicate"
-        DEBIT_PENDING = "debit_pending"  # debit matching arrives with Phase 2
+        DEBIT_PENDING = "debit_pending"  # records-only chamas: debits wait here
+        UNAPPROVED = "unapproved"  # money out with no approved proposal (payouts app)
         DISPUTED = "disputed"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

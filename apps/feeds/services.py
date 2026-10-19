@@ -271,8 +271,8 @@ def confirm(statement: Statement, by: Membership, *, challenge_id, sms_code: str
 def ingest(statement: Statement) -> list[BankTransaction]:
     """Turn an accepted statement's lines into bank transactions. Lines already seen from
     an earlier statement are skipped (they share the bank's reference). Typed-in lines
-    keep who typed them. Credits go to matching; debits wait for Phase 2's debit
-    matching."""
+    keep who typed them. Credits go to matching; debits to money-out matching (bank
+    charges, approved proposals, or an unapproved-debit alert)."""
     from apps.reconciliation.services import match_credit
 
     created = []
@@ -296,9 +296,13 @@ def ingest(statement: Statement) -> list[BankTransaction]:
         except IntegrityError:
             continue  # already have this line from an overlapping statement
         created.append(txn)
+    from apps.payouts.services import process_debit
+
     for txn in created:
         if txn.direction == BankTransaction.Direction.CREDIT:
             match_credit(txn)
+        else:
+            process_debit(txn)
     return created
 
 

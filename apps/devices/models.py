@@ -19,6 +19,8 @@ class SigningChallenge(models.Model):
         ASSIGN_PAYMENT = "assign_payment"
         CONFIRM_OPENING = "confirm_opening"
         CONFIRM_CASH = "confirm_cash"
+        APPROVE_PROPOSAL = "approve_proposal"
+        ENABLE_MONEY_OUT = "enable_money_out"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,

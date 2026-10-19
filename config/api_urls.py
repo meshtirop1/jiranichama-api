@@ -5,6 +5,7 @@ from apps.contributions import views as contrib
 from apps.documents import views as docs
 from apps.feeds import views as feeds
 from apps.ledger import views as ledger
+from apps.payouts import views as payouts
 from apps.reconciliation import views as recon
 
 urlpatterns = [
@@ -45,4 +46,14 @@ urlpatterns = [
     path("documents/<uuid:pk>/", docs.DocumentView.as_view()),
     path("documents/<uuid:pk>/file/", docs.DocumentFileView.as_view()),
     path("verify/<str:code>/", docs.VerifyView.as_view()),
+    path("chamas/<uuid:pk>/money-out/", payouts.MoneyOutView.as_view()),
+    path("chamas/<uuid:pk>/proposals/", payouts.ProposalListView.as_view()),
+    path("proposals/<uuid:pk>/", payouts.ProposalDetailView.as_view()),
+    path("proposals/<uuid:pk>/approve/", payouts.ProposalApproveView.as_view()),
+    path("proposals/<uuid:pk>/decline/", payouts.ProposalDeclineView.as_view()),
+    path("proposals/<uuid:pk>/cancel/", payouts.ProposalCancelView.as_view()),
+    path("proposals/<uuid:pk>/paid/", payouts.ProposalPaidView.as_view()),
+    path("chamas/<uuid:pk>/unapproved-debits/", payouts.UnapprovedListView.as_view()),
+    path("unapproved-debits/<uuid:pk>/link/", payouts.UnapprovedLinkView.as_view()),
+    path("unapproved-debits/<uuid:pk>/explain/", payouts.UnapprovedExplainView.as_view()),
 ]
