@@ -65,3 +65,9 @@ level as an SMS code, so a reply is a valid ballot for basic-phone members.
 
 USSD (Phase 4), the LOAN command (loans arrive in Phase 3), and a members' vote on a new
 member when the rules ask for one (Phase 3).
+
+## LOAN / MKOPO
+
+Where loans are switched on, `LOAN` (or `MKOPO`) answers what is owed on the member's
+loan, what is due now and the next instalment. Elsewhere it answers that loans are not
+offered.

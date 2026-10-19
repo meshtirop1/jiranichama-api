@@ -45,6 +45,7 @@ HISTORY_MODELS = {
     "votes.Turnout",
     "votes.VoteSmsNumber",
     "notify.InboundSms",
+    "notify.UssdRequest",
     "documents.DocumentAccess",
     "meetings.Meeting",
     "meetings.Apology",

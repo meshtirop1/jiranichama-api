@@ -22,6 +22,7 @@ owns.
 - [Overdue bank statements](flows/statement-reminders.md): treasurer, then officials, then every member.
 - [M-Pesa paybill](flows/paybill.md): Daraja C2B, matched the same minute, never counted twice.
 - [SMS commands](flows/sms-commands.md): BAL, DUE, FINES, RULES, VERIFY and YES/NO votes from basic phones.
+- [USSD menu](flows/ussd.md): read-only menu for any phone: balance, due, loan, fines, rules, verify.
 - [Public anchoring](flows/anchoring.md): nightly Merkle root of every chain, OpenTimestamps, off-site email.
 - [Leaving and death](flows/exits.md): what comes back, notice, settlement from savings, next of kin.
 - [Elections](flows/elections.md): members elect officials; the role starts with the phone key; acting officials; bank mandate; money out waits when too few officials remain.

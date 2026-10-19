@@ -121,6 +121,10 @@ ANCHOR_EMAIL_TO = env.list("ANCHOR_EMAIL_TO", default=[])
 SMS_INBOUND_TOKEN = env("SMS_INBOUND_TOKEN", default="")
 SMS_INBOUND_ALLOWED_IPS = env.list("SMS_INBOUND_ALLOWED_IPS", default=[])
 SMS_COMMANDS_PER_HOUR = env.int("SMS_COMMANDS_PER_HOUR", default=10)
+# USSD menu (4.9): Africa's Talking calls /hooks/ussd/{USSD_TOKEN}/.
+USSD_TOKEN = env("USSD_TOKEN", default="")
+USSD_ALLOWED_IPS = env.list("USSD_ALLOWED_IPS", default=[])
+USSD_REQUESTS_PER_HOUR = env.int("USSD_REQUESTS_PER_HOUR", default=60)
 # Payment receipts go by SMS to members who have not opened the app in this many days.
 RECEIPT_SMS_IF_AWAY_DAYS = env.int("RECEIPT_SMS_IF_AWAY_DAYS", default=30)
 # M-Pesa Daraja C2B (6.9). Our public base URL for Safaricom's callbacks, the platform's

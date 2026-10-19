@@ -49,6 +49,7 @@ urlpatterns = [
     path("hooks/mail/<str:token>/inbound/", feeds.MailInboundHook.as_view()),
     path("hooks/daraja/<str:token>/<str:step>/", feeds.DarajaHook.as_view()),
     path("hooks/sms/<str:token>/inbound/", notify.SmsInboundHook.as_view()),
+    path("hooks/ussd/<str:token>/", notify.UssdHook.as_view()),
     path("chamas/<uuid:pk>/opening-balances/", contrib.OpeningView.as_view()),
     path("chamas/<uuid:pk>/opening-balances/confirm/", contrib.OpeningConfirmView.as_view()),
     path("opening-balance-lines/<uuid:pk>/object/", contrib.OpeningObjectView.as_view()),

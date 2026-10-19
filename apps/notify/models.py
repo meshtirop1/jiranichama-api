@@ -20,3 +20,20 @@ class InboundSms(models.Model):
 
     class Meta:
         db_table = "notify_inbound_sms"
+
+
+class UssdRequest(models.Model):
+    """One step of a USSD session. What was typed is not stored (it may hold a code);
+    only who (a keyed hash of the number), the session and how deep. Insert only. Also
+    the basis of the per-phone limit."""
+
+    id = models.BigAutoField(primary_key=True)
+    phone_hash = models.CharField(max_length=80, db_index=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True,
+                             blank=True, related_name="+")
+    session_id = models.CharField(max_length=100, blank=True, default="")
+    depth = models.PositiveSmallIntegerField(default=0)
+    at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "notify_ussd_request"

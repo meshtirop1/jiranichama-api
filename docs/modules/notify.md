@@ -28,3 +28,10 @@ See [SMS commands](../flows/sms-commands.md).
 
 `send_payment_receipt` (after commit, from `reconciliation.services.apply_payment`): one
 SMS per payment to members away from the app. See [Payments](../flows/payments.md).
+
+## USSD (`ussd.py`)
+
+`route(user, text)` answers one step of a USSD session from the path typed so far;
+`handle` adds the number lookup, the hourly limit and the `UssdRequest` log. It reuses the
+SMS command helpers in `commands.py`, which take an optional single membership (`only`).
+See [USSD menu](../flows/ussd.md).

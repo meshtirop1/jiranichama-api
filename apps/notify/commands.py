@@ -5,6 +5,7 @@ A member texts a word to the chama shortcode and gets the answer by SMS:
     BAL / SALIO        savings, months behind and fines owed, per chama
     DUE / DENI         what is due next, and when
     FINES / FAINI      unpaid fines
+    LOAN / MKOPO       what is owed on a loan, and the next instalment (where loans are on)
     RULES / KANUNI     the contribution, due day and late fine
     VERIFY <code> / HAKIKI <code>   check a receipt (8 characters) or a statement (10)
     YES <n> / NDIYO <n>, NO <n> / HAPANA <n>   vote, with the number from the vote SMS
@@ -31,6 +32,7 @@ WORDS = {
     "BAL": "bal", "SALIO": "bal",
     "DUE": "due", "DENI": "due",
     "FINES": "fines", "FAINI": "fines",
+    "LOAN": "loan", "MKOPO": "loan",
     "RULES": "rules", "KANUNI": "rules",
     "VERIFY": "verify", "HAKIKI": "verify",
     "YES": "yes", "NDIYO": "yes", "NDIO": "yes",
@@ -43,18 +45,21 @@ def _kes(cents: int) -> str:
     return f"KES {cents / 100:,.0f}" if cents % 100 == 0 else f"KES {cents / 100:,.2f}"
 
 
-def _memberships(user):
+def _memberships(user, only=None):
+    """The member's chamas (three at most); ``only`` narrows to one (USSD)."""
+    if only is not None:
+        return [only]
     return list(Membership.objects.filter(user=user, state__in=[
         Membership.State.ACTIVE, Membership.State.PROBATION]).select_related("chama")
         .order_by("chama__name")[:3])
 
 
-def _bal(user, sw: bool) -> str:
+def _bal(user, sw: bool, only=None) -> str:
     from apps.contributions.projections import position
 
     today = timezone.localdate()
     parts = []
-    for m in _memberships(user):
+    for m in _memberships(user, only):
         p = position(m, today)
         parts.append(f"{m.chama.name}: akiba {_kes(p.contributed_cents)}, deni "
                      f"{_kes(p.arrears_cents)}, faini {_kes(p.fines_cents)}" if sw else
@@ -63,14 +68,14 @@ def _bal(user, sw: bool) -> str:
     return ". ".join(parts) + "." if parts else ""
 
 
-def _due(user, sw: bool) -> str:
+def _due(user, sw: bool, only=None) -> str:
     from apps.contributions.projections import position
     from apps.rules import calendar
     from apps.rules.models import version_at
 
     today = timezone.localdate()
     parts = []
-    for m in _memberships(user):
+    for m in _memberships(user, only):
         p = position(m, today)
         version = version_at(m.chama, today)
         if p.next_due_period is None or version is None:
@@ -82,16 +87,16 @@ def _due(user, sw: bool) -> str:
                      else f"{m.chama.name}: {_kes(p.next_due_cents)} by {due}{behind}")
     if not parts:
         return "Hakuna kinachodaiwa." if sw else "Nothing due."
-    code = ", ".join(m.member_code for m in _memberships(user))
+    code = ", ".join(m.member_code for m in _memberships(user, only))
     tail = f" Tumia nambari {code}." if sw else f" Use code {code}."
     return ". ".join(parts) + "." + tail
 
 
-def _fines(user, sw: bool) -> str:
+def _fines(user, sw: bool, only=None) -> str:
     from apps.fines.models import Fine
 
     parts = []
-    for m in _memberships(user):
+    for m in _memberships(user, only):
         open_ = [f for f in Fine.objects.filter(membership=m, state=Fine.State.RAISED)
                  if f.outstanding_cents > 0]
         total = sum(f.outstanding_cents for f in open_)
@@ -100,12 +105,12 @@ def _fines(user, sw: bool) -> str:
     return ". ".join(parts) + "." if parts else ""
 
 
-def _rules(user, sw: bool) -> str:
+def _rules(user, sw: bool, only=None) -> str:
     from apps.rules.models import version_at
 
     today = timezone.localdate()
     parts = []
-    for m in _memberships(user):
+    for m in _memberships(user, only):
         v = version_at(m.chama, today)
         if v is None:
             continue
@@ -116,6 +121,30 @@ def _rules(user, sw: bool) -> str:
                      else f"{m.chama.name}: {_kes(c['amount_cents'])} a month by day "
                      f"{c['due_day']}, {c['grace_days']} grace days, late fine {fine}")
     return ". ".join(parts) + "." if parts else ""
+
+
+def _loan(user, sw: bool, only=None) -> str:
+    from apps.loans.services import balance, enabled, running_loan
+
+    parts = []
+    for m in _memberships(user, only):
+        if enabled(m.chama) is None:
+            continue
+        loan = running_loan(m)
+        if loan is None:
+            parts.append(f"{m.chama.name}: hakuna mkopo" if sw else f"{m.chama.name}: no loan")
+            continue
+        b = balance(loan)
+        nxt = b["next"]
+        when = (f", inayofuata {_kes(nxt['total_cents'])} tarehe {nxt['due']}" if sw else
+                f", next {_kes(nxt['total_cents'])} on {nxt['due']}") if nxt else ""
+        parts.append(f"{m.chama.name}: deni la mkopo {_kes(b['outstanding_cents'])}, sasa "
+                     f"{_kes(b['due_now_cents'])}{when}" if sw else
+                     f"{m.chama.name}: loan owed {_kes(b['outstanding_cents'])}, due now "
+                     f"{_kes(b['due_now_cents'])}{when}")
+    if not parts:
+        return "Mikopo haitolewi." if sw else "Loans are not offered."
+    return ". ".join(parts) + "."
 
 
 def _verify(user, arg: str, sw: bool) -> str:
@@ -135,7 +164,7 @@ def _verify(user, arg: str, sw: bool) -> str:
                     f"{doc.period_to}.")
     elif len(code) == 8:
         # Receipts are checked only in the sender's own chamas: they are not public.
-        chamas = [m.chama_id for m in _memberships(user)]
+        chamas = [m.chama_id for m in _memberships(user)]  # all three: receipts are by code
         e = (LedgerEntry.objects.filter(chama_id__in=chamas, receipt_code=code)
              .select_related("chama").first())
         if e is not None:
@@ -172,9 +201,13 @@ def _vote(user, choice: str, arg: str, sw: bool) -> str:
 
 
 def _help(sw: bool) -> str:
-    return ("Tuma: SALIO, DENI, FAINI, KANUNI, HAKIKI <nambari>, au NDIYO/HAPANA <nambari> "
+    return ("Tuma: SALIO, DENI, FAINI, MKOPO, KANUNI, HAKIKI <nambari>, au NDIYO/HAPANA <nambari> "
             "kupiga kura." if sw else
-            "Send: BAL, DUE, FINES, RULES, VERIFY <code>, or YES/NO <number> to vote.")
+            "Send: BAL, DUE, FINES, LOAN, RULES, VERIFY <code>, or YES/NO <number> to vote.")
+
+
+SW_WORDS = {"SALIO", "DENI", "FAINI", "MKOPO", "KANUNI", "HAKIKI", "NDIYO", "NDIO", "HAPANA",
+            "MSAADA"}
 
 
 def answer(user: User, text: str) -> tuple[str, str]:
@@ -184,8 +217,7 @@ def answer(user: User, text: str) -> tuple[str, str]:
     arg = words[1] if len(words) > 1 else ""
     command = WORDS.get(first, "help")
     # Answer in the language of the word they used; otherwise their own language.
-    sw = first in {"SALIO", "DENI", "FAINI", "KANUNI", "HAKIKI", "NDIYO", "NDIO", "HAPANA",
-                   "MSAADA"} or (first not in WORDS and user.language == "sw")
+    sw = first in SW_WORDS or (first not in WORDS and user.language == "sw")
     if command == "bal":
         reply = _bal(user, sw)
     elif command == "due":
@@ -194,6 +226,8 @@ def answer(user: User, text: str) -> tuple[str, str]:
         reply = _fines(user, sw)
     elif command == "rules":
         reply = _rules(user, sw)
+    elif command == "loan":
+        reply = _loan(user, sw)
     elif command == "verify":
         reply = _verify(user, arg, sw)
     elif command in ("yes", "no"):
@@ -207,7 +241,6 @@ def answer(user: User, text: str) -> tuple[str, str]:
 
 
 _INVITE = re.compile(r"[A-Z0-9]{6}")
-SW_WORDS = {"SALIO", "DENI", "FAINI", "KANUNI", "HAKIKI", "NDIYO", "NDIO", "HAPANA", "MSAADA"}
 
 
 def _join(e164: str, h: str, code: str, sw: bool, provider_id: str, user) -> str | None:
