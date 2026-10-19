@@ -16,6 +16,7 @@ from apps.meetings import views as meetings
 from apps.notify import views as notify
 from apps.payouts import views as payouts
 from apps.reconciliation import views as recon
+from apps.referrals import views as referrals
 from apps.reports import views as reports
 from apps.rules import views as rules
 from apps.votes import views as votes
@@ -86,6 +87,9 @@ urlpatterns = [
     path("disputes/<uuid:pk>/agree/", disputes.DisputeAgreeView.as_view()),
     path("disputes/<uuid:pk>/disagree/", disputes.DisputeDisagreeView.as_view()),
     path("chamas/<uuid:pk>/analytics/", reports.AnalyticsView.as_view()),
+    path("partners/", referrals.PartnerListView.as_view()),
+    path("chamas/<uuid:pk>/referrals/", referrals.ReferralListView.as_view()),
+    path("referrals/<uuid:pk>/withdraw/", referrals.ReferralWithdrawView.as_view()),
     path("chamas/<uuid:pk>/investments/", investments.InvestmentListView.as_view()),
     path("investments/<uuid:pk>/valuations/", investments.ValuationView.as_view()),
     path("investments/<uuid:pk>/income/", investments.IncomeView.as_view()),

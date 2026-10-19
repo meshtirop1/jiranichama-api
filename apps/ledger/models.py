@@ -33,6 +33,7 @@ class EntryType(models.TextChoices):
     INVESTMENT_RECORDED = "investment_recorded"
     VALUATION = "valuation"
     INVESTMENT_INCOME = "investment_income"
+    REFERRAL_CONSENT = "referral_consent"
     DEVICE_REGISTERED = "device_registered"
     ROLE_CHANGED = "role_changed"
     SEAL = "seal"

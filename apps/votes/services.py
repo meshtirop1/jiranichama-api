@@ -256,6 +256,10 @@ def _tell_subject(vote: Vote) -> None:
         from apps.payouts.services import on_vote_closed
 
         on_vote_closed(vote)
+    elif vote.subject.startswith("referrals.referral:"):
+        from apps.referrals.services import on_vote_closed as referral_vote_closed
+
+        referral_vote_closed(vote)
     elif vote.subject.startswith("elections.election:"):
         from apps.elections.services import on_vote_closed as election_vote_closed
 
