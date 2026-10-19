@@ -83,4 +83,5 @@ approved proposals, or an unapproved-debit alert).
 ## Not yet
 
 PDF parsing, typing in a whole statement's totals when the bank's format is unknown, statement freshness alerts and
-the weekly money-out rule, daily reconciliation, and bank feeds arrive in later PRs.
+the weekly money-out rule, and bank feeds arrive in later PRs. Each accepted statement is
+followed by a [reconciliation](reconciliation.md).

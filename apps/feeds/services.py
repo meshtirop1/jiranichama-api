@@ -303,6 +303,9 @@ def ingest(statement: Statement) -> list[BankTransaction]:
             match_credit(txn)
         else:
             process_debit(txn)
+    from apps.reconciliation.daily import reconcile
+
+    reconcile(statement.chama)
     return created
 
 
