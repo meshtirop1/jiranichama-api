@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "apps.elections",
     "apps.exits",
     "apps.investments",
+    "apps.reports",
 ]
 
 MIDDLEWARE = [

@@ -22,6 +22,7 @@ owns.
 - [Overdue bank statements](flows/statement-reminders.md): treasurer, then officials, then every member.
 - [M-Pesa paybill](flows/paybill.md): Daraja C2B, matched the same minute, never counted twice.
 - [SMS commands](flows/sms-commands.md): BAL, DUE, FINES, RULES, VERIFY and YES/NO votes from basic phones.
+- [Numbers for running the chama](flows/analytics.md): month by month, who is behind, attendance, loans, money.
 - [Investments](flows/investments.md): land, shares, funds; valuations confirmed by a second official; income through the bank.
 - [Bank feeds](flows/bank-feeds.md): Equity Jenga balance and lines, matched like statements, never counted twice.
 - [USSD menu](flows/ussd.md): read-only menu for any phone: balance, due, loan, fines, rules, verify.
@@ -54,6 +55,7 @@ owns.
 - [meetings](modules/meetings.md): meetings, attendance, minutes.
 - [loans](modules/loans.md): loans and guarantees (flag off).
 - [investments](modules/investments.md): holdings, valuations, income.
+- reports (`apps/reports/analytics.py`): the numbers for running the chama.
 - [disputes](modules/disputes.md): disputes, the evidence pack.
 - [elections](modules/elections.md): elections, acting officials, role changes.
 - [exits](modules/exits.md): leaving and deaths.
