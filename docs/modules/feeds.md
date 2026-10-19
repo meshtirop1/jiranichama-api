@@ -23,3 +23,12 @@ Written once, all of a statement's rows together, only after the statement adds 
 (`services.submit_typed_lines`). `services.all_lines` gives read and typed rows together
 in file order; ingest and the confirmation code use it. `BankTransaction.typed_by` marks
 lines that came from typing. See [Bank statements](../flows/statements.md).
+
+## M-Pesa paybill (`daraja.py`)
+
+`DarajaChannel` (a chama's paybill or till, with the secret callback token; set up in the
+staff console). `receive` stores a C2B confirmation once per TransID and matches it;
+`daraja_twin` finds the M-Pesa payment a statement credit repeats, so ingest stores that
+line as `duplicate`; `register_urls` registers our callbacks with Safaricom. The hook view
+is `DarajaHook` (`/hooks/daraja/{token}/{validation|confirmation}/`).
+See [M-Pesa paybill](../flows/paybill.md).

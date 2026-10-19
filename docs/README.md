@@ -14,6 +14,19 @@ owns.
 - [Payments](flows/payments.md): matching, the rules engine, assign and "not me", late fines.
 - [Opening balances and cash at meetings](flows/opening-and-cash.md).
 - [Member and chama statements](flows/member-statements.md): figures, sealed PDFs, the public check.
+- [Money out](flows/money-out.md): proposals, approvals, matching debits, unapproved-debit alerts.
+- [Merry-go-round rotation](flows/rotation.md): the checkable draw, whose turn is next, arrears.
+- [Phone signing keys](flows/device-keys.md): fingerprint approvals, attestation, nonces.
+- [Daily reconciliation](flows/reconciliation.md): bank vs records each morning, gaps, breach after 7 days.
+- [Members' votes](flows/votes.md): votes on large payouts, by phone key or SMS code, secret if the rules say.
+- [Overdue bank statements](flows/statement-reminders.md): treasurer, then officials, then every member.
+- [M-Pesa paybill](flows/paybill.md): Daraja C2B, matched the same minute, never counted twice.
+- [SMS commands](flows/sms-commands.md): BAL, DUE, FINES, RULES, VERIFY and YES/NO votes from basic phones.
+- [Public anchoring](flows/anchoring.md): nightly Merkle root of every chain, OpenTimestamps, off-site email.
+- [Fine waivers](flows/fine-waivers.md): ask with a reason, officials decide (never their own), fine_waived on the ledger.
+- [Loans](flows/loans.md): behind the loans flag; quote, guarantors by SMS code, approval as money out, interest on due dates, arrears and default.
+- [Meetings](flows/meetings.md): schedule, reminders, apologies, QR check-in, absence and lateness fines, minutes sealed after a week.
+- [Changing the rules](flows/rule-changes.md): propose, 14 days' notice, members' vote, new version from the 1st of next month.
 
 ## Modules
 
@@ -25,11 +38,15 @@ owns.
 - [chamas](modules/chamas.md)
 - [staff](modules/staff.md)
 - [rules](modules/rules.md): schema, templates, rule book, allocation engine.
-- [devices](modules/devices.md): SMS signing codes.
+- [devices](modules/devices.md): SMS signing codes and phone signing keys.
 - [feeds](modules/feeds.md): statements, parsers, bank transactions.
 - [reconciliation](modules/reconciliation.md)
 - [contributions and fines](modules/contributions-and-fines.md)
 - [documents](modules/documents.md): statements, PDFs, the check page.
+- [payouts](modules/payouts.md): money out.
+- [votes](modules/votes.md): members' votes.
+- [meetings](modules/meetings.md): meetings, attendance, minutes.
+- [loans](modules/loans.md): loans and guarantees (flag off).
 
 ## Operations
 
@@ -41,8 +58,7 @@ Phase 0 (foundations) is done. Phase 1 (records core) is in progress: chama setu
 adoption, rules engine v1, statements by bank email or two-official upload, matching,
 contributions and late fines are built. Opening balances, cash at meetings, and member
 and chama statements (sealed PDFs with a public check) are built too. Still to come in
-Phase 1: nothing beyond polish. Unreadable statement lines can be typed in by an official and confirmed by another, and the app edits every rule setting (rule errors carry stable codes). Then Phase 2 money out, Phase 3 governance and loans, Phase 4 basic
-phones.
+Phase 1: nothing beyond polish. Unreadable statement lines can be typed in by an official and confirmed by another, and the app edits every rule setting (rule errors carry stable codes). Phase 2 has started: money out (proposals, approvals by SMS code, debits matched back, unapproved-debit alerts) the merry-go-round rotation, approvals signed with the phone's key (fingerprint) for officials with the app, daily reconciliation of the bank against the records, members' votes on large payouts, overdue-statement reminders, M-Pesa paybill notifications, SMS commands, votes, receipts and joining for basic phones, and nightly public anchoring. Phase 2 is complete. Phase 3 (governance and loans) has started: rule changes by members' vote, meetings with attendance, meeting fines and minutes, and loans with guarantors (behind the loans flag until the lending opinion) are built, and so are fine waivers. Still to come: disputes, elections, leaving and death. Then Phase 4: USSD and bank feeds.
 
 ## Not in Phase 0, on purpose
 

@@ -79,3 +79,32 @@ class NotMeView(APIView):
         services.not_me(txn, me, reason=s.validated_data.get("reason", ""))
         txn.refresh_from_db()
         return Response(BankTransactionSerializer(txn).data)
+
+
+class ReconciliationSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=["no_statement", "match", "open", "breach"])
+    checked_on = serializers.DateField(allow_null=True)
+    bank_as_of = serializers.DateField(allow_null=True)
+    bank_cents = serializers.IntegerField(allow_null=True)
+    records_cents = serializers.IntegerField(allow_null=True)
+    gap_cents = serializers.IntegerField()
+    unmatched_cents = serializers.IntegerField()
+    unexplained_cents = serializers.IntegerField()
+    gap_opened_on = serializers.DateField(allow_null=True)
+    days_open = serializers.IntegerField()
+    breach_after_days = serializers.IntegerField()
+    history = serializers.ListField(child=serializers.DictField())
+    statement = serializers.DictField(
+        help_text="Freshness: checked_to, every_days, due_on, days_overdue, level "
+                  "(0 fresh, 1 treasurer, 2 officials, 3 everyone).")
+
+
+class ReconciliationView(APIView):
+    """Does the bank match the records? Every member sees the same answer (5.5)."""
+
+    @extend_schema(responses=ReconciliationSerializer)
+    def get(self, request, pk):
+        from .daily import summary
+
+        chama, _ = chama_for(request, pk)
+        return Response(summary(chama))

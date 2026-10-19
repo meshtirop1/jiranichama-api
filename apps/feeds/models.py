@@ -77,7 +77,8 @@ class BankTransaction(models.Model):
         UNMATCHED = "unmatched"
         RECORDED = "recorded"
         DUPLICATE = "duplicate"
-        DEBIT_PENDING = "debit_pending"  # debit matching arrives with Phase 2
+        DEBIT_PENDING = "debit_pending"  # records-only chamas: debits wait here
+        UNAPPROVED = "unapproved"  # money out with no approved proposal (payouts app)
         DISPUTED = "disputed"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -143,3 +144,34 @@ class TypedLine(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["statement", "line_no"], name="typed_line_once"),
         ]
+
+
+def _channel_token() -> str:
+    import secrets
+
+    return secrets.token_urlsafe(24)
+
+
+class DarajaChannel(models.Model):
+    """A chama's own M-Pesa paybill or till, sending us Daraja C2B notifications. Set up
+    by staff once the chama has authorised it; the secret token is in our callback URLs."""
+
+    class Kind(models.TextChoices):
+        PAYBILL = "paybill"
+        TILL = "till"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    chama = models.ForeignKey(Chama, on_delete=models.PROTECT, related_name="daraja_channels")
+    shortcode = models.CharField(max_length=10, unique=True)
+    kind = models.CharField(max_length=8, choices=Kind.choices, default=Kind.PAYBILL)
+    token = models.CharField(max_length=64, unique=True, default=_channel_token,
+                             editable=False)
+    active = models.BooleanField(default=True)
+    registered_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "feeds_daraja_channel"
+
+    def __str__(self):
+        return f"{self.kind} {self.shortcode} ({self.chama})"

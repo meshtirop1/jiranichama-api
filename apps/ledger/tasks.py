@@ -46,3 +46,11 @@ def verify_chains() -> dict:
             log.error("unsigned ledger entries older than 10 minutes in chama %s",
                       report.chama_id)
     return {"broken": broken, "stale_unsigned": stale_unsigned}
+
+
+@shared_task
+def anchor_nightly() -> str:
+    """00:30: one Merkle root over every chama's chain head, timestamped publicly."""
+    from .anchoring import anchor_now
+
+    return anchor_now().merkle_root

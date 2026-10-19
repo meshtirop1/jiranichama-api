@@ -83,6 +83,14 @@ def _cross_field(rules: dict) -> list[RuleError]:
                 "tiers_too_many_officials",
             ))
 
+    waiver = rules.get("waivers")
+    if waiver and waiver["officials"] > officials - 1:
+        # The same platform rule as P.1: an official's own fine is decided by the others.
+        errors.append(RuleError(
+            "waivers/officials",
+            f"With {officials} officials, at most {officials - 1} can be required, because "
+            "nobody decides a waiver of their own fine.", "waivers_too_many_officials"))
+
     fine = rules["fines"]["late_contribution"]
     cap = fine["monthly_cap_cents"]
     if fine["enabled"] and fine["amount_cents"] == 0:

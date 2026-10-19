@@ -10,7 +10,9 @@ A chama's constitution as settings, checked, enforced and written out in plain w
 | `book.py` | The numbered rule book in English and Kiswahili, generated from the settings |
 | `calendar.py` | Monthly periods, due dates, grace ends |
 | `engine.py` | `allocate()`: how one payment is split; pure, no database |
-| `models.py` | `RuleVersion`: settings frozen at adoption; only `state` can change |
+| `models.py` | `RuleVersion`: settings frozen at adoption; only `state` can change. `RuleProposal`: a change waiting for notice and a vote |
+| `proposals.py` | Rule changes by vote: propose, withdraw, `advance` (notice ends, vote opens; scheduled versions start), `on_vote_closed` |
+| `views.py`, `tasks.py` | The rule-proposal endpoints and the hourly `advance_rule_proposals` |
 | `golden/allocate_v1.json` | Hand-worked cases the engine must reproduce |
 
 ## Platform rules (no chama can switch these off)
@@ -30,7 +32,7 @@ handed over if it reaches the bank within that many days, otherwise from the ban
 ## Limits of v1
 
 Monthly contributions only (weekly and fortnightly need a new period format). Loans,
-meetings, other fines and rule changes by vote arrive in Phase 3 as schema v2. The
+meetings and other fines arrive in Phase 3 as schema v2. The
 Kiswahili rule book is a first draft for a native speaker to review before the pilot.
 
 ## Changing a template or the engine
@@ -45,5 +47,41 @@ sends them as `errors: [{path, code, message}]`. `path` names the setting
 (`contributions/due_day`, `approvals/tiers/1/officials`). `code` is stable, so the app shows
 the reason in English or Kiswahili. Codes: `out_of_range` (any schema failure),
 `tiers_last_unlimited`, `tiers_only_last_unlimited`, `tiers_order`, `tiers_officials_order`,
-`tiers_too_many_officials`, `fine_needs_amount`, `fine_cap_below_fine`. `message` stays as
+`tiers_too_many_officials`, `fine_needs_amount`, `fine_cap_below_fine`, `waivers_too_many_officials`. `message` stays as
 the English explanation for logs and staff.
+
+## Rotation (schema v1, optional section)
+
+`rotation: {order: fixed|draw, arrears: skip|deduct|block}`. Only merry-go-round templates
+include it; the rule book adds clauses 8.1 and 8.2 when present.
+
+## Votes (schema v1, optional section)
+
+`votes: {quorum_pct: 10-100, pass_pct: 50-90, secret: bool}`, in every template as
+`{50, 50, false}`. Missing means the same defaults. The rule book's clause 9.1 says it.
+
+## Rule changes (schema v1, optional section)
+
+`rule_changes: {notice_days: 0-60, vote_days: 1-30, quorum_pct: 25-100, pass_pct: 50-90,
+cooling_days: 0-365}`, in every template as `{14, 7, 50, 66, 30}`. The rule book's clause
+10.1 says it. The flow is in [rule changes](../flows/rule-changes.md). A version's states:
+`scheduled` (adopted by vote, waiting for its 1st of the month), `in_force`, `superseded`.
+
+## Meetings (schema v1, optional section)
+
+`meetings: {absence_fine_cents, late_fine_cents, late_after_minutes: 0-180,
+apology_excuses: bool, objection_days: 1-30}`, in every template as `{0, 0, 15, true, 7}`.
+Clauses 11.1 (attendance, absence fine), 11.2 (lateness) and 11.3 (minutes).
+
+## Loans (schema v1, optional section)
+
+`loans: {min_months, savings_multiple_pct, interest: flat|reducing, monthly_rate_bp,
+max_term_months, guarantors, grace_days, late_penalty_cents, default_after_missed,
+contribution_first}`. Only the table-banking template has it, as `{3, 300, flat, 100, 12,
+2, 3, KES 200, 2, true}`. Without it a chama has no loans. Clauses 12.1-12.4. See
+[loans](../flows/loans.md).
+
+## Waivers (schema v1, optional section)
+
+`waivers: {officials: 1-5, member_vote: bool}`, in every template as `{2, false}`. Clause
+3.5. `officials` may not exceed the number of officials minus one.

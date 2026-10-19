@@ -52,6 +52,7 @@ def active_chama(*, since: date, members: int = 3, rules: dict | None = None,
                                template="merry_go_round@1", effective_from=since,
                                hash=rules_hash(r), state=RuleVersion.State.IN_FORCE)
     Membership.objects.filter(chama=chama).update(joined_on=since, is_founding=True)
+    chama.refresh_from_db()  # keep the member-number counter the codes above advanced
     chama.state = Chama.State.ACTIVE
     chama.activated_at = timezone.now()
     chama.save()

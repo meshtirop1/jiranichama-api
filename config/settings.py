@@ -46,6 +46,10 @@ INSTALLED_APPS = [
     "apps.feeds",
     "apps.reconciliation",
     "apps.documents",
+    "apps.payouts",
+    "apps.votes",
+    "apps.meetings",
+    "apps.loans",
 ]
 
 MIDDLEWARE = [
@@ -103,6 +107,33 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # private S3 bucket with Object Lock (6.6) behind the same storage API.
 MEDIA_ROOT = env.path("MEDIA_ROOT", default=BASE_DIR / "media")
 MEDIA_URL = "/never-served/"
+# Nightly public anchoring (6.6): OpenTimestamps calendars (empty: not sent) and the
+# outside mailbox that gets every night's root and leaves.
+OTS_CALENDARS = env.list("OTS_CALENDARS", default=[
+    "https://a.pool.opentimestamps.org", "https://b.pool.opentimestamps.org"])
+ANCHOR_EMAIL_TO = env.list("ANCHOR_EMAIL_TO", default=[])
+# SMS commands from basic phones (4.9): the secret token in the provider's incoming-SMS
+# callback URL (empty: the hook is off), its IPs, and how many messages a number may send
+# an hour.
+SMS_INBOUND_TOKEN = env("SMS_INBOUND_TOKEN", default="")
+SMS_INBOUND_ALLOWED_IPS = env.list("SMS_INBOUND_ALLOWED_IPS", default=[])
+SMS_COMMANDS_PER_HOUR = env.int("SMS_COMMANDS_PER_HOUR", default=10)
+# Payment receipts go by SMS to members who have not opened the app in this many days.
+RECEIPT_SMS_IF_AWAY_DAYS = env.int("RECEIPT_SMS_IF_AWAY_DAYS", default=30)
+# M-Pesa Daraja C2B (6.9). Our public base URL for Safaricom's callbacks, the platform's
+# Daraja app credentials (used only to register callback URLs), and Safaricom's IPs.
+DARAJA_BASE_URL = env("DARAJA_BASE_URL", default="https://sandbox.safaricom.co.ke")
+DARAJA_CONSUMER_KEY = env("DARAJA_CONSUMER_KEY", default="")
+DARAJA_CONSUMER_SECRET = env("DARAJA_CONSUMER_SECRET", default="")
+DARAJA_CALLBACK_BASE_URL = env("DARAJA_CALLBACK_BASE_URL",
+                               default="https://api.jiranichama.co.ke")
+DARAJA_ALLOWED_IPS = env.list("DARAJA_ALLOWED_IPS", default=[])
+# Device keys (6.7). SHA-256 fingerprints of the attestation roots we trust (Google's
+# hardware attestation roots in production). Until set, keys are recorded as untrusted;
+# production turns on DEVICE_REQUIRE_TRUSTED_ATTESTATION once the roots are in.
+ANDROID_ATTESTATION_ROOTS = env.list("ANDROID_ATTESTATION_ROOTS", default=[])
+DEVICE_REQUIRE_TRUSTED_ATTESTATION = env.bool("DEVICE_REQUIRE_TRUSTED_ATTESTATION",
+                                              default=False)
 # Printed (and in the QR code) on every statement PDF; the page is served by this API.
 VERIFY_BASE_URL = env("VERIFY_BASE_URL", default="https://api.jiranichama.co.ke/verify/")
 
@@ -122,7 +153,7 @@ SILENCED_SYSTEM_CHECKS = env.list("DJANGO_SILENCED_CHECKS", default=[])
 # --- API ------------------------------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "apps.accounts.authentication.AppJWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
@@ -151,6 +182,10 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "OAS_VERSION": "3.1.0",
+    "ENUM_NAME_OVERRIDES": {
+        "ProposalKindEnum": "apps.payouts.models.Proposal.Kind",
+        "DocumentKindEnum": "apps.documents.models.IssuedDocument.Kind",
+    },
 }
 
 # --- Celery ---------------------------------------------------------------------------
@@ -173,8 +208,25 @@ CELERY_BEAT_SCHEDULE = {
     "sign-pending-entries": {"task": "apps.ledger.tasks.sign_pending", "schedule": 60.0},
     "raise-late-fines": {"task": "apps.fines.tasks.raise_due_fines",
                          "schedule": crontab(minute=5)},
+    "reconcile-daily": {"task": "apps.reconciliation.tasks.reconcile_daily",
+                        "schedule": crontab(hour=6, minute=0)},
+    "statement-reminders": {"task": "apps.reconciliation.tasks.remind_overdue_statements",
+                            "schedule": crontab(hour=7, minute=0)},
+    "close-votes": {"task": "apps.votes.tasks.close_due_votes", "schedule": crontab(minute=10)},
+    "rule-proposals": {"task": "apps.rules.tasks.advance_rule_proposals",
+                       "schedule": crontab(minute=20)},
+    "meeting-reminders": {"task": "apps.meetings.tasks.meeting_reminders",
+                          "schedule": crontab(minute="*/10")},
+    "seal-minutes": {"task": "apps.meetings.tasks.seal_minutes", "schedule": crontab(minute=30)},
+    "expire-waivers": {"task": "apps.fines.tasks.expire_waivers", "schedule": crontab(minute=40)},
+    "loans-daily": {"task": "apps.loans.tasks.loans_daily",
+                    "schedule": crontab(hour=7, minute=30)},
+    "expire-proposals": {"task": "apps.payouts.tasks.expire_proposals",
+                         "schedule": crontab(minute=15)},
     "expire-stale-setups": {"task": "apps.chamas.tasks.expire_setups",
                             "schedule": crontab(hour=2, minute=0)},
+    "anchor-nightly": {"task": "apps.ledger.tasks.anchor_nightly",
+                       "schedule": crontab(hour=0, minute=30)},
     "verify-chains-nightly": {
         "task": "apps.ledger.tasks.verify_chains",
         "schedule": crontab(hour=1, minute=0),

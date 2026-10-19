@@ -41,3 +41,21 @@ second assign-and-reject never reverses the first reversal. Phase 3 also opens a
 
 Every hour (`fines.tasks.raise_due_fines`), each unpaid period whose grace ended gets its
 late fine once: one per member, rule and period, so running the job twice is harmless.
+
+## From M-Pesa directly
+
+Chamas with their own paybill or till also get each payment from Safaricom within
+seconds (Daraja C2B), matched the same way; the later statement line is recorded as a
+duplicate of it. See [M-Pesa paybill](paybill.md).
+
+## Receipts (5.3 step 8)
+
+Once a payment is recorded (matched automatically, assigned, from M-Pesa or banked cash),
+the member is told once per payment. App users see the entry in the app. Members who have
+not opened the app in `RECEIPT_SMS_IF_AWAY_DAYS` days (30), or never, get an SMS:
+"JiraniChama: KES 1,000 received for Mar from Wanjiru (JC-4821-017). Umoja Women Group.
+Ref 7KQ2-M9. Check: VERIFY 7KQ2M9" (Kiswahili for Kiswahili speakers). The reference is
+the payment's first receipt code, which VERIFY checks by SMS. `User.last_app_at` is
+noted by the API's authentication at most once an hour. An arrears deduction from a
+merry-go-round turn sends no separate receipt. Push notifications for app users come
+later.

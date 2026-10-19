@@ -77,9 +77,12 @@ check typed rows against anything, so the file is refused as unreadable.
 
 Each line becomes a `BankTransaction`. A line already seen in an earlier statement (same
 reference) is skipped, so overlapping statements never count a payment twice. Credits go
-to [matching](payments.md); debits wait for Phase 2's debit matching (`debit_pending`).
+to [matching](payments.md); debits go to [money out](money-out.md) (bank charges,
+approved proposals, or an unapproved-debit alert).
 
 ## Not yet
 
-PDF parsing, typing in a whole statement's totals when the bank's format is unknown, statement freshness alerts and
-the weekly money-out rule, daily reconciliation, and bank feeds arrive in later PRs.
+PDF parsing, typing in a whole statement's totals when the bank's format is unknown, the weekly money-out rule,
+and bank feeds arrive in later PRs. An overdue statement brings
+[reminders](statement-reminders.md). Each accepted statement is
+followed by a [reconciliation](reconciliation.md).

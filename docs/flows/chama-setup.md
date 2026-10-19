@@ -43,3 +43,8 @@ Phase 2 once every official has passed the ID check and registered a signing key
 
 Opening balances for chamas moving from a notebook, entry fees and probation, and
 membership votes arrive in later Phase 1 and Phase 3 pull requests.
+
+## Members without a smartphone
+
+Once the chama is active, an official can invite a member by SMS: they reply YES with the
+code from their own number to join. See [SMS commands](sms-commands.md#joining-from-a-basic-phone-52a).

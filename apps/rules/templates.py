@@ -33,13 +33,26 @@ _BASE = {
     "adoption": {"members_share_pct": 51},
     "statements": {"every_days": 14},
     "kyc": {"payer": "chama"},
+    "votes": {"quorum_pct": 50, "pass_pct": 50, "secret": False},
+    "rule_changes": {"notice_days": 14, "vote_days": 7, "quorum_pct": 50, "pass_pct": 66,
+                     "cooling_days": 30},
+    "waivers": {"officials": 2, "member_vote": False},
+    "meetings": {"absence_fine_cents": 0, "late_fine_cents": 0, "late_after_minutes": 15,
+                 "apology_excuses": True, "objection_days": 7},
 }
 
 TEMPLATE_VERSION = 1
 
 TEMPLATES: dict[str, dict] = {
-    "merry_go_round": _BASE,
-    "table_banking": {**_BASE, "statements": {"every_days": 7}},
+    "merry_go_round": {**_BASE, "rotation": {"order": "draw", "arrears": "skip"}},
+    # Table banking lends to members (5.8); loans stay off behind the "loans" flag until
+    # the lending opinion (decision 4).
+    "table_banking": {**_BASE, "statements": {"every_days": 7},
+                      "loans": {"min_months": 3, "savings_multiple_pct": 300,
+                                "interest": "flat", "monthly_rate_bp": 100,
+                                "max_term_months": 12, "guarantors": 2, "grace_days": 3,
+                                "late_penalty_cents": 20_000, "default_after_missed": 2,
+                                "contribution_first": True}},
     "welfare": {
         **_BASE,
         "contributions": {**_BASE["contributions"], "amount_cents": 50_000},

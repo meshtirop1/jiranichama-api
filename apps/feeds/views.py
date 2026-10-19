@@ -179,3 +179,26 @@ class MailInboundHook(APIView):
         statements = services.receive_mail(request.data if isinstance(request.data, dict)
                                            else {})
         return Response({"received": len(statements)}, status=status.HTTP_202_ACCEPTED)
+
+
+class DarajaHook(APIView):
+    """Safaricom's C2B validation and confirmation calls for one chama's shortcode. The
+    secret token in the path picks the chama; an optional IP allowlist narrows it. We
+    always answer "Accepted": refusing would bounce a member's payment."""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes: list = []
+
+    @extend_schema(exclude=True)
+    def post(self, request, token, step):
+        from . import daraja
+
+        allowed = settings.DARAJA_ALLOWED_IPS
+        if allowed and request.META.get("REMOTE_ADDR") not in allowed:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        channel = daraja.channel_for(token)
+        if channel is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if step == "confirmation" and isinstance(request.data, dict):
+            daraja.receive(channel, request.data)
+        return Response(daraja.ACCEPT)

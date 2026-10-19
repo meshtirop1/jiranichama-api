@@ -152,8 +152,9 @@ def test_statement_upload_confirm_match_assign_and_not_me(api, active, people, s
     assert data_after["uploaded_by"] == "Akinyi"
 
     txns = BankTransaction.objects.filter(chama=active)
+    # The ledger fee is a bank charge: recorded, never alerted (5.7 step 2).
     assert sorted(txns.values_list("state", flat=True)) == [
-        "debit_pending", "recorded", "recorded", "unmatched"]
+        "recorded", "recorded", "recorded", "unmatched"]
     by_member = {e.member.role: e for e in LedgerEntry.objects.filter(
         chama=active, type="contribution").select_related("member")}
     assert set(by_member) == {"treasurer", "member"}

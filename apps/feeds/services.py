@@ -271,8 +271,8 @@ def confirm(statement: Statement, by: Membership, *, challenge_id, sms_code: str
 def ingest(statement: Statement) -> list[BankTransaction]:
     """Turn an accepted statement's lines into bank transactions. Lines already seen from
     an earlier statement are skipped (they share the bank's reference). Typed-in lines
-    keep who typed them. Credits go to matching; debits wait for Phase 2's debit
-    matching."""
+    keep who typed them. Credits go to matching; debits to money-out matching (bank
+    charges, approved proposals, or an unapproved-debit alert)."""
     from apps.reconciliation.services import match_credit
 
     created = []
@@ -290,15 +290,33 @@ def ingest(statement: Statement) -> list[BankTransaction]:
             typed_by_id=typed_by,
         )
         txn.set_narration(line.narration)
+        if credit:
+            from .daraja import daraja_twin
+
+            twin = daraja_twin(bank_account=statement.bank_account,
+                               amount_cents=txn.amount_cents, value_date=line.value_date,
+                               narration=line.narration, reference=line.reference)
+            if twin is not None:
+                # The same payment, already recorded from M-Pesa (5.3 step 4).
+                txn.state, txn.duplicate_of = BankTransaction.State.DUPLICATE, twin
         try:
             with transaction.atomic():
                 txn.save()
         except IntegrityError:
             continue  # already have this line from an overlapping statement
         created.append(txn)
+    from apps.payouts.services import process_debit
+
     for txn in created:
+        if txn.state == BankTransaction.State.DUPLICATE:
+            continue
         if txn.direction == BankTransaction.Direction.CREDIT:
             match_credit(txn)
+        else:
+            process_debit(txn)
+    from apps.reconciliation.daily import reconcile
+
+    reconcile(statement.chama)
     return created
 
 

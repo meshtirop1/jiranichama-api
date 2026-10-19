@@ -136,6 +136,8 @@ class Invite(models.Model):
                                    related_name="+")
     state = models.CharField(max_length=16, choices=State.choices, default=State.PENDING)
     expires_at = models.DateTimeField()
+    # Set when the invite went by SMS (5.2a), in this language: the person replies YES.
+    sms_language = models.CharField(max_length=2, blank=True, default="")
     membership = models.ForeignKey(Membership, on_delete=models.PROTECT, null=True,
                                    blank=True, related_name="+")
     created_at = models.DateTimeField(auto_now_add=True)

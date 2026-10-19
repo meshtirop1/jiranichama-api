@@ -29,3 +29,73 @@ class Match(models.Model):
     class Meta:
         db_table = "reconciliation_match"
         ordering = ["at", "id"]
+
+
+class ReconciliationRun(models.Model):
+    """One daily check (5.5): the bank's balance against what the records say it should
+    be. Insert only, so the history of checks is itself a record."""
+
+    id = models.BigAutoField(primary_key=True)
+    chama = models.ForeignKey("chamas.Chama", on_delete=models.PROTECT,
+                              related_name="reconciliations")
+    on = models.DateField()
+    statement = models.ForeignKey("feeds.Statement", on_delete=models.PROTECT,
+                                  related_name="+")
+    bank_cents = models.BigIntegerField()
+    records_cents = models.BigIntegerField()
+    gap_cents = models.BigIntegerField()
+    unmatched_cents = models.BigIntegerField(default=0)
+    at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "reconciliation_run"
+        indexes = [models.Index(fields=["chama", "-at"])]
+
+
+class ReconciliationGap(models.Model):
+    """The bank and the records differ. Every member sees it. It closes when entries
+    explain the difference; open for more than 7 days it is a breach and every member is
+    told by SMS. Only its state, amount and dates change."""
+
+    class State(models.TextChoices):
+        OPEN = "open"
+        BREACH = "breach"
+        EXPLAINED = "explained"
+
+    id = models.BigAutoField(primary_key=True)
+    chama = models.ForeignKey("chamas.Chama", on_delete=models.PROTECT,
+                              related_name="reconciliation_gaps")
+    opened_on = models.DateField()
+    first_gap_cents = models.BigIntegerField()
+    amount_cents = models.BigIntegerField()
+    state = models.CharField(max_length=10, choices=State.choices, default=State.OPEN)
+    breach_on = models.DateField(null=True, blank=True)
+    explained_on = models.DateField(null=True, blank=True)
+    alerted = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    MUTABLE = ["amount_cents", "state", "breach_on", "explained_on", "alerted"]
+
+    class Meta:
+        db_table = "reconciliation_gap"
+
+
+class StatementReminder(models.Model):
+    """One overdue-statement reminder: a level reached in one overdue spell (identified by
+    the day the statement fell due). Unique, so each level is sent once. Only the count
+    of texts sent is filled in afterwards."""
+
+    id = models.BigAutoField(primary_key=True)
+    chama = models.ForeignKey("chamas.Chama", on_delete=models.PROTECT,
+                              related_name="statement_reminders")
+    due_on = models.DateField()
+    level = models.PositiveSmallIntegerField()
+    sent = models.PositiveIntegerField(default=0)
+    at = models.DateTimeField(auto_now_add=True)
+
+    MUTABLE = ["sent"]
+
+    class Meta:
+        db_table = "reconciliation_statement_reminder"
+        constraints = [models.UniqueConstraint(fields=["chama", "due_on", "level"],
+                                               name="one_reminder_per_level")]
