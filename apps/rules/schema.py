@@ -68,6 +68,15 @@ SCHEMA_V1 = _obj(
             "every_days": {**_int, "minimum": 7, "maximum": 31},
         }),
         "kyc": _obj(["payer"], {"payer": {"enum": ["chama", "member"]}}),
+        # Changing the rules (5.10). Optional; defaults in rules.proposals.DEFAULTS.
+        "rule_changes": _obj(["notice_days", "vote_days", "quorum_pct", "pass_pct",
+                              "cooling_days"], {
+            "notice_days": {**_int, "minimum": 0, "maximum": 60},
+            "vote_days": {**_int, "minimum": 1, "maximum": 30},
+            "quorum_pct": {**_int, "minimum": 25, "maximum": 100},
+            "pass_pct": {**_int, "minimum": 50, "maximum": 90},
+            "cooling_days": {**_int, "minimum": 0, "maximum": 365},
+        }),
         # Members' votes (5.11). Optional: missing means half must vote, more than half yes.
         "votes": _obj(["quorum_pct", "pass_pct", "secret"], {
             "quorum_pct": {**_int, "minimum": 10, "maximum": 100},

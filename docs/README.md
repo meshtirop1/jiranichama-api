@@ -23,6 +23,7 @@ owns.
 - [M-Pesa paybill](flows/paybill.md): Daraja C2B, matched the same minute, never counted twice.
 - [SMS commands](flows/sms-commands.md): BAL, DUE, FINES, RULES, VERIFY and YES/NO votes from basic phones.
 - [Public anchoring](flows/anchoring.md): nightly Merkle root of every chain, OpenTimestamps, off-site email.
+- [Changing the rules](flows/rule-changes.md): propose, 14 days' notice, members' vote, new version from the 1st of next month.
 
 ## Modules
 
@@ -52,8 +53,7 @@ Phase 0 (foundations) is done. Phase 1 (records core) is in progress: chama setu
 adoption, rules engine v1, statements by bank email or two-official upload, matching,
 contributions and late fines are built. Opening balances, cash at meetings, and member
 and chama statements (sealed PDFs with a public check) are built too. Still to come in
-Phase 1: nothing beyond polish. Unreadable statement lines can be typed in by an official and confirmed by another, and the app edits every rule setting (rule errors carry stable codes). Phase 2 has started: money out (proposals, approvals by SMS code, debits matched back, unapproved-debit alerts) the merry-go-round rotation, approvals signed with the phone's key (fingerprint) for officials with the app, daily reconciliation of the bank against the records, members' votes on large payouts, overdue-statement reminders, M-Pesa paybill notifications, SMS commands, votes, receipts and joining for basic phones, and nightly public anchoring. Phase 2 is complete. Then the rest of Phase 2, Phase 3 governance and loans, Phase 4 basic
-phones.
+Phase 1: nothing beyond polish. Unreadable statement lines can be typed in by an official and confirmed by another, and the app edits every rule setting (rule errors carry stable codes). Phase 2 has started: money out (proposals, approvals by SMS code, debits matched back, unapproved-debit alerts) the merry-go-round rotation, approvals signed with the phone's key (fingerprint) for officials with the app, daily reconciliation of the bank against the records, members' votes on large payouts, overdue-statement reminders, M-Pesa paybill notifications, SMS commands, votes, receipts and joining for basic phones, and nightly public anchoring. Phase 2 is complete. Phase 3 (governance and loans) has started: rule changes by members' vote are built. Still to come: meetings and minutes, loans with guarantors, fine waivers, disputes, elections, leaving and death. Then Phase 4: USSD and bank feeds.
 
 ## Not in Phase 0, on purpose
 

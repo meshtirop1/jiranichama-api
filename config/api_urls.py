@@ -9,6 +9,7 @@ from apps.ledger import views as ledger
 from apps.notify import views as notify
 from apps.payouts import views as payouts
 from apps.reconciliation import views as recon
+from apps.rules import views as rules
 from apps.votes import views as votes
 
 urlpatterns = [
@@ -19,6 +20,9 @@ urlpatterns = [
     path("chamas/<uuid:pk>/", chamas.ChamaDetailView.as_view()),
     path("chamas/<uuid:pk>/bank-account/", chamas.BankAccountView.as_view()),
     path("chamas/<uuid:pk>/rules/", chamas.RulesView.as_view()),
+    path("chamas/<uuid:pk>/rule-proposals/", rules.RuleProposalListView.as_view()),
+    path("rule-proposals/<uuid:pk>/", rules.RuleProposalDetailView.as_view()),
+    path("rule-proposals/<uuid:pk>/withdraw/", rules.RuleProposalWithdrawView.as_view()),
     path("chamas/<uuid:pk>/invites/", chamas.InviteCreateView.as_view()),
     path("chamas/<uuid:pk>/submit/", chamas.SubmitView.as_view()),
     path("chamas/<uuid:pk>/adopt/", chamas.AdoptView.as_view()),

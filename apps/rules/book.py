@@ -110,8 +110,37 @@ def _render_en(r: dict) -> list[Clause]:
         Clause("P.4", "Records are never changed. A mistake is fixed by a new, visible "
                       "correction."),
     ]
-    out[-4:-4] = _rotation_en(r.get("rotation")) + _votes_en(r.get("votes"))
+    out[-4:-4] = (_rotation_en(r.get("rotation")) + _votes_en(r.get("votes"))
+                  + _changes_en(r.get("rule_changes")))
     return out
+
+
+_CHANGE_DEFAULTS = {"notice_days": 14, "vote_days": 7, "quorum_pct": 50, "pass_pct": 66,
+                    "cooling_days": 30}
+
+
+def _changes_en(c: dict | None) -> list[Clause]:
+    c = {**_CHANGE_DEFAULTS, **(c or {})}
+    return [Clause("10.1", f"An official may propose a change to these rules with a reason. "
+                           f"Members have {_plural(c['notice_days'], 'day')} to read it, then "
+                           f"{_plural(c['vote_days'], 'day')} to vote. It passes if at least "
+                           f"{c['quorum_pct']}% of members vote and more than "
+                           f"{c['pass_pct']}% of the votes are yes, and starts on the 1st of "
+                           f"the next month. A change turned down may be raised again after "
+                           f"{_plural(c['cooling_days'], 'day')}. This rule itself can only "
+                           "be changed under the stricter of its current and new thresholds.")]
+
+
+def _changes_sw(c: dict | None) -> list[Clause]:
+    c = {**_CHANGE_DEFAULTS, **(c or {})}
+    return [Clause("10.1", f"Kiongozi anaweza kupendekeza mabadiliko ya kanuni hizi kwa sababu. "
+                           f"Wanachama wana siku {c['notice_days']} kuyasoma, kisha siku "
+                           f"{c['vote_days']} kupiga kura. Yanapita angalau asilimia "
+                           f"{c['quorum_pct']} ya wanachama wakipiga kura na zaidi ya asilimia "
+                           f"{c['pass_pct']} wakisema ndiyo, na yanaanza tarehe 1 ya mwezi "
+                           f"unaofuata. Mabadiliko yaliyokataliwa yanaweza kuletwa tena baada "
+                           f"ya siku {c['cooling_days']}. Kanuni hii yenyewe inabadilishwa tu "
+                           "kwa kiwango kikali zaidi kati ya cha sasa na kipya.")]
 
 
 def _votes_en(v: dict | None) -> list[Clause]:
@@ -229,5 +258,6 @@ def _render_sw(r: dict) -> list[Clause]:
         Clause("P.4", "Kumbukumbu hazibadilishwi kamwe. Kosa linarekebishwa kwa marekebisho "
                       "mapya yanayoonekana."),
     ]
-    out[-4:-4] = _rotation_sw(r.get("rotation")) + _votes_sw(r.get("votes"))
+    out[-4:-4] = (_rotation_sw(r.get("rotation")) + _votes_sw(r.get("votes"))
+                  + _changes_sw(r.get("rule_changes")))
     return out

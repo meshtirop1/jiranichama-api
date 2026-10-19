@@ -34,6 +34,8 @@ _BASE = {
     "statements": {"every_days": 14},
     "kyc": {"payer": "chama"},
     "votes": {"quorum_pct": 50, "pass_pct": 50, "secret": False},
+    "rule_changes": {"notice_days": 14, "vote_days": 7, "quorum_pct": 50, "pass_pct": 66,
+                     "cooling_days": 30},
 }
 
 TEMPLATE_VERSION = 1

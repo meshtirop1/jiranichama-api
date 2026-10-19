@@ -10,7 +10,9 @@ A chama's constitution as settings, checked, enforced and written out in plain w
 | `book.py` | The numbered rule book in English and Kiswahili, generated from the settings |
 | `calendar.py` | Monthly periods, due dates, grace ends |
 | `engine.py` | `allocate()`: how one payment is split; pure, no database |
-| `models.py` | `RuleVersion`: settings frozen at adoption; only `state` can change |
+| `models.py` | `RuleVersion`: settings frozen at adoption; only `state` can change. `RuleProposal`: a change waiting for notice and a vote |
+| `proposals.py` | Rule changes by vote: propose, withdraw, `advance` (notice ends, vote opens; scheduled versions start), `on_vote_closed` |
+| `views.py`, `tasks.py` | The rule-proposal endpoints and the hourly `advance_rule_proposals` |
 | `golden/allocate_v1.json` | Hand-worked cases the engine must reproduce |
 
 ## Platform rules (no chama can switch these off)
@@ -30,7 +32,7 @@ handed over if it reaches the bank within that many days, otherwise from the ban
 ## Limits of v1
 
 Monthly contributions only (weekly and fortnightly need a new period format). Loans,
-meetings, other fines and rule changes by vote arrive in Phase 3 as schema v2. The
+meetings and other fines arrive in Phase 3 as schema v2. The
 Kiswahili rule book is a first draft for a native speaker to review before the pilot.
 
 ## Changing a template or the engine
@@ -57,3 +59,10 @@ include it; the rule book adds clauses 8.1 and 8.2 when present.
 
 `votes: {quorum_pct: 10-100, pass_pct: 50-90, secret: bool}`, in every template as
 `{50, 50, false}`. Missing means the same defaults. The rule book's clause 9.1 says it.
+
+## Rule changes (schema v1, optional section)
+
+`rule_changes: {notice_days: 0-60, vote_days: 1-30, quorum_pct: 25-100, pass_pct: 50-90,
+cooling_days: 0-365}`, in every template as `{14, 7, 50, 66, 30}`. The rule book's clause
+10.1 says it. The flow is in [rule changes](../flows/rule-changes.md). A version's states:
+`scheduled` (adopted by vote, waiting for its 1st of the month), `in_force`, `superseded`.
