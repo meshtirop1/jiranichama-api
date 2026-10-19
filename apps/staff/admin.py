@@ -7,6 +7,7 @@ from apps.chamas.models import Chama, Membership
 from apps.feeds.models import BankFeed, DarajaChannel
 from apps.flags.models import FeatureFlag
 from apps.ledger.models import LedgerEntry
+from apps.referrals.models import Partner, Referral
 
 from . import audit
 from .site import AuditedModelAdmin, ReadOnlyAdmin, staff_site
@@ -108,3 +109,46 @@ class BankFeedAdmin(AuditedModelAdmin):
             audit.record(actor=request.user, action="pull:feeds.bankfeed",
                          target=f"feeds.bankfeed:{feed.pk}", reason="Pull bank feed now",
                          case_ref="bank-feed")
+
+
+@admin.register(Partner, site=staff_site)
+class PartnerAdmin(AuditedModelAdmin):
+    """Licensed partners only (CBK, SASRA or IRA): check the licence before adding one."""
+
+    list_display = ("name", "product", "regulator", "licence_number", "active")
+    fields = ("name", "regulator", "licence_number", "product", "description", "active")
+
+
+@admin.register(Referral, site=staff_site)
+class ReferralAdmin(ReadOnlyAdmin):
+    """Referrals the chamas voted for. Pass on only what "Show hand-over" lists, then
+    "Mark sent"."""
+
+    list_display = ("chama", "partner", "state", "created_at", "sent_at")
+    list_filter = ("state",)
+    actions = ["show_handover", "mark_sent"]
+
+    @admin.action(description="Show hand-over (consented only)")
+    def show_handover(self, request, queryset):
+        from apps.core.problems import Problem
+        from apps.referrals.services import handover
+
+        for r in queryset:
+            try:
+                self.message_user(request, f"{r.partner}: {handover(r)}")
+            except Problem as exc:
+                self.message_user(request, f"{r.partner}: {exc.detail}", level="error")
+
+    @admin.action(description="Mark sent")
+    def mark_sent(self, request, queryset):
+        from apps.core.problems import Problem
+        from apps.referrals.services import mark_sent
+
+        for r in queryset:
+            try:
+                mark_sent(r)
+                audit.record(actor=request.user, action="sent:referrals.referral",
+                             target=f"referrals.referral:{r.pk}",
+                             reason="Referral passed to the partner", case_ref="referral")
+            except Problem as exc:
+                self.message_user(request, f"{r.partner}: {exc.detail}", level="error")

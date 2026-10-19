@@ -53,6 +53,9 @@ INSTALLED_APPS = [
     "apps.disputes",
     "apps.elections",
     "apps.exits",
+    "apps.investments",
+    "apps.reports",
+    "apps.referrals",
 ]
 
 MIDDLEWARE = [
@@ -197,6 +200,8 @@ SPECTACULAR_SETTINGS = {
         "DocumentKindEnum": "apps.documents.models.IssuedDocument.Kind",
         "OfficialRoleEnum": "apps.elections.views.ROLE_CHOICES",
         "MembershipRoleEnum": "apps.chamas.models.Membership.Role",
+        "InvestmentKindEnum": "apps.investments.models.Investment.Kind",
+        "IncomeKindEnum": "apps.investments.services.INCOME_KIND_CHOICES",
     },
 }
 

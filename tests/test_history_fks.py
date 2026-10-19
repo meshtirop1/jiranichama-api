@@ -47,6 +47,9 @@ HISTORY_MODELS = {
     "notify.InboundSms",
     "notify.UssdRequest",
     "feeds.BankFeedPull",
+    "investments.Investment",
+    "investments.Valuation",
+    "referrals.Referral",
     "documents.DocumentAccess",
     "meetings.Meeting",
     "meetings.Apology",
@@ -66,7 +69,8 @@ HISTORY_MODELS = {
 }
 OUR_APPS = {"core", "flags", "accounts", "notify", "chamas", "ledger", "staff", "devices",
             "rules", "fines", "contributions", "feeds", "reconciliation", "documents",
-            "payouts", "votes", "meetings", "loans", "disputes", "elections", "exits"}
+            "payouts", "votes", "meetings", "loans", "disputes", "elections", "exits",
+            "investments", "referrals"}
 
 
 def _label(model) -> str:
