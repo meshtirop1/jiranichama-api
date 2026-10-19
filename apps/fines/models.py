@@ -28,13 +28,19 @@ class Fine(models.Model):
     paid_cents = models.BigIntegerField(default=0)
     state = models.CharField(max_length=16, choices=State.choices, default=State.RAISED)
     raised_entry = models.ForeignKey(LedgerEntry, on_delete=models.PROTECT, related_name="+")
+    meeting = models.ForeignKey("meetings.Meeting", on_delete=models.PROTECT, null=True,
+                                blank=True, related_name="fines")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "fines_fine"
         constraints = [
             models.UniqueConstraint(fields=["membership", "rule_ref", "period"],
+                                    condition=models.Q(meeting__isnull=True),
                                     name="fine_once_per_rule_period"),
+            models.UniqueConstraint(fields=["membership", "rule_ref", "meeting"],
+                                    condition=models.Q(meeting__isnull=False),
+                                    name="fine_once_per_rule_meeting"),
         ]
 
     @property
