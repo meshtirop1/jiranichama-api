@@ -12,6 +12,7 @@ PORT=8111
 REPO=https://github.com/meshtirop1/jiranichama-api.git
 BRANCH=${JC_BRANCH:-main}
 U=deploy
+cd /home/$U  # commands run as deploy must not start in root's folder
 
 echo "== packages (native PostgreSQL and Redis, bound to localhost only)"
 need=()
