@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "apps.reports",
     "apps.referrals",
     "apps.console",
+    "apps.registration",
 ]
 
 MIDDLEWARE = [

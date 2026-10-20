@@ -19,3 +19,7 @@ All of these are history: referenced with `PROTECT` and never deleted.
 
 Some of this changed so that a few people cannot use the rules against one member. See
 [protections](../flows/protections.md).
+
+## Registered (2026-10-20)
+
+The chama JSON carries `registered`: true once an official has entered the government certificate number. The app uses it to stop the "register your chama" reminder. See [registration](../flows/registration.md).

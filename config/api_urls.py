@@ -18,6 +18,7 @@ from apps.notify import views as notify
 from apps.payouts import views as payouts
 from apps.reconciliation import views as recon
 from apps.referrals import views as referrals
+from apps.registration import views as registration
 from apps.reports import views as reports
 from apps.rules import views as rules
 from apps.staff import support_views as support
@@ -39,6 +40,10 @@ urlpatterns = [
     path("chamas/<uuid:pk>/submit/", chamas.SubmitView.as_view()),
     path("chamas/<uuid:pk>/adopt/", chamas.AdoptView.as_view()),
     path("chamas/<uuid:pk>/members/", chamas.MembersView.as_view()),
+    path("registration/guide/", registration.GuideView.as_view()),
+    path("chamas/<uuid:pk>/registration/", registration.ChamaRegistrationView.as_view()),
+    path("chamas/<uuid:pk>/registration/papers/<str:paper>/",
+         registration.PaperView.as_view()),
     path("chamas/<uuid:pk>/statements/", feeds.StatementListView.as_view()),
     path("chamas/<uuid:pk>/unmatched/", recon.UnmatchedView.as_view()),
     path("chamas/<uuid:pk>/reconciliation/", recon.ReconciliationView.as_view()),
