@@ -22,3 +22,7 @@ triggers, and it is never used by the running app.
 Tests run as a single superuser so the test runner can create and reset the database
 (TRUNCATE is not trapped by the triggers). The tamper tests use that superuser to bypass
 the triggers on purpose and prove the chain check finds the change.
+
+## Worker queues (2026-10-20)
+
+The test-server worker must consume every queue in `CELERY_TASK_ROUTES`: `celery,feeds,rules,notify,documents,signing`. It used to consume only `celery`, so platform signatures never ran there ("207 records waiting for JiraniChama's signature"). Production workers need the same list (or one worker per queue).
