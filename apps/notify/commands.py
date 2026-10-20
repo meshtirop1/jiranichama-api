@@ -24,6 +24,7 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.accounts.phones import InvalidPhone, normalise_phone, phone_hash
 from apps.chamas.models import Membership
+from apps.core import money
 
 from .models import InboundSms
 from .sms import SmsFailed, send_sms
@@ -41,8 +42,8 @@ WORDS = {
 }
 
 
-def _kes(cents: int) -> str:
-    return f"KES {cents / 100:,.0f}" if cents % 100 == 0 else f"KES {cents / 100:,.2f}"
+def _kes(cents: int, of=None) -> str:
+    return money.fmt(cents, of)
 
 
 def _memberships(user, only=None):
@@ -61,10 +62,10 @@ def _bal(user, sw: bool, only=None) -> str:
     parts = []
     for m in _memberships(user, only):
         p = position(m, today)
-        parts.append(f"{m.chama.name}: akiba {_kes(p.contributed_cents)}, deni "
-                     f"{_kes(p.arrears_cents)}, faini {_kes(p.fines_cents)}" if sw else
-                     f"{m.chama.name}: saved {_kes(p.contributed_cents)}, behind "
-                     f"{_kes(p.arrears_cents)}, fines {_kes(p.fines_cents)}")
+        parts.append(f"{m.chama.name}: akiba {_kes(p.contributed_cents, m)}, deni "
+                     f"{_kes(p.arrears_cents, m)}, faini {_kes(p.fines_cents, m)}" if sw else
+                     f"{m.chama.name}: saved {_kes(p.contributed_cents, m)}, behind "
+                     f"{_kes(p.arrears_cents, m)}, fines {_kes(p.fines_cents, m)}")
     return ". ".join(parts) + "." if parts else ""
 
 
@@ -81,10 +82,10 @@ def _due(user, sw: bool, only=None) -> str:
         if p.next_due_period is None or version is None:
             continue
         due = calendar.due_date(p.next_due_period, version.rules).strftime("%d %b")
-        behind = (f" (+{_kes(p.arrears_cents)} " + ("ya nyuma)" if sw else "behind)")
+        behind = (f" (+{_kes(p.arrears_cents, m)} " + ("ya nyuma)" if sw else "behind)")
                   if p.arrears_cents else "")
-        parts.append(f"{m.chama.name}: {_kes(p.next_due_cents)} kabla ya {due}{behind}" if sw
-                     else f"{m.chama.name}: {_kes(p.next_due_cents)} by {due}{behind}")
+        parts.append(f"{m.chama.name}: {_kes(p.next_due_cents, m)} kabla ya {due}{behind}" if sw
+                     else f"{m.chama.name}: {_kes(p.next_due_cents, m)} by {due}{behind}")
     if not parts:
         return "Hakuna kinachodaiwa." if sw else "Nothing due."
     code = ", ".join(m.member_code for m in _memberships(user, only))
@@ -100,8 +101,8 @@ def _fines(user, sw: bool, only=None) -> str:
         open_ = [f for f in Fine.objects.filter(membership=m, state=Fine.State.RAISED)
                  if f.outstanding_cents > 0]
         total = sum(f.outstanding_cents for f in open_)
-        parts.append(f"{m.chama.name}: faini {len(open_)}, {_kes(total)}" if sw else
-                     f"{m.chama.name}: {len(open_)} fine(s), {_kes(total)}")
+        parts.append(f"{m.chama.name}: faini {len(open_)}, {_kes(total, m)}" if sw else
+                     f"{m.chama.name}: {len(open_)} fine(s), {_kes(total, m)}")
     return ". ".join(parts) + "." if parts else ""
 
 
@@ -115,10 +116,10 @@ def _rules(user, sw: bool, only=None) -> str:
         if v is None:
             continue
         c, f = v.rules["contributions"], v.rules["fines"]["late_contribution"]
-        fine = (_kes(f["amount_cents"]) if f["enabled"] else ("hakuna" if sw else "none"))
-        parts.append(f"{m.chama.name}: {_kes(c['amount_cents'])} kila mwezi kabla ya tarehe "
+        fine = (_kes(f["amount_cents"], m) if f["enabled"] else ("hakuna" if sw else "none"))
+        parts.append(f"{m.chama.name}: {_kes(c['amount_cents'], m)} kila mwezi kabla ya tarehe "
                      f"{c['due_day']}, siku {c['grace_days']} za ziada, faini {fine}" if sw
-                     else f"{m.chama.name}: {_kes(c['amount_cents'])} a month by day "
+                     else f"{m.chama.name}: {_kes(c['amount_cents'], m)} a month by day "
                      f"{c['due_day']}, {c['grace_days']} grace days, late fine {fine}")
     return ". ".join(parts) + "." if parts else ""
 
@@ -136,12 +137,12 @@ def _loan(user, sw: bool, only=None) -> str:
             continue
         b = balance(loan)
         nxt = b["next"]
-        when = (f", inayofuata {_kes(nxt['total_cents'])} tarehe {nxt['due']}" if sw else
-                f", next {_kes(nxt['total_cents'])} on {nxt['due']}") if nxt else ""
-        parts.append(f"{m.chama.name}: deni la mkopo {_kes(b['outstanding_cents'])}, sasa "
-                     f"{_kes(b['due_now_cents'])}{when}" if sw else
-                     f"{m.chama.name}: loan owed {_kes(b['outstanding_cents'])}, due now "
-                     f"{_kes(b['due_now_cents'])}{when}")
+        when = (f", inayofuata {_kes(nxt['total_cents'], m)} tarehe {nxt['due']}" if sw else
+                f", next {_kes(nxt['total_cents'], m)} on {nxt['due']}") if nxt else ""
+        parts.append(f"{m.chama.name}: deni la mkopo {_kes(b['outstanding_cents'], m)}, sasa "
+                     f"{_kes(b['due_now_cents'], m)}{when}" if sw else
+                     f"{m.chama.name}: loan owed {_kes(b['outstanding_cents'], m)}, due now "
+                     f"{_kes(b['due_now_cents'], m)}{when}")
     if not parts:
         return "Mikopo haitolewi." if sw else "Loans are not offered."
     return ". ".join(parts) + "."
@@ -170,9 +171,9 @@ def _verify(user, arg: str, sw: bool) -> str:
         if e is not None:
             day = timezone.localdate(e.at).strftime("%d %b")
             what = e.type.replace("_", " ")
-            return (f"HALALI: {what} {_kes(abs(e.amount_cents))}, {e.member_code or ''} "
+            return (f"HALALI: {what} {_kes(abs(e.amount_cents), e)}, {e.member_code or ''} "
                     f"{e.chama.name}, {day}." if sw else
-                    f"GENUINE: {what} {_kes(abs(e.amount_cents))}, {e.member_code or ''} "
+                    f"GENUINE: {what} {_kes(abs(e.amount_cents), e)}, {e.member_code or ''} "
                     f"{e.chama.name}, {day}.")
     return ("Hatukupata nambari hiyo. Hakiki na ujaribu tena." if sw else
             "No record has that code. Check it and try again.")

@@ -10,7 +10,8 @@ from apps.ledger import services as ledger
 from apps.rules import calendar, engine
 from apps.rules.models import version_at
 
-from .models import Fine
+from . import limits
+from .models import Fine, FineStop
 
 
 def raise_late_fines(chama: Chama, today: date) -> int:
@@ -25,6 +26,7 @@ def raise_late_fines(chama: Chama, today: date) -> int:
     members = Membership.objects.filter(chama=chama, state__in=[
         Membership.State.ACTIVE, Membership.State.PROBATION])
     for m in members:
+        missed = limits.missed_periods(m, today)
         for due in dues(m, today):
             if due.outstanding_cents <= 0 or due.period > calendar.period_of(today):
                 continue
@@ -37,6 +39,15 @@ def raise_late_fines(chama: Chama, today: date) -> int:
                 continue
             if Fine.objects.filter(membership=m, rule_ref=engine.REF_LATE_FINE,
                                    period=due.period).exists():
+                continue
+            if FineStop.objects.filter(membership=m, period=due.period).exists():
+                continue
+            # Only the first N missed months are fined; after that fining stops.
+            if due.period in missed and missed.index(due.period) >= limits.stop_after(rules):
+                limits.note_stop(m, due.period, rules)
+                continue
+            amount = limits.capped(m, rules, due.period, amount)
+            if amount <= 0:
                 continue
             try:
                 with transaction.atomic():

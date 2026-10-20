@@ -9,6 +9,8 @@ The Kiswahili wording is a first draft for review by a native speaker before the
 
 from dataclasses import dataclass
 
+from apps.core import money
+
 ROLE_NAMES = {
     "en": {"chair": "chairperson", "treasurer": "treasurer", "secretary": "secretary"},
     "sw": {"chair": "mwenyekiti", "treasurer": "mweka hazina", "secretary": "katibu"},
@@ -30,8 +32,8 @@ class Clause:
 
 
 def kes(cents: int) -> str:
-    whole, part = divmod(abs(cents), 100)
-    return f"KES {whole:,}" + (f".{part:02d}" if part else "")
+    """An amount in the currency being rendered (see ``render``)."""
+    return money.fmt(abs(cents))
 
 
 def _ordinal_en(n: int) -> str:
@@ -50,8 +52,10 @@ def _plural(n: int, word: str) -> str:
     return f"{n} {word}{'' if n == 1 else 's'}"
 
 
-def render(rules: dict, lang: str = "en") -> list[Clause]:
-    return _render_sw(rules) if lang == "sw" else _render_en(rules)
+def render(rules: dict, lang: str = "en", currency: str = "KES") -> list[Clause]:
+    """The rule book in ``lang``, with amounts in the chama's ``currency``."""
+    with money.using(currency):
+        return _render_sw(rules) if lang == "sw" else _render_en(rules)
 
 
 def _render_en(r: dict) -> list[Clause]:
@@ -92,6 +96,10 @@ def _render_en(r: dict) -> list[Clause]:
                              + (" and a vote of the members" if w["member_vote"] else "")
                              + ". Nobody decides a waiver of their own fine, and every "
                                "member sees each waiver and its reason."))
+    stop = r["fines"].get("stop_after_missed_months", 3)
+    out.append(Clause("3.6", f"After a member has missed {_plural(stop, 'monthly contribution')},"
+                             " no more fines of any kind are added for them. The officials "
+                             "agree a payment plan, a waiver or the exit process with them."))
     for i, tier in enumerate(a["tiers"], start=1):
         amount = (f"up to {kes(tier['up_to_cents'])}" if tier["up_to_cents"] is not None
                   else "above that" if i > 1 else "of any amount")
@@ -427,6 +435,11 @@ def _render_sw(r: dict) -> list[Clause]:
                              + (" na kura ya wanachama" if w["member_vote"] else "")
                              + ". Hakuna anayeamua msamaha wa faini yake mwenyewe, na kila "
                                "mwanachama anaona kila msamaha na sababu yake."))
+    stop = r["fines"].get("stop_after_missed_months", 3)
+    out.append(Clause("3.6", f"Mwanachama akishakosa michango {stop} ya kila mwezi, hakuna "
+                             "faini nyingine yoyote itakayoongezwa kwake. Viongozi "
+                             "wanakubaliana naye mpango wa kulipa, msamaha au utaratibu wa "
+                             "kuondoka."))
     for i, tier in enumerate(a["tiers"], start=1):
         amount = (f"hadi {kes(tier['up_to_cents'])}" if tier["up_to_cents"] is not None
                   else "zaidi ya hapo" if i > 1 else "ya kiasi chochote")

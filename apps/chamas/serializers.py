@@ -2,6 +2,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.accounts.serializers import PhoneField
+from apps.core import countries
 
 from .models import OFFICIAL_ROLES, BankAccount, Chama, Invite, Membership
 
@@ -12,6 +13,10 @@ class CreateChamaSerializer(serializers.Serializer):
     founder_role = serializers.ChoiceField(choices=list(OFFICIAL_ROLES) + ["member"])
     expected_members = serializers.IntegerField(min_value=0, max_value=10_000, default=0)
     meets = serializers.ChoiceField(choices=Chama.Meets.choices, default=Chama.Meets.MONTHLY)
+    country = serializers.ChoiceField(choices=list(countries.OPEN), required=False,
+                                      help_text="Defaults to the founder's country.")
+    currency = serializers.CharField(max_length=3, required=False,
+                                     help_text="Defaults to the country's currency.")
 
 
 class BankAccountSerializer(serializers.ModelSerializer):
@@ -35,7 +40,8 @@ class ChamaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Chama
-        fields = ["id", "name", "type", "state", "mode", "member_code_prefix",
+        fields = ["id", "name", "type", "state", "mode", "member_code_prefix", "country",
+                  "currency",
                   "expected_members", "meets", "created_at", "setup_expires_at",
                   "activated_at", "my_role", "my_member_code", "i_am_founder", "statement_inbox",
                   "bank_account", "loans_on"]
@@ -93,6 +99,9 @@ class PositionSerializer(serializers.Serializer):
     credit_cents = serializers.IntegerField()
     next_due_period = serializers.CharField(allow_null=True)
     next_due_cents = serializers.IntegerField()
+    fines_stopped = serializers.BooleanField(
+        help_text="The member has missed as many months as the rules allow fines for; no "
+                  "more fines are added until the officials settle it with them.")
 
 
 class MembershipSerializer(serializers.ModelSerializer):
@@ -109,7 +118,7 @@ class InviteCreateSerializer(serializers.Serializer):
     phone = PhoneField(required=False)
     by_sms = serializers.BooleanField(default=False, help_text="For someone without the app: "
                                       "the invite goes by SMS; they reply YES <code>.")
-    language = serializers.ChoiceField(choices=["en", "sw"], default="en")
+    language = serializers.ChoiceField(choices=countries.TRANSLATED_CHOICES, default="en")
 
 
 class InviteSerializer(serializers.ModelSerializer):

@@ -5,6 +5,13 @@
 # JiraniSoko Docker stack or any other site. See docs/operations/test-server.md.
 set -euo pipefail
 
+# The "code" step below rewrites this file (git reset). Bash reads a script as it runs,
+# so run from a copy, or a half-old, half-new script runs.
+if [ -z "${JC_SETUP_COPY:-}" ]; then
+  cp "$0" /tmp/jc-setup.sh
+  JC_SETUP_COPY=1 exec bash /tmp/jc-setup.sh "$@"
+fi
+
 APP=/home/deploy/sites/jiranichama
 DATA=/home/deploy/sites/jiranichama-data
 HOST=${JC_HOST:-jiranichama.167-233-160-177.sslip.io}
@@ -113,7 +120,11 @@ ln -sf /etc/nginx/sites-available/jiranichama /etc/nginx/sites-enabled/jiranicha
 nginx -t -q && systemctl reload nginx
 if [ ! -d "/etc/letsencrypt/live/$HOST" ]; then
   certbot --nginx -n --agree-tos --register-unsafely-without-email -d "$HOST" --redirect -q
+else
+  # The template above replaced the HTTPS lines certbot added; put the certificate back.
+  certbot install --nginx -n --cert-name "$HOST" -d "$HOST" --redirect -q
 fi
+nginx -t -q && systemctl reload nginx
 
 sleep 2
 curl -fsS -o /dev/null -w "health: %{http_code}\n" "https://$HOST/healthz" || \

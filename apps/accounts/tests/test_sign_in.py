@@ -25,7 +25,7 @@ def test_normalise_accepts_kenyan_formats(raw):
     assert normalise_phone(raw) == E164
 
 
-@pytest.mark.parametrize("raw", ["", "0812345678", "+255712345678", "07123456"])
+@pytest.mark.parametrize("raw", ["", "0812345678", "07123456"])
 def test_normalise_rejects_others(raw):
     with pytest.raises(InvalidPhone):
         normalise_phone(raw)

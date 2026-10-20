@@ -22,6 +22,7 @@ from rest_framework import status
 
 from apps.chamas.models import OFFICIAL_ROLES, Chama, Membership
 from apps.contributions.projections import position
+from apps.core import money
 from apps.core.canonical import canonical_bytes
 from apps.core.problems import Problem
 from apps.devices import attestation, keys, signing
@@ -42,8 +43,8 @@ _CHARGE = re.compile(r"\b(charges?|fees?|commission|excise|levy|ledger fee|sms a
                      r"maintenance|stamp duty|cot)\b", re.I)
 
 
-def _kes(cents: int) -> str:
-    return f"KES {cents / 100:,.0f}" if cents % 100 == 0 else f"KES {cents / 100:,.2f}"
+def _kes(cents: int, of=None) -> str:
+    return money.fmt(cents, of)
 
 
 def _official(by: Membership) -> None:
@@ -135,7 +136,7 @@ def _rules_check(chama: Chama, *, amount_cents: int, payee: Membership | None, t
         behind = position(payee, today).arrears_cents
         if behind > 0:
             return tier, _refuse("payee_in_arrears", "3.1",
-                                 f"{payee.member_code} has {_kes(behind)} of contributions "
+                                 f"{payee.member_code} has {_kes(behind, chama)} of contributions "
                                  "unpaid."), version
     available = available_cents(chama)
     if available is None:
@@ -144,7 +145,7 @@ def _rules_check(chama: Chama, *, amount_cents: int, payee: Membership | None, t
                              "not known."), version
     if amount_cents > available:
         return tier, _refuse("not_enough_money", "0.1",
-                             f"Only {_kes(max(available, 0))} is available after money "
+                             f"Only {_kes(max(available, 0), chama)} is available after money "
                              "already promised."), version
     return {**tier, "rule": f"4.{i}"}, None, version
 
@@ -198,7 +199,7 @@ def propose(chama: Chama, by: Membership, *, kind: str, amount_cents: int, purpo
 
         to = p.payee_name + (f", {p.payee_account}" if p.payee_account else "")
         votes.open_vote(chama, subject=f"payouts.proposal:{p.id}",
-                        question=f"Pay {to} {_kes(p.amount_cents)} for {p.purpose}?",
+                        question=f"Pay {to} {_kes(p.amount_cents, chama)} for {p.purpose}?",
                         rules=version.rules, closes_at=p.deadline_at,
                         exclude=[payee.id] if payee else None)
     return p
@@ -299,7 +300,7 @@ def _require_can_answer(p: Proposal, by: Membership) -> None:
 
 
 def summary(p: Proposal, language: str) -> str:
-    amount = _kes(p.amount_cents)
+    amount = _kes(p.amount_cents, p)
     to = p.payee_name + (f", {p.payee_account}" if p.payee_account else "")
     if language == "sw":
         return f"KUIDHINISHA kulipa {to} {amount} kwa {p.purpose}"
@@ -558,7 +559,7 @@ def process_debit(txn: BankTransaction) -> str:
 def alert_members(ud_id) -> int:
     """Every member hears the same day (5.7 step 3b)."""
     ud = UnapprovedDebit.objects.select_related("chama", "bank_txn").get(pk=ud_id)
-    amount, day = _kes(ud.bank_txn.amount_cents), ud.bank_txn.value_date.strftime("%d %b")
+    amount, day = _kes(ud.bank_txn.amount_cents, ud), ud.bank_txn.value_date.strftime("%d %b")
     sent = 0
     for m in (Membership.objects.filter(chama=ud.chama, state=Membership.State.ACTIVE)
               .select_related("user")):

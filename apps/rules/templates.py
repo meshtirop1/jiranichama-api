@@ -6,6 +6,8 @@ change; each version is frozen into the chama's RuleVersion at adoption.
 
 import copy
 
+from apps.core import countries
+
 from .schema import SCHEMA_VERSION
 
 _BASE = {
@@ -20,6 +22,7 @@ _BASE = {
     },
     "fines": {
         "late_contribution": {"enabled": True, "amount_cents": 20_000, "monthly_cap_cents": None},
+        "stop_after_missed_months": 3,
     },
     "officials": {"roles": ["chair", "treasurer", "secretary"]},
     "approvals": {
@@ -73,5 +76,28 @@ TEMPLATES: dict[str, dict] = {
 }
 
 
-def template_for(chama_type: str) -> dict:
-    return copy.deepcopy(TEMPLATES[chama_type])
+def template_for(chama_type: str, currency: str = "KES") -> dict:
+    """The starting rules for a type of chama, with amounts in ``currency``: the Kenyan
+    figures scaled by a rough rate and rounded, so a Ugandan chama starts at UGX 28,000 a
+    month rather than UGX 1,000. Officials set their own amounts during setup."""
+    rules = copy.deepcopy(TEMPLATES[chama_type])
+    rate = countries.KES_RATE.get(currency, 1)
+    return rules if rate == 1 else _scale(rules, rate)
+
+
+def _nice(cents: int, rate: float) -> int:
+    """Two significant figures of the scaled amount, in whole units."""
+    units = cents / 100 * rate
+    if units <= 0:
+        return 0
+    step = 10 ** max(len(str(int(units))) - 2, 0)
+    return int(round(units / step) * step * 100)
+
+
+def _scale(value, rate):
+    if isinstance(value, dict):
+        return {k: (_nice(v, rate) if k.endswith("_cents") and isinstance(v, int)
+                    else _scale(v, rate)) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_scale(v, rate) for v in value]
+    return value

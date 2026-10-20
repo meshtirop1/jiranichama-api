@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 from apps.chamas.access import require_member
 from apps.chamas.models import Membership
 from apps.chamas.views import chama_for
+from apps.core import countries
 from apps.core.idempotency import idempotent
 from apps.core.problems import Problem
 
@@ -27,7 +28,7 @@ PERIOD = [OpenApiParameter("from", OpenApiTypes.DATE, required=False),
 class IssueSerializer(serializers.Serializer):
     period_from = serializers.DateField(required=False)
     period_to = serializers.DateField(required=False)
-    language = serializers.ChoiceField(choices=["en", "sw"], required=False)
+    language = serializers.ChoiceField(choices=countries.TRANSLATED_CHOICES, required=False)
 
 
 class DocumentSerializer(serializers.ModelSerializer):

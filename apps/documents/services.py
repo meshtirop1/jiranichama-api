@@ -95,7 +95,8 @@ def issue(*, kind: str, chama: Chama, by_user, subject: Membership | None,
         while IssuedDocument.objects.filter(verify_code=code).exists():
             code = new_code()
         body = pdf.render(data, language=language, fingerprint=fp, verify_url=verify_url(code),
-                          code=code, issued_on=timezone.localdate())
+                          code=code, issued_on=timezone.localdate(),
+                          currency=chama.currency)
         sha = hashlib.sha256(body).hexdigest()
         doc = IssuedDocument(chama=chama, membership=subject, kind=kind, period_from=start,
                              period_to=end, language=language, data=data, fingerprint=fp,

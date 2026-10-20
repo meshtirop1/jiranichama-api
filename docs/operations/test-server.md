@@ -20,7 +20,8 @@ production: there is no real money and the data can be reset.
 
 There is no SMS provider yet. The four demo phones (0700 000 001 to 004) sign in, approve
 and vote with the fixed code in `DEMO_SIGNIN_CODE`, and get no SMS. Every other number's
-messages are written to `jiranichama-data/sms.log`. A startup check (`jirani.W001`) warns
+messages, sign-in codes included, are written to `jiranichama-data/sms.log` (read it as
+root to sign in with any other number). A startup check (`jirani.W001`) warns
 wherever the demo code is on. **Production never sets `DEMO_SIGNIN_CODE`.**
 
 ## Setting it up or updating it
@@ -30,6 +31,11 @@ As root on the server:
 ```bash
 cd /home/deploy/sites/jiranichama && git pull && bash deploy/test-server/setup.sh
 ```
+
+To try a branch before it is merged: `JC_BRANCH=my-branch bash deploy/test-server/setup.sh`.
+Run it again without `JC_BRANCH` to go back to `main`. The script keeps HTTPS on every run
+(it reinstalls the certificate after rewriting the nginx site) and runs from a copy of
+itself, because pulling the code changes the script file.
 
 The script installs what is missing, pulls the code (`JC_BRANCH`, default `main`),
 installs Python 3.12 for the app with `uv` (the system Python is left alone), migrates,

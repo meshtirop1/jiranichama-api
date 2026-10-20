@@ -42,6 +42,27 @@ second assign-and-reject never reverses the first reversal. Phase 3 also opens a
 Every hour (`fines.tasks.raise_due_fines`), each unpaid period whose grace ended gets its
 late fine once: one per member, rule and period, so running the job twice is harmless.
 
+### Fines stop (rule 3.6, owner decision 2026-10-20)
+
+The owner asked that a member is not fined without end: "we fine until we stop". In
+`apps/fines/limits.py`:
+
+- **Only the first N missed months are fined.** N is `fines.stop_after_missed_months`,
+  default 3, between 1 and 12. "Missed" means the grace period has ended and the month is
+  still not fully paid.
+- **After N, no fines of any kind are added:** late fines, meeting fines and loan
+  penalties all stop.
+- **Each month that was not fined is recorded** as a `FineStop`. That month is never
+  fined later, even after the member catches up on older months.
+- **The member and the officials get one SMS** the first time fining stops. It says to
+  agree a payment plan, a waiver or the exit process. From then on the group's money is
+  protected by talking, not by fines that only grow.
+- **The member's position shows `fines_stopped`**, and the app shows it on their overview.
+
+The rule book's monthly cap (`fines.late_contribution.monthly_cap_cents`) now really
+limits the total of **all** fines raised for one member in one month. Before this change
+the code applied it to the late fine alone, where it never did anything.
+
 ## From M-Pesa directly
 
 Chamas with their own paybill or till also get each payment from Safaricom within

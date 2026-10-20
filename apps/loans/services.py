@@ -22,6 +22,7 @@ from rest_framework import status
 
 from apps.chamas.models import OFFICIAL_ROLES, Chama, Membership
 from apps.contributions.projections import dues, position
+from apps.core import money
 from apps.core.canonical import canonical_bytes
 from apps.core.problems import Problem
 from apps.devices import signing
@@ -41,8 +42,8 @@ GUARANTEE_HOURS = 72
 LOAN_REQUEST_DAYS = 7
 
 
-def _kes(cents: int) -> str:
-    return f"KES {cents / 100:,.0f}" if cents % 100 == 0 else f"KES {cents / 100:,.2f}"
+def _kes(cents: int, of=None) -> str:
+    return money.fmt(cents, of)
 
 
 def _name(m: Membership) -> str:
@@ -121,7 +122,7 @@ def quote(chama: Chama, m: Membership, *, amount_cents: int, term_months: int,
         reasons.append(_reason("invalid_amount", sched.REF_ELIGIBILITY, "Enter the amount."))
     elif amount_cents > limit:
         reasons.append(_reason("over_limit", sched.REF_ELIGIBILITY,
-                               f"The most you can borrow now is {_kes(limit)}."))
+                               f"The most you can borrow now is {_kes(limit, chama)}."))
     if not 1 <= term_months <= s["max_term_months"]:
         reasons.append(_reason("term_too_long", sched.REF_ELIGIBILITY,
                                f"Loans run 1 to {s['max_term_months']} months."))
@@ -147,13 +148,14 @@ def _guarantor_ok(loan_amount: int, share: int, g: Membership, borrower: Members
     free = savings_cents(g, today) - guaranteed_cents(g, exclude_loan=loan)
     if free < share:
         raise Problem("guarantor_cannot_cover",
-                      f"{_name(g)}'s savings cannot cover a {_kes(share)} share.",
+                      f"{_name(g)}'s savings cannot cover a {_kes(share, g)} share.",
                       status.HTTP_409_CONFLICT)
 
 
 def _ask_guarantor(g: Guarantee) -> None:
     loan = g.loan
-    who, amount, share = _name(loan.borrower), _kes(loan.amount_cents), _kes(g.share_cents)
+    who = _name(loan.borrower)
+    amount, share = _kes(loan.amount_cents, g.loan), _kes(g.share_cents, g.loan)
     _sms(g.guarantor, {
         "en": f"{loan.chama.name}: {who} asks you to guarantee a loan of {amount} (your "
               f"share {share}). Answer in the JiraniChama app within 3 days.",
@@ -206,7 +208,8 @@ def _guarantee_hash(g: Guarantee) -> str:
 
 
 def _guarantee_text(g: Guarantee, language: str) -> str:
-    who, amount, share = _name(g.loan.borrower), _kes(g.loan.amount_cents), _kes(g.share_cents)
+    who = _name(g.loan.borrower)
+    amount, share = _kes(g.loan.amount_cents, g.loan), _kes(g.share_cents, g.loan)
     if language == "sw":
         return f"KUDHAMINI {amount} kwa {who} (sehemu yako {share})"
     return f"GUARANTEE {amount} for {who} (your share {share})"
@@ -368,11 +371,11 @@ def on_paid(p) -> None:
     loan.save(update_fields=["schedule", "disbursed_on", "state"])
     first = rows[0]
     _sms(loan.borrower, {
-        "en": f"{loan.chama.name}: your loan of {_kes(loan.amount_cents)} is paid out. First "
-              f"instalment {_kes(first.total_cents)} on {first.due:%d %b}, with your member "
+        "en": f"{loan.chama.name}: your loan of {_kes(loan.amount_cents, loan)} is paid out. First "
+              f"instalment {_kes(first.total_cents, loan)} on {first.due:%d %b}, with your member "
               "code as the reference.",
-        "sw": f"{loan.chama.name}: mkopo wako wa {_kes(loan.amount_cents)} umelipwa. Awamu "
-              f"ya kwanza {_kes(first.total_cents)} tarehe {first.due:%d %b}, kwa namba yako "
+        "sw": f"{loan.chama.name}: mkopo wako wa {_kes(loan.amount_cents, loan)} umelipwa. Awamu "
+              f"ya kwanza {_kes(first.total_cents, loan)} tarehe {first.due:%d %b}, kwa namba yako "
               "ya mwanachama kama kumbukumbu.",
     })
 
@@ -454,9 +457,9 @@ def settle(loan_id) -> None:
             .update(state=Guarantee.State.RELEASED)
         _end(loan, Loan.State.REPAID, "Repaid in full.")
     for m in [loan.borrower, *guarantors]:
-        _sms(m, {"en": f"{loan.chama.name}: the loan of {_kes(loan.amount_cents)} to "
+        _sms(m, {"en": f"{loan.chama.name}: the loan of {_kes(loan.amount_cents, loan)} to "
                        f"{_name(loan.borrower)} is repaid in full. Guarantees are released.",
-                 "sw": f"{loan.chama.name}: mkopo wa {_kes(loan.amount_cents)} kwa "
+                 "sw": f"{loan.chama.name}: mkopo wa {_kes(loan.amount_cents, loan)} kwa "
                        f"{_name(loan.borrower)} umelipwa wote. Udhamini umeachiliwa."})
 
 
@@ -492,10 +495,20 @@ def missed(loan: Loan, today: date) -> list:
 
 
 def _penalise(loan: Loan, r) -> None:
+    from apps.fines import limits
+
     amount = loan.terms["late_penalty_cents"]
     if amount <= 0:
         return
     period = f"{r.due:%Y-%m}"
+    today = timezone.localdate()
+    if limits.stopped(loan.borrower, today):
+        return
+    current = version_at(loan.chama, today)
+    if current is not None:
+        amount = limits.capped(loan.borrower, current.rules, period, amount)
+        if amount <= 0:
+            return
     if Fine.objects.filter(membership=loan.borrower, rule_ref=sched.REF_PENALTY,
                            period=period, meeting__isnull=True).exists():
         return
@@ -530,7 +543,7 @@ def _default(loan: Loan) -> None:
     loan.guarantees.filter(state=Guarantee.State.ACCEPTED).update(state=Guarantee.State.CALLED)
     if not _remind(loan, 0, "default"):
         return
-    owed = _kes(balance(loan)["outstanding_cents"])
+    owed = _kes(balance(loan)["outstanding_cents"], loan)
     text = {"en": f"{loan.chama.name}: the loan to {_name(loan.borrower)} is in default with "
                   f"{owed} owed (rule 12.4). Officials will propose recovery from savings, "
                   "then from guarantors in proportion to their shares.",
@@ -584,9 +597,9 @@ def run_daily(today: date | None = None) -> dict:
                     else "due" if r.due == today else None)
             if kind and _remind(loan, r.no, kind):
                 _sms(loan.borrower, {
-                    "en": f"{loan.chama.name}: loan instalment {_kes(r.total_cents)} due "
+                    "en": f"{loan.chama.name}: loan instalment {_kes(r.total_cents, loan)} due "
                           f"{r.due:%d %b}. Pay with your member code as the reference.",
-                    "sw": f"{loan.chama.name}: awamu ya mkopo {_kes(r.total_cents)} inadaiwa "
+                    "sw": f"{loan.chama.name}: awamu ya mkopo {_kes(r.total_cents, loan)} inadaiwa "
                           f"{r.due:%d %b}. Lipa kwa namba yako ya mwanachama.",
                 })
                 stats["reminders"] += 1

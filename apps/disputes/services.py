@@ -17,6 +17,7 @@ from django.utils import timezone
 from rest_framework import status
 
 from apps.chamas.models import OFFICIAL_ROLES, Chama, Membership
+from apps.core import money
 from apps.core.canonical import canonical_bytes
 from apps.core.problems import Problem
 from apps.devices import signing
@@ -45,8 +46,8 @@ def _name(m: Membership) -> str:
     return m.user.display_name or m.member_code
 
 
-def _kes(cents: int) -> str:
-    return f"KES {cents / 100:,.0f}" if cents % 100 == 0 else f"KES {cents / 100:,.2f}"
+def _kes(cents: int, of=None) -> str:
+    return money.fmt(cents, of)
 
 
 def _officials(chama: Chama):
@@ -280,7 +281,7 @@ def _hash(d: Dispute) -> str:
 
 
 def _summary(d: Dispute, language: str) -> str:
-    amount = f" {_kes(d.outcome_cents)}" if d.outcome_cents else ""
+    amount = f" {_kes(d.outcome_cents, d)}" if d.outcome_cents else ""
     if language == "sw":
         return f"KUKUBALI uamuzi wa mgogoro: {d.outcome}{amount}"
     return f"AGREE the dispute outcome: {d.outcome}{amount}"

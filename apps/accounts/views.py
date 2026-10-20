@@ -85,10 +85,10 @@ class ProfileView(APIView):
         s = ProfileSerializer(data=request.data, partial=True)
         s.is_valid(raise_exception=True)
         user = request.user
-        for field in ("display_name", "language"):
+        for field in ("display_name", "language", "country"):
             if field in s.validated_data:
                 setattr(user, field, s.validated_data[field])
-        user.save(update_fields=["display_name", "language"])
+        user.save(update_fields=["display_name", "language", "country"])
         return Response(ProfileSerializer(user).data)
 
 

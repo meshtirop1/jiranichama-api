@@ -50,6 +50,24 @@ class Fine(models.Model):
         return max(self.amount_cents - self.paid_cents, 0)
 
 
+class FineStop(models.Model):
+    """A month that was not fined because the member had already missed as many months
+    as the rules allow fines for (``fines.stop_after_missed_months``). Kept so that month
+    is never fined later, even after the member catches up on older months."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    chama = models.ForeignKey(Chama, on_delete=models.PROTECT, related_name="fine_stops")
+    membership = models.ForeignKey(Membership, on_delete=models.PROTECT,
+                                   related_name="fine_stops")
+    period = models.CharField(max_length=7)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "fines_finestop"
+        constraints = [models.UniqueConstraint(fields=["membership", "period"],
+                                               name="fine_stop_once_per_period")]
+
+
 class Waiver(models.Model):
     """A member's request to have a fine waived (5.9 step 5). It needs the approvals the
     rules set for waivers (default two officials) and, if the rules say, a members' vote.
