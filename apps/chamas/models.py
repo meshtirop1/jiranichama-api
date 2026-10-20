@@ -5,6 +5,7 @@ import uuid
 from django.conf import settings
 from django.db import models
 
+from apps.core import countries
 from apps.core.crypto import decrypt, encrypt, keyed_hash
 
 OFFICIAL_ROLES = ("chair", "treasurer", "secretary")
@@ -45,6 +46,9 @@ class Chama(models.Model):
     next_member_no = models.PositiveIntegerField(default=1)
     expected_members = models.PositiveIntegerField(default=0)
     meets = models.CharField(max_length=16, choices=Meets.choices, default=Meets.MONTHLY)
+    # Where the chama is: its law (rule pack), currency and time zone. Fixed at creation.
+    country = models.CharField(max_length=2, default=countries.DEFAULT_COUNTRY)
+    currency = models.CharField(max_length=3, default="KES")
     # Settings being drafted during setup. Frozen into a RuleVersion at adoption.
     draft_rules = models.JSONField(default=dict, blank=True)
     draft_template = models.CharField(max_length=40, blank=True, default="")

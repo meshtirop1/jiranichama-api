@@ -20,6 +20,7 @@ from rest_framework import status
 from apps.chamas.access import officials
 from apps.chamas.models import OFFICIAL_ROLES, Chama, Membership, StatementInbox
 from apps.chamas.services import active_bank_account
+from apps.core import money
 from apps.core.canonical import canonical_bytes
 from apps.core.problems import Problem
 from apps.devices import signing
@@ -240,7 +241,7 @@ def _require_confirmer(statement: Statement, by: Membership) -> None:
 
 def start_confirm(statement: Statement, by: Membership) -> SigningChallenge:
     _require_confirmer(statement, by)
-    closing = f"KES {statement.closing_cents / 100:,.2f}"
+    closing = money.fmt(statement.closing_cents, statement.chama)
     action = (f"CONFIRM the bank statement {statement.period_from} to {statement.period_to}, "
               f"closing balance {closing}") if by.user.language != "sw" else (
         f"KUTHIBITISHA taarifa ya benki {statement.period_from} hadi {statement.period_to}, "

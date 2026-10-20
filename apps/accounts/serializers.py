@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from apps.core import countries
+
 from .phones import InvalidPhone, normalise_phone
 
 _WEAK_PINS = {"000000", "111111", "123456", "654321", "121212", "123123"}
@@ -13,9 +15,31 @@ class PhoneField(serializers.CharField):
             raise serializers.ValidationError(str(exc)) from exc
 
 
-class RequestCodeSerializer(serializers.Serializer):
-    phone = PhoneField()
-    language = serializers.ChoiceField(choices=["en", "sw"], default="en")
+_LANGUAGES = list(countries.LANGUAGES)
+_OPEN = list(countries.OPEN)
+
+
+class _CountryPhone(serializers.Serializer):
+    """A phone number read in the chosen country (or in its own, when written with a
+    country code). Only countries JiraniChama has opened in can sign in."""
+
+    phone = serializers.CharField(max_length=32)
+    country = serializers.ChoiceField(choices=_OPEN, default=countries.DEFAULT_COUNTRY)
+
+    def validate(self, attrs):
+        try:
+            attrs["phone"] = normalise_phone(attrs["phone"], attrs.get("country"))
+        except InvalidPhone as exc:
+            raise serializers.ValidationError({"phone": [str(exc)]}) from exc
+        home = countries.country_of_e164(attrs["phone"])
+        if home is not None and not home.open:
+            raise serializers.ValidationError(
+                {"phone": [f"JiraniChama is not open in {home.name} yet."]})
+        return attrs
+
+
+class RequestCodeSerializer(_CountryPhone):
+    language = serializers.ChoiceField(choices=countries.LANGUAGE_CHOICES, default="en")
 
 
 class RequestCodeResponseSerializer(serializers.Serializer):
@@ -23,8 +47,7 @@ class RequestCodeResponseSerializer(serializers.Serializer):
     expires_in = serializers.IntegerField()
 
 
-class VerifyCodeSerializer(serializers.Serializer):
-    phone = PhoneField()
+class VerifyCodeSerializer(_CountryPhone):
     code = serializers.RegexField(r"^\d{6}$")
 
 
@@ -56,7 +79,8 @@ class ProfileSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only=True)
     phone_hint = serializers.CharField(read_only=True)
     display_name = serializers.CharField(min_length=2, max_length=60, trim_whitespace=True)
-    language = serializers.ChoiceField(choices=["en", "sw"], required=False)
+    language = serializers.ChoiceField(choices=countries.LANGUAGE_CHOICES, required=False)
+    country = serializers.ChoiceField(choices=_OPEN, required=False)
     has_pin = serializers.BooleanField(read_only=True)
 
 

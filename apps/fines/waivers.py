@@ -15,6 +15,7 @@ from django.utils import timezone
 from rest_framework import status
 
 from apps.chamas.models import OFFICIAL_ROLES, Membership
+from apps.core import money
 from apps.core.canonical import canonical_bytes
 from apps.core.problems import Problem
 from apps.devices import signing
@@ -32,8 +33,8 @@ def settings_from(rules: dict) -> dict:
     return {**DEFAULTS, **(rules.get("waivers") or {})}
 
 
-def _kes(cents: int) -> str:
-    return f"KES {cents / 100:,.0f}" if cents % 100 == 0 else f"KES {cents / 100:,.2f}"
+def _kes(cents: int, of=None) -> str:
+    return money.fmt(cents, of)
 
 
 def _name(m: Membership) -> str:
@@ -79,7 +80,7 @@ def request(fine: Fine, by: Membership, *, reason: str) -> Waiver:
 
             votes.open_vote(fine.chama, subject=f"fines.waiver:{w.id}",
                             question=f"Waive {_name(by)}'s fine of "
-                                     f"{_kes(fine.outstanding_cents)}: {reason[:150]}?",
+                                     f"{_kes(fine.outstanding_cents, fine)}: {reason[:150]}?",
                             rules=version.rules, closes_at=w.deadline_at, exclude=[by.id])
     return w
 
@@ -91,7 +92,7 @@ def _hash(w: Waiver) -> str:
 
 
 def summary(w: Waiver, language: str) -> str:
-    who, amount = _name(w.fine.membership), _kes(w.fine.outstanding_cents)
+    who, amount = _name(w.fine.membership), _kes(w.fine.outstanding_cents, w.fine)
     if language == "sw":
         return f"KUSAMEHE faini ya {amount} ya {who}"
     return f"WAIVE {who}'s fine of {amount}"

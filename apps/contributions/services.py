@@ -8,6 +8,7 @@ from django.utils import timezone
 from rest_framework import status
 
 from apps.chamas.models import OFFICIAL_ROLES, Chama, Membership
+from apps.core import money
 from apps.core.canonical import canonical_bytes
 from apps.core.problems import Problem
 from apps.devices import signing
@@ -96,10 +97,10 @@ def _require_opening_confirmer(ob: OpeningBalance, by: Membership) -> None:
 def start_confirm_opening(ob: OpeningBalance, by: Membership) -> SigningChallenge:
     _require_opening_confirmer(ob, by)
     total = sum(x.savings_cents for x in ob.lines.all())
-    action = (f"CONFIRM opening balances for {ob.lines.count()} members, savings KES "
-              f"{total / 100:,.2f}") if by.user.language != "sw" else (
-        f"KUTHIBITISHA salio la mwanzo la wanachama {ob.lines.count()}, akiba KES "
-        f"{total / 100:,.2f}")
+    action = (f"CONFIRM opening balances for {ob.lines.count()} members, savings "
+              f"{money.fmt(total, ob.chama)}") if by.user.language != "sw" else (
+        f"KUTHIBITISHA salio la mwanzo la wanachama {ob.lines.count()}, akiba "
+        f"{money.fmt(total, ob.chama)}")
     return signing.issue(user=by.user, purpose=SigningChallenge.Purpose.CONFIRM_OPENING,
                          subject=f"contributions.opening:{ob.chama_id}",
                          content_hash=_opening_hash(ob), action_text=action)
@@ -194,7 +195,7 @@ def _require_own_unconfirmed(r: CashReceipt, by: Membership) -> None:
 
 def start_confirm_cash(r: CashReceipt, by: Membership) -> SigningChallenge:
     _require_own_unconfirmed(r, by)
-    amount = f"KES {r.amount_cents / 100:,.2f}"
+    amount = money.fmt(r.amount_cents, r.membership)
     action = (f"CONFIRM you gave {amount} cash on {r.received_on}" if by.user.language != "sw"
               else f"KUTHIBITISHA ulitoa {amount} taslimu tarehe {r.received_on}")
     return signing.issue(user=by.user, purpose=SigningChallenge.Purpose.CONFIRM_CASH,

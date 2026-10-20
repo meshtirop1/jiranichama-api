@@ -18,6 +18,8 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
+from apps.core import money
+
 from .labels import LABELS
 
 BRAND = colors.HexColor("#1B6B4A")
@@ -26,9 +28,8 @@ RULE = colors.HexColor("#D5DDD9")
 
 
 def kes(cents: int) -> str:
-    sign = "-" if cents < 0 else ""
-    whole, part = divmod(abs(cents), 100)
-    return f"{sign}{whole:,}" + (f".{part:02d}" if part else "")
+    """A figure in the currency being rendered: "1,000" or "1,000.50"."""
+    return money.number(cents)
 
 
 def grouped(fingerprint: str) -> str:
@@ -181,19 +182,29 @@ def _chama_story(L, s, data):
     story.append(Paragraph(escape(L["bank"]), s["h"]))
     if b["reconciled_to"]:
         rows = [[L["reconciled_to"], b["reconciled_to"]],
-                [L["closing"], f"KES {kes(b['closing_cents'])}"]]
+                [L["closing"], f"{money.currency_of()} {kes(b['closing_cents'])}"]]
     else:
         rows = [[L["none_yet"], ""]]
     rows.append([L["unmatched"], L["unmatched_value"].format(
         n=b["unmatched_count"], amount=kes(b["unmatched_cents"]))])
-    rows.append([L["cash_waiting"], f"KES {kes(b['cash_waiting_cents'])}"])
+    rows.append([L["cash_waiting"], f"{money.currency_of()} {kes(b['cash_waiting_cents'])}"])
     story.append(_grid(rows, [120 * mm, 54 * mm], header=False, right_cols=(1,)))
     return story
 
 
 def render(data: dict, *, language: str, fingerprint: str, verify_url: str, code: str,
-           issued_on: date) -> bytes:
-    L = LABELS[language]
+           issued_on: date, currency: str = "KES") -> bytes:
+    """The PDF, with amounts shown in the chama's ``currency``."""
+    with money.using(currency):
+        return _render(data, language=language, fingerprint=fingerprint,
+                       verify_url=verify_url, code=code, issued_on=issued_on)
+
+
+def _render(data: dict, *, language: str, fingerprint: str, verify_url: str, code: str,
+            issued_on: date) -> bytes:
+    # Amounts are figures only; the currency is named in the labels.
+    L = {k: v.replace("KES", money.currency_of()) if isinstance(v, str) else v
+         for k, v in LABELS[language].items()}
     s = _styles()
     buf = io.BytesIO()
     title = L[data["kind"]]

@@ -6,6 +6,7 @@ from django.contrib.auth.models import PermissionsMixin
 from django.db import models
 from django.utils import timezone
 
+from apps.core import countries
 from apps.core.crypto import decrypt, encrypt
 
 from .phones import phone_hash, phone_hint
@@ -20,6 +21,9 @@ class UserManager(BaseUserManager):
     def create_user(self, phone: str, **extra):
         user = self.model(**extra)
         user.set_phone(phone)
+        home = countries.country_of_e164(phone)
+        if home is not None and "country" not in extra:
+            user.country = home.code  # a new person's country is their phone's
         user.set_unusable_password()
         user.save(using=self._db)
         return user
@@ -46,8 +50,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     phone_hint = models.CharField(max_length=24, blank=True, default="")
     display_name = models.CharField(max_length=120, blank=True, default="")
     pin_hash = models.CharField(max_length=128, blank=True, default="")
-    language = models.CharField(max_length=2, default="en", choices=[("en", "English"),
-                                                                    ("sw", "Kiswahili")])
+    language = models.CharField(max_length=3, default="en",
+                                choices=list(countries.LANGUAGES.items()))
+    # Chosen at sign-up; sets how local phone numbers are read and new chamas' currency.
+    country = models.CharField(max_length=2, default=countries.DEFAULT_COUNTRY,
+                               choices=[(c.code, c.name) for c in countries.COUNTRIES.values()])
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)

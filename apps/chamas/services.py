@@ -15,6 +15,7 @@ from django.utils import timezone
 from rest_framework import status
 
 from apps.accounts.phones import normalise_phone, phone_hash, phone_hint
+from apps.core import countries, money
 from apps.core.canonical import canonical_bytes
 from apps.core.problems import Problem
 from apps.devices import signing
@@ -78,11 +79,21 @@ def _lock(chama: Chama) -> Chama:
 
 @transaction.atomic
 def create_chama(*, founder, name: str, type: str, founder_role: str,
-                 expected_members: int = 0, meets: str = Chama.Meets.MONTHLY) -> Chama:
+                 expected_members: int = 0, meets: str = Chama.Meets.MONTHLY,
+                 country: str | None = None, currency: str | None = None) -> Chama:
     if founder_role not in OFFICIAL_ROLES + (Membership.Role.MEMBER,):
         raise Problem("invalid_role", "Pick chair, treasurer, secretary or member.")
+    place = countries.get(country or getattr(founder, "country", None))
+    if not place.open:
+        raise Problem("country_not_open", f"JiraniChama is not open in {place.name} yet.")
+    currency = (currency or place.currency).upper()
+    if currency not in place.currencies:
+        raise Problem("invalid_currency",
+                      f"A chama in {place.name} keeps its records in "
+                      f"{' or '.join(place.currencies)}.")
     chama = Chama.objects.create(
         name=name.strip(), type=type, member_code_prefix=_new_prefix(),
+        country=place.code, currency=currency,
         expected_members=expected_members, meets=meets, created_by=founder,
         draft_rules=template_for(type), draft_template=f"{type}@{TEMPLATE_VERSION}",
         setup_expires_at=timezone.now() + timedelta(days=SETUP_DAYS),
@@ -249,8 +260,8 @@ def confirm_accept(code: str, user, *, challenge_id, sms_code: str) -> Membershi
 
 # --- Joining from a basic phone (5.2a) --------------------------------------------------
 
-def _kes(cents: int) -> str:
-    return f"KES {cents / 100:,.0f}" if cents % 100 == 0 else f"KES {cents / 100:,.2f}"
+def _kes(cents: int, of=None) -> str:
+    return money.fmt(cents, of)
 
 
 def send_sms_invite(inv: Invite, phone: str, language: str) -> None:
@@ -262,15 +273,17 @@ def send_sms_invite(inv: Invite, phone: str, language: str) -> None:
     c, f = rules["contributions"], rules["fines"]["late_contribution"]
     who = inv.invited_by.display_name or "An official"
     if language == "sw":
-        fine = _kes(f["amount_cents"]) if f["enabled"] else "hakuna"
+        fine = _kes(f["amount_cents"], inv.chama) if f["enabled"] else "hakuna"
         text = (f"{who} anakualika ujiunge na {inv.chama.name} kwenye JiraniChama. Kanuni: "
-                f"{_kes(c['amount_cents'])} kila mwezi kabla ya tarehe {c['due_day']}, faini "
+                f"{_kes(c['amount_cents'], inv.chama)} kila mwezi kabla ya tarehe "
+                f"{c['due_day']}, faini "
                 f"ya kuchelewa {fine}. Kiongozi atakusomea kanuni zote. Jibu NDIYO {inv.code} "
                 "kujiunga.")
     else:
-        fine = _kes(f["amount_cents"]) if f["enabled"] else "none"
+        fine = _kes(f["amount_cents"], inv.chama) if f["enabled"] else "none"
         text = (f"{who} invites you to join {inv.chama.name} on JiraniChama. Rules: "
-                f"{_kes(c['amount_cents'])} a month by day {c['due_day']}, late fine {fine}. "
+                f"{_kes(c['amount_cents'], inv.chama)} a month by day {c['due_day']}, "
+                f"late fine {fine}. "
                 f"An official can read you the full rules. Reply YES {inv.code} to join.")
     send_sms(phone, text)
 
@@ -319,10 +332,10 @@ def welcome_text(m: Membership) -> str:
               if account else "the chama's bank account"))
     if m.user.language == "sw":
         return (f"JiraniChama: karibu {m.chama.name}. Nambari yako ni {m.member_code}. Lipa "
-                f"{_kes(c['amount_cents'])} kila mwezi kabla ya tarehe {c['due_day']} kwa "
+                f"{_kes(c['amount_cents'], m)} kila mwezi kabla ya tarehe {c['due_day']} kwa "
                 f"{where}, ukitumia {m.member_code} kama kumbukumbu. Tuma SALIO wakati wowote.")
     return (f"JiraniChama: welcome to {m.chama.name}. Your member code is {m.member_code}. "
-            f"Pay {_kes(c['amount_cents'])} a month by day {c['due_day']} to {where}, with "
+            f"Pay {_kes(c['amount_cents'], m)} a month by day {c['due_day']} to {where}, with "
             f"{m.member_code} as the reference. Send BAL any time.")
 
 

@@ -2,6 +2,7 @@ from django.urls import include, path
 
 from apps.chamas import views as chamas
 from apps.contributions import views as contrib
+from apps.core.views import CountriesView
 from apps.devices import views as devices
 from apps.disputes import views as disputes
 from apps.documents import views as docs
@@ -25,6 +26,7 @@ from apps.votes import views as votes
 urlpatterns = [
     path("auth/", include("apps.accounts.urls")),
     path("platform-key/", ledger.PlatformKeyView.as_view()),
+    path("countries/", CountriesView.as_view()),
     path("rule-templates/", chamas.RuleTemplatesView.as_view()),
     path("chamas/", chamas.ChamaListView.as_view()),
     path("chamas/<uuid:pk>/", chamas.ChamaDetailView.as_view()),

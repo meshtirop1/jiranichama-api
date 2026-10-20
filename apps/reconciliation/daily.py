@@ -19,6 +19,7 @@ from django.db.models import Sum
 from django.utils import timezone
 
 from apps.chamas.models import Chama, Membership
+from apps.core import money
 from apps.feeds.models import BankTransaction, Statement
 from apps.ledger.models import LedgerEntry
 from apps.notify.sms import SmsFailed, send_sms
@@ -32,8 +33,8 @@ BANK_TYPES = ("contribution", "fine_paid", "payout", "bank_charge",
               "loan_repayment", "investment_income")
 
 
-def _kes(cents: int) -> str:
-    return f"KES {cents / 100:,.0f}" if cents % 100 == 0 else f"KES {cents / 100:,.2f}"
+def _kes(cents: int, of=None) -> str:
+    return money.fmt(cents, of)
 
 
 def records_cents(chama: Chama, baseline: int) -> int:
@@ -122,7 +123,7 @@ def reconcile(chama: Chama, today: date | None = None) -> ReconciliationRun | No
 def alert_breach(gap_id) -> int:
     """Every member hears when a gap has stayed open more than 7 days (5.5 step 5)."""
     gap = ReconciliationGap.objects.select_related("chama").get(pk=gap_id)
-    amount, since = _kes(abs(gap.amount_cents)), gap.opened_on.strftime("%d %b")
+    amount, since = _kes(abs(gap.amount_cents), gap), gap.opened_on.strftime("%d %b")
     name = gap.chama.name
     sent = 0
     for m in (Membership.objects.filter(chama=gap.chama, state=Membership.State.ACTIVE)

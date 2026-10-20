@@ -243,9 +243,17 @@ def mark(meeting: Meeting, by: Membership, member: Membership, *,
 
 
 def _raise_fine(meeting, version, member, *, ref, amount, cause) -> Fine | None:
+    from apps.fines import limits
+
     if amount <= 0:
         return None
     period = timezone.localtime(meeting.starts_at).strftime("%Y-%m")
+    if limits.stopped(member, timezone.localdate()):
+        return None
+    if version is not None:
+        amount = limits.capped(member, version.rules, period, amount)
+        if amount <= 0:
+            return None
     entry = ledger.append(
         chama=meeting.chama, type="fine_raised", source="meeting", source_id=meeting.id,
         member=member, amount_cents=amount, period=period,

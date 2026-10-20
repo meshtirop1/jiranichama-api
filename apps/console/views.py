@@ -213,7 +213,7 @@ def chama(request, pk):
             from apps.rules.models import version_at
 
             v = version_at(c, timezone.localdate())
-            ctx["clauses"] = book.render(v.rules, "en") if v else []
+            ctx["clauses"] = book.render(v.rules, "en", c.currency) if v else []
         if "disputes" in areas:
             ctx["disputes"] = c.disputes.select_related("raised_by").order_by("-created_at")
     return render(request, "console/chama.html", ctx)

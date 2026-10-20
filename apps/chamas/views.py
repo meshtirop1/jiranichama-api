@@ -104,8 +104,8 @@ class RulesView(APIView):
             "effective_from": version.effective_from if version else None,
             "hash": version.hash if version else None,
             "rules": rules,
-            "book": {"en": [c.as_dict() for c in book.render(rules, "en")],
-                     "sw": [c.as_dict() for c in book.render(rules, "sw")]},
+            "book": {"en": [c.as_dict() for c in book.render(rules, "en", chama.currency)],
+                     "sw": [c.as_dict() for c in book.render(rules, "sw", chama.currency)]},
         })
 
     @extend_schema(request=OpenApiTypes.OBJECT, responses=RuleBookSerializer)
@@ -119,8 +119,10 @@ class RulesView(APIView):
                                            "range.", errors=[e.as_dict() for e in exc.errors]
                           ) from exc
         return Response({"rules": rules,
-                         "book": {"en": [c.as_dict() for c in book.render(rules, "en")],
-                                  "sw": [c.as_dict() for c in book.render(rules, "sw")]}})
+                         "book": {"en": [c.as_dict() for c in
+                                         book.render(rules, "en", chama.currency)],
+                                  "sw": [c.as_dict() for c in
+                                         book.render(rules, "sw", chama.currency)]}})
 
 
 class InviteCreateView(APIView):
@@ -154,7 +156,8 @@ class InviteAcceptView(APIView):
         return Response({"chama": {"id": str(inv.chama.id), "name": inv.chama.name,
                                    "type": inv.chama.type},
                          "role": inv.role,
-                         "book": [c.as_dict() for c in book.render(rules, lang)]})
+                         "book": [c.as_dict() for c in
+                                  book.render(rules, lang, inv.chama.currency)]})
 
     @extend_schema(request=ConfirmSerializer,
                    responses={201: MembershipSerializer, 202: ChallengeSentSerializer})
@@ -215,5 +218,9 @@ class PositionView(APIView):
             raise Problem("not_found", "Member not found.", status.HTTP_404_NOT_FOUND)
         # Every member sees every member's position: the records are open (feature 6).
         require_member(request.user, membership.chama)
+        from apps.fines import limits
+
+        today = timezone.localdate()
         return Response({"member_code": membership.member_code,
-                         **position(membership, timezone.localdate()).as_dict()})
+                         **position(membership, today).as_dict(),
+                         "fines_stopped": limits.stopped(membership, today)})

@@ -16,6 +16,7 @@ from rest_framework import status
 
 from apps.chamas.models import OFFICIAL_ROLES, Chama, Membership
 from apps.contributions.projections import position
+from apps.core import money
 from apps.core.canonical import canonical_bytes
 from apps.core.problems import Problem
 from apps.devices import signing
@@ -34,8 +35,8 @@ def settings_from(rules: dict) -> dict:
     return {**DEFAULTS, **(rules.get("exit") or {})}
 
 
-def _kes(cents: int) -> str:
-    return f"KES {cents / 100:,.0f}" if cents % 100 == 0 else f"KES {cents / 100:,.2f}"
+def _kes(cents: int, of=None) -> str:
+    return money.fmt(cents, of)
 
 
 def quote(m: Membership, *, death: bool = False) -> dict:
@@ -67,8 +68,8 @@ def _hash(m: Membership, q: dict) -> str:
 
 def _summary(m: Membership, q: dict, language: str) -> str:
     if language == "sw":
-        return f"KUONDOKA {m.chama.name} na kurudishiwa {_kes(q['settlement_cents'])}"
-    return f"LEAVE {m.chama.name} and get back {_kes(q['settlement_cents'])}"
+        return f"KUONDOKA {m.chama.name} na kurudishiwa {_kes(q['settlement_cents'], m)}"
+    return f"LEAVE {m.chama.name} and get back {_kes(q['settlement_cents'], m)}"
 
 
 def _require_can_leave(m: Membership) -> None:

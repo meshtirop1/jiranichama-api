@@ -36,6 +36,7 @@ SCHEMA_V1 = _obj(
             },
         ),
         "fines": _obj(["late_contribution"], {
+            "stop_after_missed_months": {**_int, "minimum": 1, "maximum": 12},
             "late_contribution": _obj(["enabled", "amount_cents", "monthly_cap_cents"], {
                 "enabled": {"type": "boolean"},
                 "amount_cents": {**_int, "minimum": 0, "maximum": 1_000_000_000},

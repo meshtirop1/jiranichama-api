@@ -31,7 +31,9 @@ def test_allocate(case):
 def test_late_fine_respects_cap_and_switch():
     rules = template_for("merry_go_round")
     assert engine.late_fine_cents(rules) == 20_000
+    # The monthly cap is applied where fines are raised, across every kind of fine
+    # (apps.fines.limits; tests/test_fine_limits.py), not to the fine as written.
     rules["fines"]["late_contribution"]["monthly_cap_cents"] = 15_000
-    assert engine.late_fine_cents(rules) == 15_000
+    assert engine.late_fine_cents(rules) == 20_000
     rules["fines"]["late_contribution"]["enabled"] = False
     assert engine.late_fine_cents(rules) == 0

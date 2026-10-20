@@ -146,7 +146,8 @@ def propose_next(chama: Chama, by: Membership) -> Proposal:
             if rules["arrears"] == "skip" and member.id not in skipped_now:
                 skipped_now.add(member.id)
                 turn.state = RotationTurn.State.SKIPPED
-                turn.note = f"Behind on contributions ({services._kes(behind)}); moved to the end."
+                turn.note = (f"Behind on contributions ({services._kes(behind, chama)}); "
+                             "moved to the end.")
                 turn.save(update_fields=["state", "note"])
                 last = rotation.turns.aggregate(n=Max("position"))["n"]
                 RotationTurn.objects.create(rotation=rotation, position=last + 1,
@@ -155,7 +156,8 @@ def propose_next(chama: Chama, by: Membership) -> Proposal:
             if rules["arrears"] == "deduct":
                 break
             raise Problem("turn_blocked", f"{member.member_code} has "
-                                          f"{services._kes(behind)} unpaid and must catch up "
+                                          f"{services._kes(behind, chama)} unpaid and must "
+                                          "catch up "
                                           "first (rule 8.2).", status.HTTP_409_CONFLICT,
                           member_code=member.member_code)
 
@@ -168,7 +170,7 @@ def propose_next(chama: Chama, by: Membership) -> Proposal:
         done = rotation.turns.filter(state=RotationTurn.State.PAID).count()
         purpose = f"Merry-go-round turn {done + 1} of {n_turns}, cycle {rotation.cycle_no}"
         if deduct:
-            purpose += f" (less {services._kes(deduct)} owed)"
+            purpose += f" (less {services._kes(deduct, chama)} owed)"
         p = services.propose(chama, by, kind=Proposal.Kind.PAYOUT, amount_cents=pot - deduct,
                              purpose=purpose, payee=member, allow_arrears=bool(deduct),
                              deduct_cents=deduct)

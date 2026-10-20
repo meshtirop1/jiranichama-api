@@ -20,6 +20,7 @@ _BASE = {
     },
     "fines": {
         "late_contribution": {"enabled": True, "amount_cents": 20_000, "monthly_cap_cents": None},
+        "stop_after_missed_months": 3,
     },
     "officials": {"roles": ["chair", "treasurer", "secretary"]},
     "approvals": {

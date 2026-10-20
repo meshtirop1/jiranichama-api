@@ -61,11 +61,12 @@ def cash_banking_days(rules: dict) -> int:
 
 
 def late_fine_cents(rules: dict) -> int:
+    """The late fine as written. The monthly cap and the stop after missed months are
+    applied where fines are raised (apps.fines.limits), across every kind of fine."""
     fine = rules["fines"]["late_contribution"]
     if not fine["enabled"]:
         return 0
-    cap = fine["monthly_cap_cents"]
-    return fine["amount_cents"] if cap is None else min(fine["amount_cents"], cap)
+    return fine["amount_cents"]
 
 
 def _contribution_slice(rules, period, amount, value_date, current) -> Slice:

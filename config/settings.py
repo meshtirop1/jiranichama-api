@@ -207,6 +207,8 @@ SPECTACULAR_SETTINGS = {
         "MembershipRoleEnum": "apps.chamas.models.Membership.Role",
         "InvestmentKindEnum": "apps.investments.models.Investment.Kind",
         "IncomeKindEnum": "apps.investments.services.INCOME_KIND_CHOICES",
+        "AppLanguageEnum": "apps.core.countries.LANGUAGE_CHOICES",
+        "TranslatedLanguageEnum": "apps.core.countries.TRANSLATED_CHOICES",
     },
 }
 
