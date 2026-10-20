@@ -120,11 +120,21 @@ class PositionSerializer(serializers.Serializer):
 
 class MembershipSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source="user.display_name")
+    id_checked = serializers.SerializerMethodField(
+        help_text="Passed the ID check. Only this tick is shown, never the ID.")
 
     class Meta:
         model = Membership
         fields = ["id", "member_code", "name", "role", "state", "is_founding", "joined_on",
-                  "rules_adopted_at"]
+                  "rules_adopted_at", "id_checked"]
+
+    def get_id_checked(self, obj) -> bool:
+        checked = self.context.get("id_checked")
+        if checked is None:
+            from apps.identity.services import status_of
+
+            return status_of(obj.user) == "verified" if obj.user_id else False
+        return obj.user_id in checked
 
 
 class InviteCreateSerializer(serializers.Serializer):

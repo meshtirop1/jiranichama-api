@@ -32,3 +32,7 @@ Development only (refuses without DEBUG): a table-banking chama with a year of r
 twelve members, chaired by the demo phone (default 0700 000 001). Sign in on the app with
 that number; the code appears on the dev SMS page. Used to try the app on an emulator and
 to measure it with realistic data.
+
+## ID checks and privacy (2026-10-20)
+
+See [ID checks and privacy](../flows/identity.md).

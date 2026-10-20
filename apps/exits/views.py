@@ -35,6 +35,7 @@ class ExitSerializer(serializers.ModelSerializer):
     mine = serializers.SerializerMethodField()
     receipt = serializers.CharField(source="entry.receipt_code")
     settlement_state = serializers.CharField(source="proposal.state", default=None)
+    next_of_kin_name = serializers.CharField(read_only=True)
 
     class Meta:
         model = Exit

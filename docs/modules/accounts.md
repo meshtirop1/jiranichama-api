@@ -29,3 +29,7 @@ they never use the member app's SMS sign-in for the console.
 ## Profile for Settings (2026-10-20)
 
 `/auth/me/` also returns `kyc_status` (`not_started` until the Smile ID check is switched on; later `pending`, `verified` or `failed`) and `date_joined`. The app's Settings tab shows both. See [registration](../flows/registration.md).
+
+## ID checks and privacy (2026-10-20)
+
+See [ID checks and privacy](../flows/identity.md).

@@ -11,6 +11,7 @@ from apps.elections import views as elections
 from apps.exits import views as exits
 from apps.feeds import views as feeds
 from apps.fines import views as fines
+from apps.identity import views as identity
 from apps.investments import views as investments
 from apps.ledger import views as ledger
 from apps.loans import views as loans
@@ -48,6 +49,7 @@ urlpatterns = [
     path("chamas/<uuid:pk>/adopt/", chamas.AdoptView.as_view()),
     path("chamas/<uuid:pk>/members/", chamas.MembersView.as_view()),
     path("registration/guide/", registration.GuideView.as_view()),
+    path("me/identity/", identity.MyIdentityView.as_view()),
     path("chamas/<uuid:pk>/registration/", registration.ChamaRegistrationView.as_view()),
     path("chamas/<uuid:pk>/registration/papers/<str:paper>/",
          registration.PaperView.as_view()),

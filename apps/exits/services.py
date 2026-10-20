@@ -166,10 +166,8 @@ def record_death(chama: Chama, by: Membership, member: Membership, *, died_on,
                                         "document_sha256": digest.hexdigest(), "quote": q})
         e = Exit(chama=chama, membership=member, kind=Exit.Kind.DEATH, recorded_by=by,
                  exit_on=timezone.localdate() + timedelta(days=DEATH_OBJECTION_DAYS),
-                 quote=q, died_on=died_on,
-                 next_of_kin_name=next_of_kin_name.strip()[:120],
-                 next_of_kin_phone=next_of_kin_phone.strip()[:20],
-                 document_sha256=digest.hexdigest(), entry=entry)
+                 quote=q, died_on=died_on, document_sha256=digest.hexdigest(), entry=entry)
+        e.set_next_of_kin(next_of_kin_name.strip()[:120], next_of_kin_phone.strip()[:20])
         e.document.save(f"{member.id}.jpg", document, save=False)
         e.save()
     _tell_reported(e)

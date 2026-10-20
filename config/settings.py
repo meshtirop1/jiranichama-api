@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "apps.referrals",
     "apps.console",
     "apps.registration",
+    "apps.identity",
 ]
 
 MIDDLEWARE = [
@@ -304,3 +305,12 @@ LOGGING = {
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": env("LOG_LEVEL", default="INFO")},
 }
+
+# ID checks (KYC) through Smile ID, paid by the chama (owner decision 2026-10-20). Off
+# until the credentials are set; KYC_ENFORCED then makes rule P.3 bite (officials must
+# pass before money out).
+SMILE_ID_PARTNER_ID = env("SMILE_ID_PARTNER_ID", default="")
+SMILE_ID_API_KEY = env("SMILE_ID_API_KEY", default="")
+SMILE_ID_PRODUCTION = env.bool("SMILE_ID_PRODUCTION", default=False)
+KYC_ENFORCED = env.bool("KYC_ENFORCED", default=False)
+KYC_PRICE_USD_CENTS = env.int("KYC_PRICE_USD_CENTS", default=0)

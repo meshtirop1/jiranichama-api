@@ -33,8 +33,9 @@ class Exit(models.Model):
                                          null=True, blank=True, related_name="+")
     # Death only.
     died_on = models.DateField(null=True, blank=True)
-    next_of_kin_name = models.CharField(max_length=120, blank=True)
-    next_of_kin_phone = models.CharField(max_length=20, blank=True)
+    # Encrypted at rest (privacy, 2026-10-20): a grieving family's name and number are
+    # nobody's business but the officials paying them. Read with ``next_of_kin``.
+    next_of_kin_enc = models.BinaryField(null=True, blank=True)
     document = models.FileField(upload_to="exits/%Y/%m/", blank=True)
     document_sha256 = models.CharField(max_length=64, blank=True)
     entry = models.ForeignKey(LedgerEntry, on_delete=models.PROTECT, related_name="+")
@@ -44,6 +45,32 @@ class Exit(models.Model):
 
     class Meta:
         db_table = "exits_exit"
+
+    def set_next_of_kin(self, name: str, phone: str) -> None:
+        import json
+
+        from apps.core.crypto import encrypt
+
+        self.next_of_kin_enc = encrypt(json.dumps({"name": name, "phone": phone}))
+
+    @property
+    def next_of_kin(self) -> tuple[str, str]:
+        import json
+
+        from apps.core.crypto import decrypt
+
+        if not self.next_of_kin_enc:
+            return "", ""
+        d = json.loads(decrypt(bytes(self.next_of_kin_enc)))
+        return d.get("name", ""), d.get("phone", "")
+
+    @property
+    def next_of_kin_name(self) -> str:
+        return self.next_of_kin[0]
+
+    @property
+    def next_of_kin_phone(self) -> str:
+        return self.next_of_kin[1]
 
 
 class DeathConfirmation(models.Model):

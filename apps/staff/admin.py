@@ -25,6 +25,21 @@ class LedgerEntryAdmin(ReadOnlyAdmin):
     list_filter = ("type",)
     search_fields = ("receipt_code", "hash")
 
+    def get_queryset(self, request):
+        """Only chamas whose officials have granted support access to their records, and
+        only while the grant lasts (privacy, 2026-10-20). Everyone else's money is not
+        staff's business."""
+        from django.utils import timezone
+
+        from .models import SupportGrant
+        from .support import expire_due
+
+        expire_due()
+        granted = [g.chama_id for g in SupportGrant.objects.filter(
+            state=SupportGrant.State.ACTIVE, ends_at__gt=timezone.now())
+            if SupportGrant.Area.LEDGER in g.areas]
+        return super().get_queryset(request).filter(chama_id__in=granted)
+
 
 @admin.register(Chama, site=staff_site)
 class ChamaAdmin(ReadOnlyAdmin):

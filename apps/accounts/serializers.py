@@ -88,7 +88,9 @@ class ProfileSerializer(serializers.Serializer):
     kyc_status = serializers.SerializerMethodField()
 
     def get_kyc_status(self, user) -> str:
-        return getattr(user, "kyc_status", "") or "not_started"
+        from apps.identity.services import status_of
+
+        return status_of(user)
 
 
 class LogoutSerializer(serializers.Serializer):

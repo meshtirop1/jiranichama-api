@@ -206,8 +206,12 @@ class MembersView(APIView):
     @extend_schema(responses=MembershipSerializer(many=True))
     def get(self, request, pk):
         chama, _ = chama_for(request, pk)
-        members = chama.memberships.select_related("user").order_by("member_code")
-        return Response(MembershipSerializer(members, many=True).data)
+        from apps.identity.services import verified_user_ids
+
+        members = list(chama.memberships.select_related("user").order_by("member_code"))
+        checked = verified_user_ids([m.user_id for m in members])
+        return Response(MembershipSerializer(members, many=True,
+                                             context={"id_checked": checked}).data)
 
 
 class PositionView(APIView):
