@@ -12,6 +12,8 @@ class Migration(migrations.Migration):
     dependencies = [
         ('chamas', '0005_more_banks'),
         ('ledger', '0015_alter_ledgerentry_type'),
+        # The trigger function append_only_except uses (needed on a fresh database).
+        ('core', '0003_forbid_change_except_and_idempotency'),
     ]
 
     operations = [
