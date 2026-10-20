@@ -39,15 +39,17 @@ class ConsoleBackend:
 
 
 class DevFileBackend:
-    """Local development only: appends every message, code included, to
-    ``settings.DEV_SMS_FILE`` so an emulator test can read sign-in codes. Refuses to
-    load unless DEBUG is on and the file is configured."""
+    """Local development and the test server only: appends every message, code included,
+    to ``settings.DEV_SMS_FILE`` so an emulator test can read sign-in codes. Refuses to
+    load unless the file is configured and this is development (DEBUG) or the test server
+    (DEMO_SIGNIN_CODE set, which the jirani.W001 check flags wherever it is on)."""
 
     name = "dev_file"
 
     def __init__(self):
-        if not settings.DEBUG or not settings.DEV_SMS_FILE:
-            raise RuntimeError("DevFileBackend is for local development only")
+        test_server = bool(getattr(settings, "DEMO_SIGNIN_CODE", ""))
+        if not settings.DEV_SMS_FILE or not (settings.DEBUG or test_server):
+            raise RuntimeError("DevFileBackend is for development and the test server only")
 
     def send(self, to: str, text: str) -> SmsResult:
         import json

@@ -113,7 +113,11 @@ ln -sf /etc/nginx/sites-available/jiranichama /etc/nginx/sites-enabled/jiranicha
 nginx -t -q && systemctl reload nginx
 if [ ! -d "/etc/letsencrypt/live/$HOST" ]; then
   certbot --nginx -n --agree-tos --register-unsafely-without-email -d "$HOST" --redirect -q
+else
+  # The template above replaced the HTTPS lines certbot added; put the certificate back.
+  certbot install --nginx -n --cert-name "$HOST" -d "$HOST" --redirect -q
 fi
+nginx -t -q && systemctl reload nginx
 
 sleep 2
 curl -fsS -o /dev/null -w "health: %{http_code}\n" "https://$HOST/healthz" || \
