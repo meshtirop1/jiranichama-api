@@ -64,7 +64,7 @@ def _build(chama: Chama, *, route: str, filename: str, data: bytes, uploaded_by=
     if parsed is not None and parsed.unreadable:
         # Only the account and dates can be checked now; the balances are checked once an
         # official has typed in the lines we could not read (submit_typed_lines).
-        problems, _ = checks.check(parsed, account, timezone.localdate())
+        problems, _ = checks.check(parsed, account, timezone.localdate(), route=route)
         problems = [p for p in problems if p["code"] in checks.UPLOAD_ONLY]
         fields.update(
             parser=parsed.parser, period_from=parsed.period_from, period_to=parsed.period_to,
@@ -75,7 +75,7 @@ def _build(chama: Chama, *, route: str, filename: str, data: bytes, uploaded_by=
             state=Statement.State.REJECTED if problems else Statement.State.NEEDS_TYPING,
         )
     elif parsed is not None:
-        problems, flags = checks.check(parsed, account, timezone.localdate())
+        problems, flags = checks.check(parsed, account, timezone.localdate(), route=route)
         fields.update(
             parser=parsed.parser, period_from=parsed.period_from, period_to=parsed.period_to,
             opening_cents=parsed.opening_cents, closing_cents=parsed.closing_cents,
@@ -202,7 +202,8 @@ def submit_typed_lines(statement: Statement, by: Membership, lines: list[dict]) 
             period_to=max(line.value_date for line in merged),
             opening_cents=statement.opening_cents, closing_cents=statement.closing_cents,
             lines=merged)
-        problems, _ = checks.check(parsed, statement.bank_account, today)
+        problems, _ = checks.check(parsed, statement.bank_account, today,
+                                   route=statement.route)
         if problems:
             raise Problem("typed_lines_do_not_add_up",
                           "With these lines the statement does not check out. Look again "
@@ -269,6 +270,38 @@ def confirm(statement: Statement, by: Membership, *, challenge_id, sms_code: str
     return statement
 
 
+def seal(statement: Statement):
+    """Put the accepted statement itself on the chain (protection plan 2026-10-20): the
+    file's SHA-256, its period and balances, and a digest of every line. From then on the
+    bank's history the chama relied on cannot be swapped without the chain breaking."""
+    from apps.core.canonical import canonical_bytes
+    from apps.ledger import services as ledger
+    from apps.ledger.models import LedgerEntry
+
+    if LedgerEntry.objects.filter(chama=statement.chama, type="statement_accepted",
+                                  source_id=statement.id).exists():
+        return None
+    lines = [{"date": line.value_date.isoformat(), "ref": line.reference,
+              "credit": line.credit_cents, "debit": line.debit_cents,
+              "balance": line.balance_cents} for line, _ in all_lines(statement)]
+    who = {}
+    for key, user_id in (("uploaded_by", statement.uploaded_by_id),
+                         ("confirmed_by", statement.confirmed_by_id)):
+        if user_id:
+            m = statement.chama.memberships.filter(user_id=user_id).first()
+            who[key] = m.member_code if m else ""
+    return ledger.append(
+        chama=statement.chama, type="statement_accepted", source="statement",
+        source_id=statement.id,
+        decision={"route": statement.route, "file_sha256": statement.sha256,
+                  "period_from": statement.period_from.isoformat(),
+                  "period_to": statement.period_to.isoformat(),
+                  "opening_cents": statement.opening_cents,
+                  "closing_cents": statement.closing_cents, "lines": len(lines),
+                  "lines_sha256": hashlib.sha256(canonical_bytes(lines)).hexdigest(),
+                  "flags": [f.get("code") for f in statement.flags], **who})
+
+
 def ingest(statement: Statement) -> list[BankTransaction]:
     """Turn an accepted statement's lines into bank transactions. Lines already seen from
     an earlier statement are skipped (they share the bank's reference). Typed-in lines
@@ -276,6 +309,7 @@ def ingest(statement: Statement) -> list[BankTransaction]:
     charges, approved proposals, or an unapproved-debit alert)."""
     from apps.reconciliation.services import match_credit
 
+    seal(statement)
     created = []
     for line, typed_by in all_lines(statement):
         credit = line.credit_cents > 0

@@ -59,3 +59,7 @@ it is at least as recent as the last statement (`bank_source: bank_api`). See
 
 Some of this changed so that a few people cannot use the rules against one member. See
 [protections](protections.md).
+
+## Bank protections (2026-10-20)
+
+See [bank protections](bank-protections.md).

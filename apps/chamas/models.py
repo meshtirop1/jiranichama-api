@@ -224,3 +224,45 @@ class StatementInbox(models.Model):
 
     class Meta:
         db_table = "chamas_statement_inbox"
+
+
+class BankMandate(models.Model):
+    """What the bank has on file: who may sign for the chama's account and how many must
+    sign each withdrawal (protection plan 2026-10-20: "we dont need a situation where the
+    treasurer goes alone to the bank").
+
+    An official uploads the bank's mandate letter or form and names the signatories; a
+    DIFFERENT official confirms it matches the paper. Once confirmed it is sealed on the
+    ledger, and every member sees it. Written once; only its state and confirmation move.
+    """
+
+    class State(models.TextChoices):
+        PROPOSED = "proposed"
+        CONFIRMED = "confirmed"
+        REPLACED = "replaced"
+        REJECTED = "rejected"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    chama = models.ForeignKey(Chama, on_delete=models.PROTECT, related_name="bank_mandates")
+    bank_account = models.ForeignKey(BankAccount, on_delete=models.PROTECT,
+                                     related_name="mandates")
+    signatories = models.ManyToManyField(Membership, related_name="+")
+    min_signers = models.PositiveSmallIntegerField()
+    # The bank's own app makes every signatory approve on their phone (e.g. Equitel
+    # Multiple Approval, BOA e-Chama, Postbank M-Chama, Vodacom M-Koba).
+    bank_app_approvals = models.BooleanField(default=False)
+    document = models.FileField(upload_to="mandates/")
+    document_sha256 = models.CharField(max_length=64)
+    uploaded_by = models.ForeignKey(Membership, on_delete=models.PROTECT, related_name="+")
+    confirmed_by = models.ForeignKey(Membership, on_delete=models.PROTECT, null=True,
+                                     blank=True, related_name="+")
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    state = models.CharField(max_length=10, choices=State.choices, default=State.PROPOSED)
+    entry = models.ForeignKey("ledger.LedgerEntry", on_delete=models.PROTECT, null=True,
+                              blank=True, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    MUTABLE = ["state", "confirmed_by_id", "confirmed_at", "entry_id"]
+
+    class Meta:
+        db_table = "chamas_bank_mandate"

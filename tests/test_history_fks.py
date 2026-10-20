@@ -20,6 +20,7 @@ HISTORY_MODELS = {
     "chamas.Invite",
     "chamas.BankAccount",
     "chamas.StatementInbox",
+    "chamas.BankMandate",
     "rules.RuleVersion",
     "rules.RuleProposal",
     "fines.Fine",

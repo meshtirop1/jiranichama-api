@@ -194,7 +194,7 @@ class DarajaHook(APIView):
         from . import daraja
 
         allowed = settings.DARAJA_ALLOWED_IPS
-        if allowed and request.META.get("REMOTE_ADDR") not in allowed:
+        if allowed and daraja.caller_ip(request) not in allowed:
             return Response(status=status.HTTP_404_NOT_FOUND)
         channel = daraja.channel_for(token)
         if channel is None:

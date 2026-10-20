@@ -81,3 +81,7 @@ matches, the entry is `loan_disbursed` instead of `payout`, and the loan's sched
 
 Some of this changed so that a few people cannot use the rules against one member. See
 [protections](protections.md).
+
+## Bank protections (2026-10-20)
+
+See [bank protections](bank-protections.md).

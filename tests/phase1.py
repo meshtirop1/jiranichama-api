@@ -32,7 +32,8 @@ def make_user(phone: str, name: str) -> User:
 
 
 def active_chama(*, since: date, members: int = 3, rules: dict | None = None,
-                 bank: str = "equity") -> tuple[Chama, list[Membership]]:
+                 bank: str = "equity", mandate: bool = True
+                 ) -> tuple[Chama, list[Membership]]:
     """An active chama whose rules started on ``since``, built without the SMS steps."""
     founder = make_user(f"+2547100{uuid.uuid4().int % 10**5:05d}", "Founder")
     chama = chamas.create_chama(founder=founder, name="Test Chama", type="merry_go_round",
@@ -58,7 +59,26 @@ def active_chama(*, since: date, members: int = 3, rules: dict | None = None,
     chama.save()
     for m in ms:
         m.refresh_from_db()
+    if mandate and len(ms) >= 2:
+        give_mandate(chama, ms[:2])
     return chama, ms
+
+
+def give_mandate(chama: Chama, signatories: list[Membership], min_signers: int = 2):
+    """A confirmed bank mandate (any two to sign), made directly, without the SMS steps."""
+    from django.core.files.base import ContentFile
+
+    from apps.chamas.models import BankMandate
+    from apps.chamas.services import active_bank_account
+
+    m = BankMandate(chama=chama, bank_account=active_bank_account(chama),
+                    min_signers=min_signers, document_sha256="0" * 64,
+                    uploaded_by=signatories[0], confirmed_by=signatories[-1],
+                    confirmed_at=timezone.now(), state=BankMandate.State.CONFIRMED)
+    m.document.save("mandate.pdf", ContentFile(b"%PDF mandate"), save=False)
+    m.save()
+    m.signatories.set(signatories)
+    return m
 
 
 def credit(chama: Chama, *, amount_cents: int, value_date: date, narration: str = "",

@@ -147,6 +147,7 @@ DARAJA_CONSUMER_SECRET = env("DARAJA_CONSUMER_SECRET", default="")
 DARAJA_CALLBACK_BASE_URL = env("DARAJA_CALLBACK_BASE_URL",
                                default="https://api.jiranichama.co.ke")
 DARAJA_ALLOWED_IPS = env.list("DARAJA_ALLOWED_IPS", default=[])
+DARAJA_TRUST_PROXY = env.bool("DARAJA_TRUST_PROXY", default=False)
 # Device keys (6.7). SHA-256 fingerprints of the attestation roots we trust (Google's
 # hardware attestation roots in production). Until set, keys are recorded as untrusted;
 # production turns on DEVICE_REQUIRE_TRUSTED_ATTESTATION once the roots are in.

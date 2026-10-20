@@ -85,6 +85,10 @@ def start_enable(chama: Chama, by: Membership) -> SigningChallenge:
     _official(by)
     if chama.mode == Chama.Mode.MONEY_OUT:
         raise Problem("money_out_on", "Money out is already on.", status.HTTP_409_CONFLICT)
+    from apps.chamas.mandate import require_safe_mandate
+
+    # The real lock is at the bank: two must sign there too (protection plan 2026-10-20).
+    require_safe_mandate(chama)
     action = ("SWITCH ON money out: payouts approved in JiraniChama" if by.user.language != "sw"
               else "KUWASHA malipo: malipo yanayoidhinishwa ndani ya JiraniChama")
     return signing.issue(user=by.user, purpose=SigningChallenge.Purpose.ENABLE_MONEY_OUT,

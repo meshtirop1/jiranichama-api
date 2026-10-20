@@ -58,3 +58,7 @@ of "unmatched"), so a payment made today never shows as a gap.
 - Paybills that settle into the bank as one daily lump: those statement lines will not
   pair with individual payments and stay in the treasurer's queue.
 - Bank transaction feeds (Phase 4).
+
+## Bank protections (2026-10-20)
+
+See [bank protections](bank-protections.md).

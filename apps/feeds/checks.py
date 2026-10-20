@@ -19,8 +19,8 @@ def _problem(code: str, message: str, **extra) -> dict:
 UPLOAD_ONLY = ("account_missing", "account_mismatch", "future_dates")
 
 
-def check(parsed: ParsedStatement, account: BankAccount, today: date
-          ) -> tuple[list[dict], list[dict]]:
+def check(parsed: ParsedStatement, account: BankAccount, today: date, *,
+          route: str = "") -> tuple[list[dict], list[dict]]:
     problems, flags = [], []
 
     if parsed.account_no is None:
@@ -52,8 +52,12 @@ def check(parsed: ParsedStatement, account: BankAccount, today: date
             .order_by("-period_to").first())
     if last is not None:
         if parsed.period_from > last.period_to + timedelta(days=1):
-            flags.append(_problem("gap", f"No statement covers {last.period_to + timedelta(1)} "
-                                         f"to {parsed.period_from - timedelta(1)}."))
+            gap = _problem("gap", f"No statement covers {last.period_to + timedelta(1)} "
+                                  f"to {parsed.period_from - timedelta(1)}. Upload the "
+                                  "statement for those days first.")
+            # An official cannot skip a period (that is where a withdrawal could hide).
+            # The bank's own email is let through, flagged to every member.
+            (problems if route == Statement.Route.UPLOAD else flags).append(gap)
         elif parsed.period_from == last.period_to + timedelta(days=1) and \
                 parsed.opening_cents != last.closing_cents:
             problems.append(_problem(
@@ -61,7 +65,33 @@ def check(parsed: ParsedStatement, account: BankAccount, today: date
                 f"The opening balance does not match the closing balance of the statement "
                 f"to {last.period_to}."))
         problems += _overlap_problems(parsed, account, last)
+    if route == Statement.Route.UPLOAD:
+        problems += _feed_problems(parsed, account)
     return problems, flags
+
+
+def _feed_problems(parsed: ParsedStatement, account: BankAccount) -> list[dict]:
+    """An official's upload must agree with what the bank's own API already told us
+    for the same days: same money in and out, line for line (protection plan 2026-10-20).
+    A doctored PDF cannot hide a withdrawal the bank already reported."""
+    from collections import Counter
+
+    feed = BankTransaction.objects.filter(
+        bank_account=account, source=BankTransaction.Source.BANK_API,
+        value_date__gte=parsed.period_from, value_date__lte=parsed.period_to)
+    if not feed.exists():
+        return []
+    covered = set(feed.values_list("value_date", flat=True))
+    theirs = Counter((t.value_date, t.direction, t.amount_cents) for t in feed)
+    ours = Counter(
+        (line.value_date, "credit" if line.credit_cents > 0 else "debit",
+         line.credit_cents or line.debit_cents)
+        for line in parsed.lines if line.value_date in covered)
+    if theirs != ours:
+        return [_problem("differs_from_bank_feed",
+                         "This statement does not match what the bank's own system "
+                         "reported for the same days. Download it again from the bank.")]
+    return []
 
 
 def _overlap_problems(parsed: ParsedStatement, account: BankAccount, last: Statement

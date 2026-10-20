@@ -24,6 +24,20 @@ from apps.chamas.services import active_bank_account
 from .models import BankTransaction, DarajaChannel
 
 ACCEPT = {"ResultCode": 0, "ResultDesc": "Accepted"}
+_TRANS_ID = re.compile(r"[A-Z0-9]{8,12}")
+MAX_AMOUNT_CENTS = 1_000_000 * 100  # far above any single M-Pesa payment
+
+
+def caller_ip(request) -> str:
+    """Who called. Behind our own proxy (DARAJA_TRUST_PROXY) that is the last address the
+    proxy added to X-Forwarded-For; otherwise the socket's address. Never the first
+    X-Forwarded-For entry, which the caller can write themselves."""
+    if getattr(settings, "DARAJA_TRUST_PROXY", False):
+        forwarded = [p.strip() for p in request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")
+                     if p.strip()]
+        if forwarded:
+            return forwarded[-1]
+    return request.META.get("REMOTE_ADDR", "")
 
 
 def channel_for(token: str) -> DarajaChannel | None:
@@ -64,7 +78,12 @@ def receive(channel: DarajaChannel, payload: dict) -> BankTransaction | None:
     from apps.reconciliation.services import match_credit
 
     trans_id = str(payload.get("TransID") or "").strip()[:100]
-    if not trans_id:
+    # Hardening (protection plan 2026-10-20): the call must be for THIS channel's
+    # shortcode, carry an M-Pesa-shaped receipt and a sane amount. A leaked callback URL
+    # alone cannot be used to credit members with money that never came.
+    if not _TRANS_ID.fullmatch(trans_id):
+        return None
+    if str(payload.get("BusinessShortCode") or "").strip() != channel.shortcode:
         return None
     account = active_bank_account(channel.chama)
     if account is None:
@@ -72,6 +91,8 @@ def receive(channel: DarajaChannel, payload: dict) -> BankTransaction | None:
     try:
         amount = _cents(payload.get("TransAmount"))
     except ValueError:
+        return None
+    if not 0 < amount <= MAX_AMOUNT_CENTS:
         return None
     ref = str(payload.get("BillRefNumber") or "").strip()
     payer = " ".join(str(payload.get(k) or "").strip()

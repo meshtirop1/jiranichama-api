@@ -1,5 +1,6 @@
 from django.urls import include, path
 
+from apps.chamas import mandate_views as mandates
 from apps.chamas import views as chamas
 from apps.contributions import views as contrib
 from apps.core.views import CountriesView
@@ -34,6 +35,10 @@ urlpatterns = [
     path("chamas/", chamas.ChamaListView.as_view()),
     path("chamas/<uuid:pk>/", chamas.ChamaDetailView.as_view()),
     path("chamas/<uuid:pk>/bank-account/", chamas.BankAccountView.as_view()),
+    path("chamas/<uuid:pk>/bank-mandate/", mandates.BankMandateView.as_view()),
+    path("bank-mandates/<uuid:pk>/confirm/", mandates.BankMandateConfirmView.as_view()),
+    path("bank-mandates/<uuid:pk>/reject/", mandates.BankMandateRejectView.as_view()),
+    path("bank-mandates/<uuid:pk>/file/", mandates.BankMandateFileView.as_view()),
     path("chamas/<uuid:pk>/rules/", chamas.RulesView.as_view()),
     path("chamas/<uuid:pk>/rule-proposals/", rules.RuleProposalListView.as_view()),
     path("rule-proposals/<uuid:pk>/", rules.RuleProposalDetailView.as_view()),

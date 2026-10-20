@@ -41,3 +41,7 @@ See [M-Pesa paybill](../flows/paybill.md).
 `bank_api` transactions, marks lines already recorded elsewhere as duplicates (`twin`,
 also used by statement ingest), matches the rest and runs the reconciliation. Hourly task
 `pull_bank_feeds`. See [bank feeds](../flows/bank-feeds.md).
+
+## Bank protections (2026-10-20)
+
+See [bank protections](../flows/bank-protections.md).
