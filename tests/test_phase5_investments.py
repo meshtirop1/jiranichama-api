@@ -57,7 +57,7 @@ def _approve(p, by, outbox):
 
 def test_a_purchase_paid_through_money_out_becomes_an_investment(chama, sms_outbox):
     c, (chair, treasurer, secretary, member) = chama
-    p = payouts.propose(c, chair, kind="withdrawal", amount_cents=4_000_000,
+    p = payouts.propose(c, secretary, kind="withdrawal", amount_cents=4_000_000,
                         purpose="Plot in Juja", payee_name="Land seller")
     with pytest.raises(Problem) as e:
         investments.record(c, chair, kind="land", name="Juja plot", bought_on=TODAY,

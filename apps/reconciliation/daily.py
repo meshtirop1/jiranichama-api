@@ -98,7 +98,14 @@ def reconcile(chama: Chama, today: date | None = None) -> ReconciliationRun | No
                    .filter(chama=chama, state__in=[ReconciliationGap.State.OPEN,
                                                    ReconciliationGap.State.BREACH]).first())
         breach_now = None
-        if gap == 0:
+        from apps.payouts.models import UnapprovedDebit
+
+        if gap == 0 and UnapprovedDebit.objects.filter(
+                chama=chama, state=UnapprovedDebit.State.OPEN).exists():
+            gap = None  # the figures agree, but money left without approval
+        if gap is None:
+            pass
+        elif gap == 0:
             if current:
                 current.state = ReconciliationGap.State.EXPLAINED
                 current.explained_on = today
@@ -157,7 +164,13 @@ def summary(chama: Chama) -> dict:
            .order_by("-at").first())
     gap = (ReconciliationGap.objects.filter(chama=chama)
            .exclude(state=ReconciliationGap.State.EXPLAINED).first())
-    if run is None:
+    from apps.payouts.models import UnapprovedDebit
+
+    unapproved = UnapprovedDebit.objects.filter(chama=chama,
+                                                state=UnapprovedDebit.State.OPEN).exists()
+    if unapproved:
+        status = "breach"  # money left without approval: never shown as a match
+    elif run is None:
         status = "no_statement"
     elif gap is None:
         status = "match"

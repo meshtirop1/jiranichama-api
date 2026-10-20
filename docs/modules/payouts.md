@@ -18,3 +18,8 @@ Money out: proposals, approvals, matching debits, unapproved debits. See
   draw seeded by the chain fingerprint), `draw_order`, `propose_next` (fills in the payout,
   applies rule 8.2), `on_paid` (called when a payout is matched).
   See [Merry-go-round rotation](../flows/rotation.md).
+
+## Protections (2026-10-20)
+
+Some of this changed so that a few people cannot use the rules against one member. See
+[protections](../flows/protections.md).

@@ -78,12 +78,22 @@ def test_officials_decide_after_the_response_and_a_reversal_is_written(monkeypat
     assert ex.value.problem_code == "not_allowed"  # involved people do not decide
     d = disputes.propose_outcome(d, chair, outcome="reversal", text="Duplicate entry")
     assert d.state == "deciding"
-    d = _agree(d, treasurer, sms_outbox)
+    # Reversing money credited to Mary takes it from her savings: officials alone cannot do
+    # that. The members vote, without Mary or John, and two-thirds must agree.
+    with pytest.raises(Problem):
+        _agree(d, treasurer, sms_outbox)
+    v = votes.for_subject(f"disputes.dispute:{d.id}:{d.round}")
+    assert v.pass_pct >= 66 and v.quorum_pct >= 50
+    with pytest.raises(Problem):
+        votes.start_sms_ballot(v, mary, "yes")
+    for m in (chair, treasurer, secretary):
+        ch = votes.start_sms_ballot(v, m, "yes")
+        v = votes.cast_sms(v, m, choice="yes", challenge_id=ch.id, sms_code=_code(sms_outbox))
+    d.refresh_from_db()
     assert d.state == "resolved"
     rev = LedgerEntry.objects.get(type="reversal", reverses=e)
     assert rev.amount_cents == -100_000 and rev.decision["dispute_id"] == str(d.id)
-    assert d.entry.type == "dispute_resolved"
-    assert set(d.entry.decision["agreed"]) == {chair.member_code, treasurer.member_code}
+    assert d.entry.type == "dispute_resolved" and d.entry.decision["decided_by"] == "vote"
 
 
 def test_a_correction_puts_savings_right_and_disagreement_reopens(monkeypatch, sms_outbox):

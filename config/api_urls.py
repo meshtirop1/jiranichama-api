@@ -77,6 +77,7 @@ urlpatterns = [
     path("chamas/<uuid:pk>/exit-quote/", exits.ExitQuoteView.as_view()),
     path("chamas/<uuid:pk>/leave/", exits.LeaveView.as_view()),
     path("exits/<uuid:pk>/cancel/", exits.ExitCancelView.as_view()),
+    path("exits/<uuid:pk>/confirm-death/", exits.ConfirmDeathView.as_view()),
     path("memberships/<uuid:pk>/death/", exits.DeathView.as_view()),
     path("chamas/<uuid:pk>/elections/", elections.ElectionListView.as_view()),
     path("elections/<uuid:pk>/mandate-updated/", elections.MandateView.as_view()),

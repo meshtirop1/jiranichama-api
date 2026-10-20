@@ -103,18 +103,18 @@ def test_next_payout_is_filled_in_and_the_turn_moves_on_when_paid(settings, sms_
     c, chair, treasurer, secretary, member = _setup(
         settings, sms_outbox, rotation={"order": "fixed", "arrears": "skip"})
     rot.start(c, chair, order_ids=[member.id, secretary.id, treasurer.id, chair.id])
-    p = rot.propose_next(c, chair)
+    p = rot.propose_next(c, secretary)
     assert p.payee_membership_id == member.id
     assert p.amount_cents == 400_000  # KES 1,000 x 4 members
     assert p.purpose == "Merry-go-round turn 1 of 4, cycle 1"
     with pytest.raises(Problem) as exc:
-        rot.propose_next(c, chair)
+        rot.propose_next(c, secretary)
     assert exc.value.problem_code == "turn_in_progress"
 
     _approve_and_pay(p, [chair, treasurer], sms_outbox, c, 10_000_000)
     turn = RotationTurn.objects.get(proposal=p)
     assert turn.state == "paid"
-    q = rot.propose_next(c, chair)
+    q = rot.propose_next(c, secretary)
     assert q.payee_membership_id == secretary.id
     assert q.purpose == "Merry-go-round turn 2 of 4, cycle 1"
 
@@ -123,10 +123,10 @@ def test_a_declined_turn_can_be_proposed_again(settings, sms_outbox):
     c, chair, treasurer, secretary, member = _setup(
         settings, sms_outbox, rotation={"order": "fixed", "arrears": "skip"})
     rot.start(c, chair, order_ids=[member.id, secretary.id, treasurer.id, chair.id])
-    p = rot.propose_next(c, chair)
-    services.decline(p, secretary, "Wait for the meeting")
-    services.decline(p, treasurer, "Agree")
-    q = rot.propose_next(c, chair)
+    p = rot.propose_next(c, secretary)
+    # The secretary proposed, so only the chair and treasurer approve: one "no" ends it.
+    services.decline(p, treasurer, "Wait for the meeting")
+    q = rot.propose_next(c, secretary)
     assert q.id != p.id and q.payee_membership_id == member.id
 
 
@@ -146,7 +146,7 @@ def _behind_chama(settings, outbox, arrears):
 
 def test_skip_moves_a_member_behind_to_the_end(settings, sms_outbox):
     c, chair, _, secretary, member = _behind_chama(settings, sms_outbox, "skip")
-    p = rot.propose_next(c, chair)
+    p = rot.propose_next(c, secretary)
     assert p.payee_membership_id == secretary.id
     turns = list(rot.latest(c).turns.order_by("position"))
     assert (turns[0].membership_id, turns[0].state) == (member.id, "skipped")
@@ -157,16 +157,16 @@ def test_skip_moves_a_member_behind_to_the_end(settings, sms_outbox):
 
 
 def test_block_waits_for_the_member_to_catch_up(settings, sms_outbox):
-    c, chair, *_ = _behind_chama(settings, sms_outbox, "block")
+    c, chair, treasurer, secretary, member = _behind_chama(settings, sms_outbox, "block")
     with pytest.raises(Problem) as exc:
-        rot.propose_next(c, chair)
+        rot.propose_next(c, secretary)
     assert exc.value.problem_code == "turn_blocked"
 
 
 def test_deduct_pays_the_pot_less_arrears_as_two_entries(settings, sms_outbox):
     c, chair, treasurer, secretary, member = _behind_chama(settings, sms_outbox, "deduct")
     owed = position(member, TODAY).arrears_cents
-    p = rot.propose_next(c, chair)
+    p = rot.propose_next(c, secretary)
     assert p.payee_membership_id == member.id
     assert (p.amount_cents, p.deduct_cents) == (400_000 - owed, owed)
     _approve_and_pay(p, [chair, treasurer], sms_outbox, c, 10_000_000)

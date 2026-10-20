@@ -63,3 +63,8 @@ already uses the lower bar.
   split one period under two rule sets.
 - **Proposals are append-only** except `state`, `vote_id` and `new_version_id`: a
   proposal's settings and reason can never be edited after members have read them.
+
+## Protections (2026-10-20)
+
+Some of this changed so that a few people cannot use the rules against one member. See
+[protections](protections.md).

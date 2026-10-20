@@ -48,3 +48,8 @@ membership votes arrive in later Phase 1 and Phase 3 pull requests.
 
 Once the chama is active, an official can invite a member by SMS: they reply YES with the
 code from their own number to join. See [SMS commands](sms-commands.md#joining-from-a-basic-phone-52a).
+
+## Protections (2026-10-20)
+
+Some of this changed so that a few people cannot use the rules against one member. See
+[protections](protections.md).

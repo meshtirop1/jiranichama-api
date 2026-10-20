@@ -14,3 +14,8 @@ clause 16.1. `payouts` has the `settlement` kind (proposed by the leaving member
 official recording a death) and calls `on_paid`; `reconciliation.daily` leaves out
 entries with source `exit`. `chamas.access.require_member` lets an `exiting` member keep
 reading the chama.
+
+## Protections (2026-10-20)
+
+Some of this changed so that a few people cannot use the rules against one member. See
+[protections](../flows/protections.md).

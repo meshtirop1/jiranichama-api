@@ -59,3 +59,8 @@ proposal is rejected, saying why.
 
 Votes for rule changes, new members, elections and loans; reopening a lapsed vote once;
 meetings and attendance. (SMS replies from basic phones: see [SMS commands](sms-commands.md).)
+
+## Protections (2026-10-20)
+
+Some of this changed so that a few people cannot use the rules against one member. See
+[protections](protections.md).

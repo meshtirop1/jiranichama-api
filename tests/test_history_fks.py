@@ -21,6 +21,8 @@ HISTORY_MODELS = {
     "rules.RuleVersion",
     "rules.RuleProposal",
     "fines.Fine",
+    "fines.FineStop",
+    "exits.DeathConfirmation",
     "feeds.Statement",
     "feeds.BankTransaction",
     "reconciliation.Match",

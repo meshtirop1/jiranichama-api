@@ -55,7 +55,7 @@ def _setup(settings, outbox, *, secret=False):
         ch = payouts.start_enable(c, o)
         payouts.enable(c, o, challenge_id=ch.id, sms_code=_code(outbox))
     c.refresh_from_db()
-    p = payouts.propose(c, chair, kind="payout", amount_cents=6_000_000, payee=mary,
+    p = payouts.propose(c, secretary, kind="payout", amount_cents=6_000_000, payee=mary,
                         purpose="Welfare: hospital bill")
     return c, chair, treasurer, secretary, mary, john, p
 
@@ -85,11 +85,12 @@ def test_a_large_payout_opens_a_vote_and_needs_it_to_pass(settings, sms_outbox):
     p.refresh_from_db()
     assert p.state == "collecting_approvals"  # officials done; the members have not
 
+    # Only 4 can vote (Mary is paid), and below 5 voters everyone must agree.
     _vote(chair, v, "yes", sms_outbox)
     _vote(treasurer, v, "yes", sms_outbox)
-    _vote(secretary, v, "no", sms_outbox)
+    _vote(secretary, v, "yes", sms_outbox)
     v = _vote(john, v, "yes", sms_outbox)  # everyone eligible has voted: it closes
-    assert (v.state, v.yes, v.no) == ("passed", 3, 1)
+    assert (v.state, v.yes, v.no) == ("passed", 4, 0)
     p.refresh_from_db()
     assert p.state == "approved"
     entry = LedgerEntry.objects.get(pk=v.result_entry_id)
@@ -210,3 +211,18 @@ def test_votes_through_the_api(settings, sms_outbox, api):
     r = api.get(f"/api/v1/proposals/{p.id}/").json()
     assert r["needs_vote"] is True and r["vote_state"] == "open"
     assert api.get(f"/api/v1/votes/{v['id']}/").json()["i_can_vote"] is False
+
+
+def test_in_a_small_group_one_no_is_enough_to_stop_it(settings, sms_outbox):
+    """Fewer than 5 eligible voters: a "majority" would be two or three people, so every
+    one of them must agree (owner decision 2026-10-20)."""
+    c, chair, treasurer, secretary, mary, john, p = _setup(settings, sms_outbox)
+    v = votes.for_subject(f"payouts.proposal:{p.id}")
+    _vote(chair, v, "yes", sms_outbox)
+    _vote(treasurer, v, "yes", sms_outbox)
+    _vote(secretary, v, "no", sms_outbox)
+    v = _vote(john, v, "yes", sms_outbox)
+    assert (v.state, v.yes, v.no) == ("failed", 3, 1)
+    entry = LedgerEntry.objects.get(pk=v.result_entry_id)
+    assert entry.decision["unanimous_needed"] is True
+

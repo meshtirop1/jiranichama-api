@@ -101,3 +101,8 @@ Clause 15.1.
 
 `exit: {notice_days: 0-180, deduction_pct: 0-50, death_benefit_cents}`, in every template
 as `{30, 0, 0}`. Clause 16.1.
+
+## Protections (2026-10-20)
+
+Some of this changed so that a few people cannot use the rules against one member. See
+[protections](../flows/protections.md).

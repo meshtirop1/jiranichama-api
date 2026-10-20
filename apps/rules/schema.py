@@ -72,7 +72,8 @@ SCHEMA_V1 = _obj(
         # Leaving and death (5.13). Optional; defaults in exits.services.DEFAULTS.
         "exit": _obj(["notice_days", "deduction_pct", "death_benefit_cents"], {
             "notice_days": {**_int, "minimum": 0, "maximum": 180},
-            "deduction_pct": {**_int, "minimum": 0, "maximum": 50},
+            # Protected: a leaving member keeps at least 90% of their savings.
+            "deduction_pct": {**_int, "minimum": 0, "maximum": 10},
             "death_benefit_cents": {**_int, "minimum": 0, "maximum": 1_000_000_000},
         }),
         # Elections (5.12). Optional; defaults in elections.services.DEFAULTS.

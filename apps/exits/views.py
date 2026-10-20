@@ -40,7 +40,14 @@ class ExitSerializer(serializers.ModelSerializer):
         model = Exit
         fields = ["id", "member", "member_id", "mine", "kind", "exit_on", "quote", "state",
                   "proposal_id", "settlement_state", "benefit_proposal_id", "died_on",
-                  "next_of_kin_name", "receipt", "created_at"]
+                  "next_of_kin_name", "receipt", "created_at", "reported_by", "confirmed"]
+
+    reported_by = serializers.CharField(source="recorded_by.member_code")
+    confirmed = serializers.SerializerMethodField(
+        help_text="A death report: a second official has confirmed it.")
+
+    def get_confirmed(self, e) -> bool:
+        return e.confirmations.exists()
 
     def get_member(self, e) -> str:
         return e.membership.user.display_name or e.membership.member_code
@@ -103,6 +110,19 @@ class ExitCancelView(APIView):
             raise Problem("not_found", "Not found.", status.HTTP_404_NOT_FOUND)
         me = require_member(request.user, e.chama)
         services.cancel(e, me)
+        return Response(ExitSerializer(_exits().get(pk=e.pk), context={"me": me}).data)
+
+
+class ConfirmDeathView(APIView):
+    """A second official confirms a reported death (never the one who reported it)."""
+
+    @extend_schema(request=None, responses=ExitSerializer)
+    def post(self, request, pk):
+        e = _exits().filter(pk=pk).first()
+        if e is None:
+            raise Problem("not_found", "Not found.", status.HTTP_404_NOT_FOUND)
+        me = require_member(request.user, e.chama)
+        services.confirm_death(e, me)
         return Response(ExitSerializer(_exits().get(pk=e.pk), context={"me": me}).data)
 
 

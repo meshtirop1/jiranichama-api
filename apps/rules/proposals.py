@@ -59,6 +59,12 @@ def _sections(paths: list[str]) -> set[str]:
     return {p.split("/", 1)[0] for p in paths}
 
 
+# A rule change can never be pushed through by a few: at least half of all members take
+# part and two-thirds of ALL eligible members agree (protection plan 2026-10-20).
+RULE_CHANGE_MIN_QUORUM = 50
+RULE_CHANGE_MIN_PASS = 66
+
+
 def thresholds(current: dict, new: dict, paths: list[str]) -> dict:
     """The rule-change rule may itself be changed, but always under the stricter of the
     current and the proposed thresholds, never a smaller one (5.10)."""
@@ -150,7 +156,8 @@ def advance(chama: Chama | None = None) -> int:
                           question=f"Change the rules: {p.reason[:200]}?",
                           rules=p.base_version.rules,
                           closes_at=timezone.now() + timedelta(days=p.vote_days),
-                          quorum_pct=p.quorum_pct, pass_pct=p.pass_pct)
+                          quorum_pct=max(p.quorum_pct, RULE_CHANGE_MIN_QUORUM),
+                          pass_pct=max(p.pass_pct, RULE_CHANGE_MIN_PASS), over_all=True)
             p.state, p.vote_id = RuleProposal.State.VOTING, v.id
             p.save(update_fields=["state", "vote_id"])
             n += 1

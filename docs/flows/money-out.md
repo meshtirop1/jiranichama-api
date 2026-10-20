@@ -76,3 +76,8 @@ simply unapproved).
 A loan is a proposal of kind `loan`, opened by the borrower once every guarantor has
 accepted ([loans](loans.md)). It is approved like a payout to a member. When its debit
 matches, the entry is `loan_disbursed` instead of `payout`, and the loan's schedule starts.
+
+## Protections (2026-10-20)
+
+Some of this changed so that a few people cannot use the rules against one member. See
+[protections](protections.md).

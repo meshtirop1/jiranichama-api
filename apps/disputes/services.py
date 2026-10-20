@@ -248,7 +248,9 @@ def propose_outcome(d: Dispute, by: Membership, *, outcome: str, text: str,
             raise Problem("not_reversible", "Only an entry not yet reversed can be reversed.",
                           status.HTTP_409_CONFLICT)
     s = _rules(d.chama)
-    if s["decided_by"] == "officials" and deciders(d).count() < s["officials"]:
+    against = _loses_money(d, outcome, member, amount_cents)
+    if (against is None and s["decided_by"] == "officials"
+            and deciders(d).count() < s["officials"]):
         raise Problem("not_enough_deciders", "Not enough officials are free of this dispute "
                                              "to decide it; the rules need a members' vote "
                                              "instead.", status.HTTP_409_CONFLICT)
@@ -258,19 +260,54 @@ def propose_outcome(d: Dispute, by: Membership, *, outcome: str, text: str,
         d.outcome, d.outcome_text = outcome, text[:4000]
         d.outcome_member, d.outcome_cents, d.proposed_by = member, amount_cents, by
         d.vote_id = None
-        if s["decided_by"] == "vote":
+        if s["decided_by"] == "vote" or against is not None:
             from apps.votes import services as votes
 
             rules = version_at(d.chama, timezone.localdate()).rules
-            v = votes.open_vote(d.chama, subject=f"disputes.dispute:{d.id}:{d.round}",
-                                question=f"Settle the dispute: {text[:200]}?", rules=rules,
-                                closes_at=timezone.now() + timedelta(days=7))
+            if against is not None:
+                # Officials alone never take a member's money. The members decide, without
+                # the member it is about or anyone in the dispute, and two-thirds must
+                # agree (protection plan 2026-10-20).
+                question = (f"Take {_kes(abs(_money_lost(d, outcome, amount_cents)), d)} from "
+                            f"{against.member_code}'s savings to settle a dispute: "
+                            f"{text[:150]}?")
+                v = votes.open_vote(
+                    d.chama, subject=f"disputes.dispute:{d.id}:{d.round}", question=question,
+                    rules=rules, closes_at=timezone.now() + timedelta(days=7),
+                    exclude=[against.id, d.raised_by_id, *d.involved],
+                    quorum_pct=max(rules["votes"]["quorum_pct"], 50),
+                    pass_pct=max(rules["votes"]["pass_pct"], 66))
+            else:
+                v = votes.open_vote(d.chama, subject=f"disputes.dispute:{d.id}:{d.round}",
+                                    question=f"Settle the dispute: {text[:200]}?",
+                                    rules=rules, closes_at=timezone.now() + timedelta(days=7))
             d.vote_id = v.id
         d.save()
         DisputeMessage.objects.create(dispute=d, membership=by,
                                       kind=DisputeMessage.Kind.AGREE, round=d.round,
                                       text=f"Proposed: {outcome}. {text}"[:4000])
     return d
+
+
+def _money_lost(d: Dispute, outcome: str, amount_cents: int) -> int:
+    if outcome == Dispute.Outcome.CORRECTION:
+        return amount_cents
+    if outcome == Dispute.Outcome.REVERSAL:
+        target = LedgerEntry.objects.filter(chama=d.chama, pk=d.subject_id).first()
+        return -target.amount_cents if target is not None else 0
+    return 0
+
+
+def _loses_money(d: Dispute, outcome: str, member, amount_cents: int):
+    """The member an outcome takes money from (a negative correction, or reversing money
+    credited to them), or None."""
+    if outcome == Dispute.Outcome.CORRECTION and amount_cents < 0:
+        return member
+    if outcome == Dispute.Outcome.REVERSAL:
+        target = LedgerEntry.objects.filter(chama=d.chama, pk=d.subject_id).first()
+        if target is not None and target.member_id and target.amount_cents > 0:
+            return target.member
+    return None
 
 
 def _hash(d: Dispute) -> str:
@@ -288,7 +325,8 @@ def _summary(d: Dispute, language: str) -> str:
 
 
 def _require_decider(d: Dispute, by: Membership) -> None:
-    if d.state != Dispute.State.DECIDING or _rules(d.chama)["decided_by"] != "officials":
+    if (d.state != Dispute.State.DECIDING or d.vote_id is not None
+            or _rules(d.chama)["decided_by"] != "officials"):
         raise Problem("not_deciding", "No outcome is waiting for officials.",
                       status.HTTP_409_CONFLICT)
     if not deciders(d).filter(pk=by.pk).exists():

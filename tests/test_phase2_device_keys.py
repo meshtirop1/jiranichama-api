@@ -168,7 +168,7 @@ def money(settings, sms_outbox):
         ch = services.start_enable(c, o)
         services.enable(c, o, challenge_id=ch.id, sms_code=_code(sms_outbox))
     c.refresh_from_db()
-    p = services.propose(c, chair, kind="payout", amount_cents=2_000_000, payee=member,
+    p = services.propose(c, secretary, kind="payout", amount_cents=2_000_000, payee=member,
                          purpose="Turn")
     return c, chair, treasurer, member, p
 
