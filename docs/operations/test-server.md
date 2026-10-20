@@ -54,3 +54,7 @@ Build with the test server's address and install it:
 ```bash
 flutter build apk --release --dart-define=API_BASE_URL=https://jiranichama.167-233-160-177.sslip.io/api/v1
 ```
+
+## Worker queues (2026-10-20)
+
+The test-server worker must consume every queue in `CELERY_TASK_ROUTES`: `celery,feeds,rules,notify,documents,signing`. It used to consume only `celery`, so platform signatures never ran there ("207 records waiting for JiraniChama's signature"). Production workers need the same list (or one worker per queue).
