@@ -80,3 +80,7 @@ ballots (votes arrive later), and checking attestation certificate revocation li
 - A key becomes active when its time comes (checked whenever it is asked for) or when the
   last vouch arrives, and only then is the `device_registered` entry written in the
   owner's chamas.
+
+## Trust (2026-10-20)
+
+See [trusting the records](trust.md): the platform key chain, member countersignatures, the public proof file and the public lot for tied elections.

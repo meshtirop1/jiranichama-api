@@ -8,6 +8,7 @@ confirms them within 30 days. A change of bank signatory reminds the officials t
 the bank's mandate and to confirm when it is done.
 """
 
+import hashlib
 from datetime import timedelta
 
 from django.db import transaction
@@ -147,6 +148,17 @@ def try_install(e: Election) -> bool:
 def on_vote_closed(vote) -> None:
     e = Election.objects.select_for_update(of=("self",)).select_related(
         "chama", "candidate__user", "outgoing").get(pk=vote.subject.split(":", 1)[1])
+    tied = vote.state == "failed" and vote.yes == vote.no and (vote.yes + vote.no) > 0
+    if tied and e.state == Election.State.VOTING:
+        if e.tie_round == 0:
+            # A tie: the members vote once more, on the same question.
+            _rerun(e, vote)
+        else:
+            # Tied twice: a public lot decides, drawn from the next night's anchor (a
+            # number nobody can know in advance or change afterwards).
+            e.state, e.lot_after = Election.State.AWAITING_LOT, timezone.now()
+            e.save(update_fields=["state", "lot_after"])
+        return
     if vote.state == "passed":
         if e.state == Election.State.VOTING:
             e.state = Election.State.WON
@@ -166,6 +178,51 @@ def on_vote_closed(vote) -> None:
     if e.state in (Election.State.VOTING, Election.State.ACTING):
         e.state = Election.State.LOST
         e.save(update_fields=["state"])
+
+
+def _rerun(e: Election, tied_vote) -> None:
+    from apps.votes import services as votes
+
+    version = version_at(e.chama, timezone.localdate())
+    s = settings_from(version.rules)
+    v = votes.open_vote(e.chama, subject=f"elections.election:{e.id}",
+                        question=f"Tied. Vote again: {tied_vote.question}"[:300],
+                        rules=version.rules,
+                        closes_at=timezone.now() + timedelta(days=s["vote_days"]))
+    e.tie_round, e.vote_id = 1, v.id
+    e.save(update_fields=["tie_round", "vote_id"])
+
+
+def lot_draw(merkle_root: str, election_id) -> str:
+    """The public lot: SHA-256 of that night's anchor root and the election. Anyone can
+    recompute it from the published root."""
+    return hashlib.sha256(f"{merkle_root}:{election_id}".encode()).hexdigest()
+
+
+def draw_lots(anchor) -> int:
+    """Called right after each night's anchor: every election tied twice before it is
+    decided by its draw. Even last digit: elected; odd: not elected."""
+    done = 0
+    for e in Election.objects.filter(state=Election.State.AWAITING_LOT,
+                                     lot_after__lt=anchor.at).select_related("chama",
+                                                                             "candidate"):
+        draw = lot_draw(anchor.merkle_root, e.id)
+        elected = int(draw[-1], 16) % 2 == 0
+        with transaction.atomic():
+            e = Election.objects.select_for_update().get(pk=e.pk)
+            if e.state != Election.State.AWAITING_LOT:
+                continue
+            ledger.append(chama=e.chama, type="vote_result", source="election",
+                          source_id=e.id, member=e.candidate, rule_refs=[REF_ELECTIONS],
+                          decision={"lot": True, "role": e.role, "anchor_id": str(anchor.id),
+                                    "merkle_root": anchor.merkle_root, "draw": draw,
+                                    "rule": "even last digit elects", "elected": elected})
+            e.state = Election.State.WON if elected else Election.State.LOST
+            e.save(update_fields=["state"])
+            if elected:
+                try_install(e)
+        done += 1
+    return done
 
 
 def install_ready(chama: Chama | None = None) -> int:

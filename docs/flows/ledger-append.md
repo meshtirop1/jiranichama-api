@@ -61,3 +61,7 @@ vectors are stale. Changing the hashing rules means bumping `HASH_VERSION`.
   signed when the sweep succeeds.
 - **A database superuser bypasses the triggers and edits a row.** `verify_chain` reports
   the position, and from Phase 2 the nightly public anchor proves what the chain was.
+
+## Trust (2026-10-20)
+
+See [trusting the records](trust.md): the platform key chain, member countersignatures, the public proof file and the public lot for tied elections.

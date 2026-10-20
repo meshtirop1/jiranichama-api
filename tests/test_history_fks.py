@@ -10,6 +10,8 @@ from django.db import models
 HISTORY_MODELS = {
     "ledger.LedgerEntry",
     "ledger.EntrySignature",
+    "ledger.PlatformKey",
+    "ledger.HeadCountersignature",
     "ledger.ChainHead",
     "ledger.Anchor",
     "staff.AuditLog",

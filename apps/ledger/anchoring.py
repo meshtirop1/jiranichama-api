@@ -108,6 +108,10 @@ def anchor_now() -> Anchor:
         sent = msg.send(fail_silently=True)
         Anchor.objects.filter(pk=anchor.pk).update(emailed=bool(sent))
     anchor.refresh_from_db()
+    # Elections tied twice are settled by a lot drawn from this root (elections.draw_lots).
+    from apps.elections.services import draw_lots
+
+    draw_lots(anchor)
     return anchor
 
 

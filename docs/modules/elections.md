@@ -12,3 +12,7 @@ Rules section `elections: {term_months: 6-60, vote_days: 1-30}`, clause 15.1. Ot
 apps call in: `devices.changes` installs a waiting winner when their key becomes active,
 and `payouts._rules_check` refuses money out with `election_needed` when too few
 officials remain to approve it.
+
+## Trust (2026-10-20)
+
+See [trusting the records](../flows/trust.md): the platform key chain, member countersignatures, the public proof file and the public lot for tied elections.

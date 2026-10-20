@@ -139,6 +139,66 @@ def platform_signatures(chain: dict):
     }
 
 
+def key_chain():
+    """A two-key platform key chain (the second endorsed by the first), a forged third
+    key, and one member countersignature, made the way trust.py makes them. Both keys are
+    TEST keys derived from public strings."""
+    import base64
+
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.asymmetric import ec
+
+    from apps.core.canonical import canonical_bytes
+    from apps.ledger.signing import _PREHASHED, public_key_pem
+    from apps.ledger.trust import _fingerprint_pem, countersign_payload, endorsement_payload
+
+    def derived(label):
+        n = int.from_bytes(hashlib.sha256(label).digest(), "big")
+        return ec.derive_private_key(n % (2**256 - 2**224 - 1) or 1, ec.SECP256R1())
+
+    k1, k2, forger = (derived(b"jiranichama test vector key"),
+                      derived(b"jiranichama test vector key 2"),
+                      derived(b"jiranichama forger"))
+    pem1, pem2, pem3 = (public_key_pem(k.public_key()) for k in (k1, k2, forger))
+    fp1, fp2, fp3 = (_fingerprint_pem(p) for p in (pem1, pem2, pem3))
+
+    def endorse(signer, key_id, fp, prev):
+        payload = endorsement_payload(key_id=key_id, fingerprint=fp, prev_key_id=prev)
+        digest = hashlib.sha256(canonical_bytes(payload)).digest()
+        return base64.b64encode(signer.sign(digest, _PREHASHED)).decode()
+
+    chain = [
+        {"key_id": "t", "fingerprint": fp1, "public_key_pem": pem1, "prev_key_id": None,
+         "endorsement_sig": None},
+        {"key_id": "t2", "fingerprint": fp2, "public_key_pem": pem2, "prev_key_id": "t",
+         "endorsement_sig": endorse(k1, "t2", fp2, "t")},
+    ]
+    forged = {"key_id": "evil", "fingerprint": fp3, "public_key_pem": pem3,
+              "prev_key_id": "t2", "endorsement_sig": endorse(forger, "evil", fp3, "t2")}
+    device = derived(b"jiranichama test member phone")
+    from cryptography.hazmat.primitives import serialization
+
+    spki = device.public_key().public_bytes(serialization.Encoding.DER,
+                                            serialization.PublicFormat.SubjectPublicKeyInfo)
+    payload = countersign_payload(chama_id="c1", member_code="JC-4821-004", seq=3,
+                                  head_hash="ab" * 32)
+    sig = device.sign(canonical_bytes(payload), ec.ECDSA(hashes.SHA256()))
+    return {
+        "about": "Platform key chain: each key after the first is endorsed by the one "
+                 "before (ECDSA P-256, pre-hashed SHA-256 of the canonical endorsement "
+                 "payload). Countersignature: a member phone key's ECDSA P-256 / SHA-256 "
+                 "signature over the canonical countersign payload. TEST keys only.",
+        "pinned_fingerprint": fp1,
+        "chain": chain,
+        "forged_next": forged,
+        "countersignature": {
+            "payload": payload,
+            "device_public_key": base64.b64encode(spki).decode(),
+            "signature": base64.b64encode(sig).decode(),
+        },
+    }
+
+
 def write(name, data):
     path = VECTORS / name
     # Always LF, so CI's regenerate-and-diff check passes on any platform.
@@ -155,3 +215,11 @@ if __name__ == "__main__":
         # ECDSA signatures are randomised, so this file is generated once and kept;
         # tests verify it rather than regenerate it.
         write("platform_signatures.json", platform_signatures(chain))
+    trust_vectors = VECTORS / "key_chain.json"
+    if not trust_vectors.exists():  # randomised signatures: generated once, then kept
+        import os
+
+        import django
+        os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+        django.setup()
+        write("key_chain.json", key_chain())

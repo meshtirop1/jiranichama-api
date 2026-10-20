@@ -39,3 +39,7 @@ to update the signatories at the bank. An official confirms in the app when it i
 place can no longer reach (`election_needed`). Money out at such a level is refused with
 `election_needed` ("This needs 2 officials to approve, and only 1 can. The chama needs an
 election first.") instead of waiting for approvals that cannot come.
+
+## Trust (2026-10-20)
+
+See [trusting the records](trust.md): the platform key chain, member countersignatures, the public proof file and the public lot for tied elections.

@@ -1,0 +1,39 @@
+{
+  "about": "Platform key chain: each key after the first is endorsed by the one before (ECDSA P-256, pre-hashed SHA-256 of the canonical endorsement payload). Countersignature: a member phone key's ECDSA P-256 / SHA-256 signature over the canonical countersign payload. TEST keys only.",
+  "pinned_fingerprint": "d26b6c4734866959ef8d7552611f2992b6efa2e21b875916257abb8c9d1cc62d",
+  "chain": [
+    {
+      "key_id": "t",
+      "fingerprint": "d26b6c4734866959ef8d7552611f2992b6efa2e21b875916257abb8c9d1cc62d",
+      "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEkSpIJWZYSOFWqbTzJVzDJU2X8Gdo\n6Gqj7LdAoiHVLjes5hWNGefS0l356EtcL11tJmU8eUNU5DZtZOs0627D8Q==\n-----END PUBLIC KEY-----\n",
+      "prev_key_id": null,
+      "endorsement_sig": null
+    },
+    {
+      "key_id": "t2",
+      "fingerprint": "2cb88aec12fe544cda21bf0c1fd16ddc47de19d8cb737e00f4936595de619b9e",
+      "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEA9DylpiarWBAspob+6ILkw247dfR\nTdZaOvkXDB6aYsnOyftNWFKv3EbUrR0idTO51Y5lc3Qj0gH5r0lBtlM2Zg==\n-----END PUBLIC KEY-----\n",
+      "prev_key_id": "t",
+      "endorsement_sig": "MEQCIFDXUAejlYFo14WO08hSwEz3N9B+R0KJ1i+mv78j65VhAiACdqaOMA9e0AcgvI7vWyU+QMOOJRQgSa0zglY8U7PKxQ=="
+    }
+  ],
+  "forged_next": {
+    "key_id": "evil",
+    "fingerprint": "b0c5706d35c9e23a8a39a08b753209a52153aef6b4a410cd68fd5818890bbd74",
+    "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqWP2xikQ786PqioxKqVy/BxaNEPa\nRCcC9cDHWuJ950/5j5YKJT5X/ke1TkLiH6MGUsRRVVGT+AgGBqjVGKpLgQ==\n-----END PUBLIC KEY-----\n",
+    "prev_key_id": "t2",
+    "endorsement_sig": "MEUCIQDqubAVhnQjbPrdH77abbplNTiQqBNT8jOXX7C/cmPhoQIgG64iP0Ncgv3T8xspxItPOaofPbjk5gr0iOJO7z95xTE="
+  },
+  "countersignature": {
+    "payload": {
+      "v": 1,
+      "purpose": "countersign_chain",
+      "chama_id": "c1",
+      "member_code": "JC-4821-004",
+      "seq": 3,
+      "hash": "abababababababababababababababababababababababababababababababab"
+    },
+    "device_public_key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE0vf/JmFszHjBKehpnq/pJzjrc8rNKv0Ui6ivm1VCVMcKb/WNtLjGeI0C7M4Rpg3jA5uZAl7OKNIq7C+mq9uLjA==",
+    "signature": "MEUCIQDHd3YjHU9ooEPDBC10SSwoFOtObVTwvBWBuNwVgzGHEAIgKZj9W1+HF5L02uAXsAFUKhQdgKTA73HSvIFf4lHcRdE="
+  }
+}
