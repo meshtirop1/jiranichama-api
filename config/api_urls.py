@@ -27,6 +27,8 @@ from apps.votes import views as votes
 urlpatterns = [
     path("auth/", include("apps.accounts.urls")),
     path("platform-key/", ledger.PlatformKeyView.as_view()),
+    path("platform-keys/", ledger.PlatformKeyChainView.as_view()),
+    path("anchors/<uuid:anchor_id>/ots/", ledger.AnchorOtsView.as_view()),
     path("countries/", CountriesView.as_view()),
     path("rule-templates/", chamas.RuleTemplatesView.as_view()),
     path("chamas/", chamas.ChamaListView.as_view()),
@@ -50,6 +52,7 @@ urlpatterns = [
     path("chamas/<uuid:pk>/ledger/", ledger.LedgerView.as_view()),
     path("chamas/<uuid:pk>/ledger/head/", ledger.LedgerHeadView.as_view()),
     path("chamas/<uuid:pk>/anchors/", ledger.AnchorProofView.as_view()),
+    path("chamas/<uuid:pk>/countersignatures/", ledger.CountersignView.as_view()),
     path("invites/<str:code>/", chamas.InviteAcceptView.as_view()),
     path("memberships/<uuid:pk>/position/", chamas.PositionView.as_view()),
     path("statements/<uuid:pk>/", feeds.StatementDetailView.as_view()),

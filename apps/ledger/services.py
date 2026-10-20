@@ -110,6 +110,10 @@ def sign_entry(entry_id) -> EntrySignature | None:
     existing = EntrySignature.objects.filter(entry=entry).first()
     if existing:
         return existing
+    from .trust import ensure_current_key
+
+    # Only a key on the endorsed chain signs; phones would reject any other.
+    ensure_current_key()
     signer = get_signer()
     signature = signer.sign_digest(bytes.fromhex(entry.hash))
     try:

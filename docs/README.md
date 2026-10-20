@@ -40,6 +40,7 @@ owns.
 - [Changing the rules](flows/rule-changes.md): propose, 14 days' notice, members' vote, new version from the 1st of next month.
 - [Protections](flows/protections.md): five members minimum, small-group unanimity, a second official to confirm a death, "I am alive", withdrawals the members must accept, disputes that take money.
 - [Registering a chama](flows/registration.md): each country's law, office, steps and fee; the papers JiraniChama fills in; the officials' checklist and the reminder.
+- [Trusting the records](flows/trust.md): the endorsed platform key chain, members countersigning the chain, the public .ots proof, and the public lot for elections tied twice.
 
 ## Modules
 

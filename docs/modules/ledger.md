@@ -43,3 +43,7 @@ uses a key from the environment and is for development only; production uses `km
 `anchor_now` (nightly at 00:30, `tasks.anchor_nightly`): a Merkle root over every chain
 head, posted to OpenTimestamps and emailed off-site, kept as `Anchor`. `proof_for` gives a
 chama its leaf and path (`GET /chamas/{id}/anchors/`). See [Public anchoring](../flows/anchoring.md).
+
+## Trust (2026-10-20)
+
+See [trusting the records](../flows/trust.md): the platform key chain, member countersignatures, the public proof file and the public lot for tied elections.

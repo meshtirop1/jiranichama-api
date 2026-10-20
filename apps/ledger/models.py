@@ -128,3 +128,42 @@ class Anchor(models.Model):
 
     class Meta:
         db_table = "ledger_anchor"
+
+
+class PlatformKey(models.Model):
+    """Every key that has ever signed records, in order. The first is the one the app is
+    built to trust; each later key is endorsed by the key before it, so a phone accepts a
+    new key only if the old one vouched for it (protection plan 2026-10-20). Insert only."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    key_id = models.CharField(max_length=200, unique=True)
+    fingerprint = models.CharField(max_length=64, unique=True)  # SHA-256 of the SPKI DER
+    public_key_pem = models.TextField()
+    prev_key_id = models.CharField(max_length=200, blank=True, default="")
+    endorsement_sig = models.BinaryField(null=True, blank=True)  # by the previous key
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "ledger_platform_key"
+
+
+class HeadCountersignature(models.Model):
+    """A member's phone vouching for a chama's records: "I checked this chain up to entry
+    seq, and its hash was this", signed with the key in the phone's secure chip. Once
+    members have signed a point in the history, nobody (not JiraniChama either) can
+    replace it without every member's phone seeing that it differs. Insert only."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    chama = models.ForeignKey(Chama, on_delete=models.PROTECT, related_name="+")
+    membership = models.ForeignKey("chamas.Membership", on_delete=models.PROTECT,
+                                   related_name="+")
+    device = models.ForeignKey("devices.Device", on_delete=models.PROTECT, related_name="+")
+    seq = models.PositiveBigIntegerField()
+    hash = models.CharField(max_length=64)
+    signature = models.BinaryField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "ledger_head_countersignature"
+        constraints = [models.UniqueConstraint(fields=["membership", "seq"],
+                                               name="countersign_once_per_member_and_seq")]

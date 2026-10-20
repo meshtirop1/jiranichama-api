@@ -36,3 +36,7 @@ fits the root.
 
 Upgrading the calendar proofs to their Bitcoin attestations, and an object-locked copy in
 storage (with the storage work).
+
+## Trust (2026-10-20)
+
+See [trusting the records](trust.md): the platform key chain, member countersignatures, the public proof file and the public lot for tied elections.

@@ -2,6 +2,7 @@
 
 import base64
 
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, serializers
 from rest_framework.response import Response
@@ -106,3 +107,71 @@ class AnchorProofView(APIView):
             if proof:
                 out.append(proof)
         return Response(out)
+
+
+class PlatformKeyChainView(APIView):
+    """Every platform key in order, each endorsed by the one before. Public on purpose: a
+    phone (or anyone) walks it from the key the app was built to trust."""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes: list = []
+
+    @extend_schema(responses=serializers.ListSerializer(child=serializers.DictField()))
+    def get(self, request):
+        from .trust import key_chain
+
+        return Response(key_chain())
+
+
+class CountersignSerializer(serializers.Serializer):
+    seq = serializers.IntegerField(min_value=1)
+    hash = serializers.RegexField(r"^[0-9a-f]{64}$")
+    signature = serializers.CharField(max_length=400, help_text="Base64 DER, from the "
+                                      "phone's key, over the canonical countersign payload.")
+
+
+class CountersignView(APIView):
+    """Members vouch for the chain their phone checked, and read each other's vouchers."""
+
+    @extend_schema(responses=serializers.ListSerializer(child=serializers.DictField()))
+    def get(self, request, pk):
+        from .trust import countersignatures
+
+        chama, _ = chama_for(request, pk)
+        return Response(countersignatures(chama))
+
+    @extend_schema(request=CountersignSerializer,
+                   responses=serializers.ListSerializer(child=serializers.DictField()))
+    def post(self, request, pk):
+        from .trust import countersign, countersignatures
+
+        chama, me = chama_for(request, pk)
+        s = CountersignSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        countersign(me, seq=s.validated_data["seq"], head_hash=s.validated_data["hash"],
+                    signature_b64=s.validated_data["signature"])
+        return Response(countersignatures(chama), status=201)
+
+
+class AnchorOtsView(APIView):
+    """The OpenTimestamps proof of one night's anchor, as a standard .ots file. Anyone can
+    check it with the free `ots verify` tool against Bitcoin, without JiraniChama."""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes: list = []
+
+    @extend_schema(responses={(200, "application/octet-stream"): OpenApiTypes.BINARY})
+    def get(self, request, anchor_id):
+        from django.http import HttpResponse
+
+        from apps.core.problems import Problem
+
+        from .models import Anchor
+
+        a = Anchor.objects.filter(pk=anchor_id).first()
+        if a is None or not a.ots_proof:
+            raise Problem("not_found", "No proof for this anchor yet.", 404)
+        resp = HttpResponse(bytes(a.ots_proof), content_type="application/octet-stream")
+        resp["Content-Disposition"] = f'attachment; filename="jiranichama-{a.merkle_root}.ots"'
+        resp["X-Merkle-Root"] = a.merkle_root
+        return resp
