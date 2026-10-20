@@ -276,8 +276,9 @@ AFRICASTALKING_USERNAME = env("AFRICASTALKING_USERNAME", default="sandbox")
 AFRICASTALKING_API_KEY = env("AFRICASTALKING_API_KEY", default="")
 AFRICASTALKING_SENDER_ID = env("AFRICASTALKING_SENDER_ID", default="")
 AFRICASTALKING_SANDBOX = env.bool("AFRICASTALKING_SANDBOX", default=True)
-# Local development only (see apps.notify.sms.DevFileBackend). Ignored unless DEBUG is on.
-DEV_SMS_FILE = env("DEV_SMS_FILE", default="") if DEBUG else ""
+# Writes SMS to a file (apps.notify.sms.DevFileBackend). The /dev/sms/ page stays DEBUG-only.
+# Development, or the test server (DEMO_SIGNIN_CODE set); never production.
+DEV_SMS_FILE = env("DEV_SMS_FILE", default="") if DEBUG or DEMO_SIGNIN_CODE else ""
 
 # Statements
 STATEMENT_MAX_BYTES = env.int("STATEMENT_MAX_BYTES", default=5 * 1024 * 1024)
