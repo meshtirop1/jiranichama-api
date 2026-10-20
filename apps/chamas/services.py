@@ -95,7 +95,7 @@ def create_chama(*, founder, name: str, type: str, founder_role: str,
         name=name.strip(), type=type, member_code_prefix=_new_prefix(),
         country=place.code, currency=currency,
         expected_members=expected_members, meets=meets, created_by=founder,
-        draft_rules=template_for(type), draft_template=f"{type}@{TEMPLATE_VERSION}",
+        draft_rules=template_for(type, currency), draft_template=f"{type}@{TEMPLATE_VERSION}",
         setup_expires_at=timezone.now() + timedelta(days=SETUP_DAYS),
     )
     digits = chama.member_code_prefix.split("-")[1]
@@ -120,6 +120,9 @@ def set_bank_account(chama: Chama, *, bank: str, account_name: str, account_no: 
                      paybill: str = "", till: str = "", statement_route: str) -> BankAccount:
     chama = _lock(chama)
     _require_setup(chama)
+    if bank not in countries.BANKS.get(chama.country, countries.BANKS["KE"]):
+        raise Problem("invalid_bank", "Pick one of the banks in the chama's country, or "
+                                      "Other bank.")
     digits = BankAccount.normalise_account_no(account_no)
     if not 6 <= len(digits) <= 20:
         raise Problem("invalid_account_no", "Enter the account number as it appears on "

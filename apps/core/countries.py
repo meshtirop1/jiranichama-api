@@ -62,6 +62,18 @@ COUNTRIES: dict[str, Country] = {c.code: c for c in [
             "Africa/Mogadishu", False, "061 234 5678"),
 ]}
 DEFAULT_COUNTRY = "KE"
+
+# The banks offered for a chama's account in each open country (BankAccount.Bank keys).
+BANKS = {
+    "KE": ["equity", "kcb", "coop", "ncba", "absa", "stanbic", "family", "other"],
+    "UG": ["stanbic", "centenary", "dfcu", "equity", "absa", "kcb", "ncba", "other"],
+    "TZ": ["crdb", "nmb", "nbc", "equity", "absa", "stanbic", "kcb", "other"],
+}
+
+# Rough value of 1 KES, used only to scale the starting amounts in rule templates
+# (officials change them). Rounded to two significant figures after scaling.
+KES_RATE = {"KES": 1, "UGX": 28, "TZS": 20, "RWF": 11, "BIF": 23, "CDF": 22, "SSP": 38,
+            "ETB": 1.1, "SOS": 4.4, "USD": 0.0077}
 OPEN = tuple(c for c, x in COUNTRIES.items() if x.open)
 
 
@@ -78,5 +90,6 @@ def country_of_e164(e164: str) -> Country | None:
 
 def as_dict(c: Country) -> dict:
     return {"code": c.code, "name": c.name, "dial": c.dial, "currency": c.currency,
+            "banks": BANKS.get(c.code, BANKS[DEFAULT_COUNTRY]),
             "currencies": list(c.currencies), "languages": list(c.languages),
             "timezone": c.timezone, "open": c.open, "example": c.example}

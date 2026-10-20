@@ -89,3 +89,29 @@ def test_signing_in_from_a_country_not_open_yet_is_refused(api):
     r = api.post("/api/v1/auth/otp/", {"phone": "+250788123456"}, format="json")
     assert r.status_code == 400
     assert "not open in Rwanda" in str(r.json())
+
+
+def test_starting_amounts_are_in_the_chamas_currency():
+    from apps.rules import validation
+
+    ug = template_for("table_banking", "UGX")
+    assert ug["contributions"]["amount_cents"] == 2_800_000  # UGX 28,000 a month
+    assert ug["fines"]["late_contribution"]["amount_cents"] == 560_000  # UGX 5,600
+    assert validation.check(ug) == []
+    assert template_for("table_banking", "TZS")["contributions"]["amount_cents"] == 2_000_000
+
+
+@pytest.mark.django_db
+def test_a_ugandan_chama_starts_in_shillings_and_uses_ugandan_banks():
+    founder = make_user("+256772000333", "Nakato")
+    chama = chamas.create_chama(founder=founder, name="Mbale", type="table_banking",
+                                founder_role="chair")
+    assert chama.draft_rules["contributions"]["amount_cents"] == 2_800_000
+    with pytest.raises(Problem) as exc:
+        chamas.set_bank_account(chama, bank="coop", account_name="MBALE",
+                                account_no="0123456789", statement_route="upload")
+    assert exc.value.problem_code == "invalid_bank"
+    account = chamas.set_bank_account(chama, bank="centenary", account_name="MBALE",
+                                      account_no="0123456789", statement_route="upload")
+    assert account.bank == "centenary"
+

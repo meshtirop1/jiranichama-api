@@ -11,7 +11,8 @@ owns.
 - [Staff console](flows/staff-console.md): two-factor login and the audit log.
 - [Setting up a chama](flows/chama-setup.md): create, invite, adopt the rules, go live.
 - [Bank statements](flows/statements.md): the bank's email or a two-official upload, and the checks.
-- [Payments](flows/payments.md): matching, the rules engine, assign and "not me", late fines.
+- [Payments](flows/payments.md): matching, the rules engine, assign and "not me", late fines, and when fines stop.
+- [Countries](flows/countries.md): nine countries (Kenya, Uganda, Tanzania open), phones, currencies, banks, languages.
 - [Opening balances and cash at meetings](flows/opening-and-cash.md).
 - [Member and chama statements](flows/member-statements.md): figures, sealed PDFs, the public check.
 - [Money out](flows/money-out.md): proposals, approvals, matching debits, unapproved-debit alerts.

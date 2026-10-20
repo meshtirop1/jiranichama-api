@@ -156,9 +156,14 @@ class BankAccount(models.Model):
         KCB = "kcb", "KCB Bank"
         COOP = "coop", "Co-operative Bank"
         NCBA = "ncba", "NCBA"
-        ABSA = "absa", "Absa Bank Kenya"
+        ABSA = "absa", "Absa Bank"
         STANBIC = "stanbic", "Stanbic Bank"
         FAMILY = "family", "Family Bank"
+        CENTENARY = "centenary", "Centenary Bank"
+        DFCU = "dfcu", "dfcu Bank"
+        CRDB = "crdb", "CRDB Bank"
+        NMB = "nmb", "NMB Bank"
+        NBC = "nbc", "NBC Bank"
         OTHER = "other", "Other bank"
 
     class StatementRoute(models.TextChoices):
