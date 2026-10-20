@@ -3,6 +3,7 @@
 from django import forms
 from django.contrib import admin
 
+from apps.billing.models import Bill
 from apps.chamas.models import Chama, Membership
 from apps.feeds.models import BankFeed, DarajaChannel
 from apps.flags.models import FeatureFlag
@@ -167,3 +168,24 @@ class ReferralAdmin(ReadOnlyAdmin):
                              reason="Referral passed to the partner", case_ref="referral")
             except Problem as exc:
                 self.message_user(request, f"{r.partner}: {exc.detail}", level="error")
+
+
+@admin.register(Bill, site=staff_site)
+class BillAdmin(ReadOnlyAdmin):
+    """Monthly bills. Staff record a payment (with the M-Pesa or bank reference) when it
+    reaches JiraniChama's paybill; nothing else on a bill can change."""
+
+    list_display = ("chama", "period", "active_members", "total_cents", "currency", "state",
+                    "due_on", "paid_reference")
+    list_filter = ("state", "period", "currency")
+    actions = ["mark_paid"]
+
+    @admin.action(description="Mark paid (reference = the bill's id prefix)")
+    def mark_paid(self, request, queryset):
+        from apps.billing.services import mark_paid
+
+        for bill in queryset.filter(state=Bill.State.OPEN):
+            mark_paid(bill, f"staff:{request.user.pk}")
+            audit.record(actor=request.user, action="paid:billing.bill",
+                         target=f"billing.bill:{bill.pk}",
+                         reason="Payment received on JiraniChama's paybill", case_ref="billing")
