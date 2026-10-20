@@ -46,3 +46,8 @@ stored, and its SHA-256 goes in the `membership` entry.
 - End of cycle for merry-go-round exits (the exit date is the notice only).
 - Writing off a loan up to an insured amount on death (it is deducted from savings).
 - Removing personal details when a member deletes their account (6.14).
+
+## Protections (2026-10-20)
+
+Some of this changed so that a few people cannot use the rules against one member. See
+[protections](protections.md).

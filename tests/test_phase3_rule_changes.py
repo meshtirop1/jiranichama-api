@@ -103,22 +103,34 @@ def test_adopted_after_notice_and_vote_from_the_first_of_next_month(monkeypatch,
     assert p.state == "in_force"
 
 
-def test_two_thirds_are_needed_and_a_rejected_change_cools_off(monkeypatch, sms_outbox):
-    c, (chair, treasurer, secretary) = active_chama(since=TODAY)
+def test_two_thirds_of_all_members_are_needed_and_a_rejected_change_cools_off(
+        monkeypatch, sms_outbox):
+    c, ms = active_chama(since=TODAY, members=6)
+    chair, treasurer, secretary, a, b, d = ms
     rules = _new_rules(amount_cents=150_000)
     p = proposals.propose(c, chair, rules=rules, reason="Up")
     v = _past_notice(monkeypatch, p)
-    _vote(chair, v, "yes", sms_outbox)
-    _vote(treasurer, v, "yes", sms_outbox)
-    v = _vote(secretary, v, "no", sms_outbox)  # 2 of 3 is 66.7%: more than 66
+    assert v.over_all and v.quorum_pct >= 50 and v.pass_pct >= 66
+    # 4 of 6 is two-thirds of the voters AND of all members, but 66.7% > 66 only just:
+    for m in (chair, treasurer, secretary, a):
+        _vote(m, v, "yes", sms_outbox)
+    _vote(b, v, "no", sms_outbox)
+    v = _vote(d, v, "no", sms_outbox)
     assert v.state == "passed"
 
     q_rules = _new_rules(due_day=10)
     q = proposals.propose(c, chair, rules=q_rules, reason="Later")
     v = _past_notice(monkeypatch, q)
-    _vote(chair, v, "yes", sms_outbox)
-    _vote(treasurer, v, "no", sms_outbox)
-    _vote(secretary, v, "no", sms_outbox)
+    # Three for and three against: a tie never changes anything, and it is recorded as one.
+    for m in (chair, treasurer, secretary):
+        _vote(m, v, "yes", sms_outbox)
+    _vote(a, v, "no", sms_outbox)
+    _vote(b, v, "no", sms_outbox)
+    v = _vote(d, v, "no", sms_outbox)
+    assert v.state == "failed"
+    from apps.ledger.models import LedgerEntry
+
+    assert LedgerEntry.objects.get(pk=v.result_entry_id).decision["tied"] is True
     q.refresh_from_db()
     assert q.state == "rejected"
     with pytest.raises(Problem) as e:

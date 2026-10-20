@@ -66,3 +66,8 @@ hashes and receipts, the fine, proposal approvals, bank line or minutes, and eve
 
 `awaiting_response` → `deciding` → `resolved`, back to `awaiting_response` when an outcome
 is dropped, plus `withdrawn` and `escalated_outside`.
+
+## Protections (2026-10-20)
+
+Some of this changed so that a few people cannot use the rules against one member. See
+[protections](protections.md).

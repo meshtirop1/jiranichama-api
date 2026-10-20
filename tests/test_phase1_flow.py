@@ -33,6 +33,7 @@ def people(db):
         "treasurer": make_user("+254711000002", "Peter"),
         "secretary": make_user("+254711000003", "Akinyi"),
         "member": make_user("+254711000004", "Wanjiru"),
+        "member2": make_user("+254711000005", "Achieng"),
     }
 
 
@@ -41,7 +42,7 @@ def active(api, people, sms_outbox, settings):
     """Run the whole setup through the API and return the active chama."""
     api.force_authenticate(people["chair"])
     r = api.post("/api/v1/chamas/", {"name": "Umoja Women Group", "type": "merry_go_round",
-                                     "founder_role": "chair", "expected_members": 4},
+                                     "founder_role": "chair", "expected_members": 5},
                  format="json", **idem())
     assert r.status_code == 201, r.content
     chama_id = r.json()["id"]
@@ -64,8 +65,9 @@ def active(api, people, sms_outbox, settings):
 
     codes = {}
     for role, phone in [("treasurer", "0711000002"), ("secretary", "0711000003"),
-                        ("member", "0711000004")]:
-        r = api.post(f"/api/v1/chamas/{chama_id}/invites/", {"role": role, "phone": phone},
+                        ("member", "0711000004"), ("member2", "0711000005")]:
+        r = api.post(f"/api/v1/chamas/{chama_id}/invites/",
+                     {"role": "member" if role == "member2" else role, "phone": phone},
                      format="json")
         assert r.status_code == 201, r.content
         codes[role] = r.json()["code"]
@@ -78,10 +80,10 @@ def active(api, people, sms_outbox, settings):
     assert api.post(f"/api/v1/invites/{codes['treasurer']}/", {},
                     format="json").json()["code"] == "invite_other_phone"
 
-    for role in ("treasurer", "secretary", "member"):
+    for role in ("treasurer", "secretary", "member", "member2"):
         joined = _confirm_two_step(api, f"/api/v1/invites/{codes[role]}/", people[role],
                                    sms_outbox, expect=201)
-        assert joined["role"] == role
+        assert joined["role"] == ("member" if role == "member2" else role)
     assert "JOIN Umoja Women Group" in sms_outbox[-1][1]
 
     chama = Chama.objects.get(pk=chama_id)
@@ -92,8 +94,9 @@ def active(api, people, sms_outbox, settings):
         data = _confirm_two_step(api, f"/api/v1/chamas/{chama_id}/adopt/", people[role],
                                  sms_outbox)
         assert data["state"] == "awaiting_adoption"
-    assert data["adoption"] == {"founding": 4, "confirmed": 2, "needed": 3,
-                                "officials_waiting": [data["adoption"]["officials_waiting"][0]]}
+    assert data["adoption"] == {"founding": 5, "confirmed": 2, "needed": 3,
+                                "officials_waiting": [data["adoption"]["officials_waiting"][0]],
+                                "min_members": 5}
     data = _confirm_two_step(api, f"/api/v1/chamas/{chama_id}/adopt/", people["secretary"],
                              sms_outbox)
     assert data["state"] == "active"
@@ -102,7 +105,7 @@ def active(api, people, sms_outbox, settings):
 
 def test_setup_ends_active_with_rules_and_members_on_the_ledger(api, active, people):
     entries = list(LedgerEntry.objects.filter(chama=active).order_by("seq"))
-    assert [e.type for e in entries] == ["rule_version_adopted"] + ["membership"] * 4
+    assert [e.type for e in entries] == ["rule_version_adopted"] + ["membership"] * 5
     assert active.mode == Chama.Mode.RECORDS_ONLY
 
     api.force_authenticate(people["member"])
@@ -125,7 +128,7 @@ def _upload(api, chama, user, data, name="march.csv"):
 def test_statement_upload_confirm_match_assign_and_not_me(api, active, people, sms_outbox):
     today = timezone.localdate()
     treasurer_code = Membership.objects.get(chama=active, role="treasurer").member_code
-    member = Membership.objects.get(chama=active, role="member")
+    member = Membership.objects.get(chama=active, user__display_name="Wanjiru")
     data = statement_csv([
         (today, f"MPESA C2B {treasurer_code} PETER", 0, 100_000),
         (today, "MPESA DEPOSIT 0711000004 WANJIRU", 0, 100_000),

@@ -38,9 +38,22 @@ CONSENTS_NEEDED = 2
 PROMISED = (Proposal.State.APPROVED, Proposal.State.PAID_PENDING_MATCH)
 OPEN = (Proposal.State.COLLECTING,) + PROMISED
 
-# Bank charges are recorded, never alerted. Matched on the narration (5.7 step 2).
-_CHARGE = re.compile(r"\b(charges?|fees?|commission|excise|levy|ledger fee|sms alert|"
-                     r"maintenance|stamp duty|cot)\b", re.I)
+# Bank charges are recorded without an alert (5.7 step 2), but only when the narration
+# reads like the bank's own charge AND the amount is small. A word like "fees" alone is
+# not enough: "SCHOOL FEES" is a withdrawal like any other (protection plan 2026-10-20).
+_CHARGE = re.compile(r"\b(bank charges?|service charges?|ledger fees?|sms alerts? (fee|charge)|"
+                     r"maintenance fees?|excise duty|stamp duty|commission|cot|levy|"
+                     r"(transaction|withdrawal|transfer|statement|cheque) (fee|charge)s?|"
+                     r"charges? on|fee on)\b", re.I)
+# The most one line can be and still count as a bank charge: about KES 1,000.
+BANK_CHARGE_MAX_KES_CENTS = 100_000
+
+
+def _is_bank_charge(txn) -> bool:
+    from apps.core import countries
+
+    limit = BANK_CHARGE_MAX_KES_CENTS * countries.KES_RATE.get(txn.chama.currency, 1)
+    return bool(_CHARGE.search(txn.narration or "")) and txn.amount_cents <= limit
 
 
 def _kes(cents: int, of=None) -> str:
@@ -157,6 +170,10 @@ def propose(chama: Chama, by: Membership, *, kind: str, amount_cents: int, purpo
     """``allow_arrears`` and ``deduct_cents`` are for a merry-go-round turn paid less what
     the member owes (rule 8.2 "deduct"); see rotation.propose_next."""
     _money_out(chama)
+    if open_breaches(chama) and kind != Proposal.Kind.SETTLEMENT:
+        raise Problem("breach_open", "Money left the bank without approval. Nothing can be "
+                                     "paid until the members accept an explanation.",
+                      status.HTTP_409_CONFLICT)
     # A loan is proposed by the borrower (loans), a settlement by the leaving member or the
     # official recording a death (exits); everything else by an official.
     if kind not in (Proposal.Kind.LOAN, Proposal.Kind.SETTLEMENT):
@@ -258,11 +275,14 @@ def expire_due(chama: Chama | None = None) -> int:
 
 
 def eligible_approvers(p: Proposal):
-    """Officials who may approve: never the person being paid (v1.1, 6.8)."""
+    """Officials who may approve: never the person being paid (v1.1, 6.8), and never the
+    person who proposed it: maker and checker are always different people."""
     qs = Membership.objects.filter(chama=p.chama, role__in=OFFICIAL_ROLES,
                                    state=Membership.State.ACTIVE)
     if p.payee_membership_id:
         qs = qs.exclude(pk=p.payee_membership_id)
+    if p.proposed_by_id:
+        qs = qs.exclude(pk=p.proposed_by_id)
     return qs
 
 
@@ -290,6 +310,10 @@ def _require_can_answer(p: Proposal, by: Membership) -> None:
                       status.HTTP_409_CONFLICT)
     if p.payee_membership_id == by.id:
         raise Problem("payee_cannot_approve", "Nobody approves a payment to themselves.",
+                      status.HTTP_403_FORBIDDEN)
+    if p.proposed_by_id == by.id:
+        raise Problem("proposer_cannot_approve", "Whoever proposes a payment cannot approve "
+                                                 "it: another official does.",
                       status.HTTP_403_FORBIDDEN)
     if not eligible_approvers(p).filter(pk=by.pk).exists():
         raise Problem("not_allowed", "Only an official approves money out.",
@@ -526,7 +550,7 @@ def process_debit(txn: BankTransaction) -> str:
         txn = BankTransaction.objects.select_for_update().get(pk=txn.pk)
         if txn.state != BankTransaction.State.DEBIT_PENDING:
             return txn.state
-        if _CHARGE.search(txn.narration or ""):
+        if _is_bank_charge(txn):
             ledger.append(chama=chama, type="bank_charge", source="bank_txn", source_id=txn.id,
                           amount_cents=-txn.amount_cents,
                           decision={"bank_ref": txn.external_ref,
@@ -534,8 +558,8 @@ def process_debit(txn: BankTransaction) -> str:
             txn.state = BankTransaction.State.RECORDED
             txn.save(update_fields=["state"])
             return "bank_charge"
-        if chama.mode != Chama.Mode.MONEY_OUT:
-            return txn.state  # records-only: debits wait, as before
+        # Records-only chamas cannot approve payments in the app yet, but their members
+        # still hear about every shilling that leaves the bank, the same day.
         candidates = [p for p in Proposal.objects.select_for_update().filter(
             chama=chama, state__in=PROMISED, amount_cents=txn.amount_cents,
             matched_txn__isnull=True).order_by("created_at") if _reference_fits(p, txn)]
@@ -592,6 +616,11 @@ def link(ud: UnapprovedDebit, p: Proposal, by: Membership) -> UnapprovedDebit:
         if p.amount_cents != ud.bank_txn.amount_cents:
             raise Problem("amounts_differ", "The proposal and the debit are different amounts.",
                           status.HTTP_409_CONFLICT)
+        # Approving after the money has gone is not approval: that is for the members.
+        if timezone.localdate(p.created_at) > ud.bank_txn.value_date:
+            raise Problem("approved_after", "This payment was proposed after the money left. "
+                                            "Explain it to the members instead.",
+                          status.HTTP_409_CONFLICT)
         _write_payout(p, ud.bank_txn, {"resolves_unapproved": str(ud.entry_id)})
         ud.state, ud.linked_proposal = UnapprovedDebit.State.LINKED, p
         ud.resolved_by, ud.resolved_at = by, timezone.now()
@@ -600,16 +629,51 @@ def link(ud: UnapprovedDebit, p: Proposal, by: Membership) -> UnapprovedDebit:
 
 
 def explain(ud: UnapprovedDebit, by: Membership, text: str) -> UnapprovedDebit:
+    """An official explains an unapproved withdrawal. That does not close it: the members
+    vote on the explanation (the official who gave it does not vote), and the vote and its
+    question go on the ledger. Until they accept it the chama is in breach and nobody can
+    move money (protection plan 2026-10-20)."""
+    from apps.votes import services as votes
+
     _official(by)
     text = (text or "").strip()[:500]
     if not text:
         raise Problem("explanation_required", "Explain where the money went.")
     with transaction.atomic():
-        ud = UnapprovedDebit.objects.select_for_update().get(pk=ud.pk)
+        ud = UnapprovedDebit.objects.select_for_update().select_related("bank_txn").get(pk=ud.pk)
         if ud.state != UnapprovedDebit.State.OPEN:
             raise Problem("not_open", "This debit has already been dealt with.",
                           status.HTTP_409_CONFLICT)
-        ud.state, ud.explanation = UnapprovedDebit.State.EXPLAINED, text
-        ud.resolved_by, ud.resolved_at = by, timezone.now()
-        ud.save(update_fields=["state", "explanation", "resolved_by", "resolved_at"])
+        if ud.explanation:
+            raise Problem("already_explained", "The members are voting on an explanation.",
+                          status.HTTP_409_CONFLICT)
+        ud.explanation, ud.resolved_by = text, by
+        ud.save(update_fields=["explanation", "resolved_by"])
+        version = version_at(ud.chama, timezone.localdate())
+        votes.open_vote(
+            ud.chama, subject=f"payouts.debit:{ud.id}",
+            question=(f"{_kes(ud.bank_txn.amount_cents, ud)} left the bank on "
+                      f"{ud.bank_txn.value_date:%d %b} with no approval. {by.member_code} "
+                      f"explains: {text[:180]}. Accept this explanation?"),
+            rules=version.rules if version else {},
+            closes_at=timezone.now() + timedelta(days=3), exclude=[by.id])
     return ud
+
+
+def on_debit_vote_closed(vote) -> None:
+    """The members decided on an explanation (votes.services._close)."""
+    ud = UnapprovedDebit.objects.select_for_update().get(pk=vote.subject.split(":", 1)[1])
+    if ud.state != UnapprovedDebit.State.OPEN:
+        return
+    if vote.state == "passed":
+        ud.state, ud.resolved_at = UnapprovedDebit.State.EXPLAINED, timezone.now()
+        ud.save(update_fields=["state", "resolved_at"])
+    else:
+        # Not accepted: the withdrawal stays open, in breach, and can be explained again.
+        ud.explanation, ud.resolved_by = "", None
+        ud.save(update_fields=["explanation", "resolved_by"])
+
+
+def open_breaches(chama: Chama) -> int:
+    """Withdrawals the members have not accepted. While any is open, money is frozen."""
+    return UnapprovedDebit.objects.filter(chama=chama, state=UnapprovedDebit.State.OPEN).count()

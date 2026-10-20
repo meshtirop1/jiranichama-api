@@ -134,7 +134,7 @@ def test_money_out_matched_and_unapproved_debits_are_both_in_the_records(sms_out
         ch = payouts.start_enable(c, o)
         payouts.enable(c, o, challenge_id=ch.id, sms_code=_code(sms_outbox))
     c.refresh_from_db()
-    p = payouts.propose(c, chair, kind="payout", amount_cents=2_000_000, payee=member,
+    p = payouts.propose(c, secretary, kind="payout", amount_cents=2_000_000, payee=member,
                         purpose="Turn")
     for o in (chair, treasurer):
         ch = payouts.start_approve(p, o)
@@ -149,11 +149,11 @@ def test_money_out_matched_and_unapproved_debits_are_both_in_the_records(sms_out
     assert s["gap_cents"] == 10_000_000 == s["unmatched_cents"]
 
 
-def test_records_only_chamas_count_waiting_debits_as_accounted():
+def test_a_withdrawal_with_no_approval_is_a_breach_even_when_figures_agree():
     c, (chair, *_) = active_chama(since=TODAY)
     _statement(c, [(TODAY, f"MPESA {chair.member_code}", 0, 100_000),
                    (TODAY, "WITHDRAWAL", 50_000, 0)], 0)
-    assert daily.summary(c)["status"] == "match"
+    assert daily.summary(c)["status"] == "breach"
 
 
 def test_the_daily_task_checks_every_active_chama(api):

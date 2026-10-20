@@ -123,7 +123,12 @@ def test_settled_from_savings_paid_out_then_exited(setup, sms_outbox):
                                       decision__change="exited").exists()
 
 
-def test_a_death_is_recorded_and_the_next_of_kin_is_paid(setup, sms_outbox):
+def test_a_death_is_reported_confirmed_and_then_settled(setup, sms_outbox):
+    """A report is not enough: the member is told and not locked out, a second official
+    confirms, and only after the objection days is the member deceased and paid out."""
+    from datetime import timedelta
+    from unittest import mock
+
     c, (chair, treasurer, secretary, mary, john) = setup(death_benefit_cents=500_000)
     doc = SimpleUploadedFile("permit.jpg", b"\xff\xd8 permit", content_type="image/jpeg")
     with pytest.raises(Problem):
@@ -132,10 +137,56 @@ def test_a_death_is_recorded_and_the_next_of_kin_is_paid(setup, sms_outbox):
     e = exits.record_death(c, secretary, mary, died_on=TODAY, next_of_kin_name="Paul Wanjiru",
                            next_of_kin_phone="0712000000", document=doc)
     mary.refresh_from_db()
-    assert mary.state == "deceased" and e.document_sha256
+    assert mary.state == "active" and e.state == "notice" and e.document_sha256
+    assert e.entry.decision["change"] == "death_reported"
+    assert any("reported that you have died" in text for _, text in sms_outbox)
+    # The official who reported it cannot confirm it.
+    with pytest.raises(Problem):
+        exits.confirm_death(e, secretary)
+    exits.confirm_death(e, chair)
+    # Not before the objection days have passed.
+    assert exits.settle_due(c) == 0
+    later = timezone.localdate() + timedelta(days=exits.DEATH_OBJECTION_DAYS)
+    with mock.patch("django.utils.timezone.localdate", return_value=later):
+        exits.settle_due(c)
+    e.refresh_from_db()
+    mary.refresh_from_db()
+    assert mary.state == "deceased" and e.state == "settling"
     assert e.proposal.payee_name == "Paul Wanjiru" and e.proposal.amount_cents == 2_000_000
     assert e.benefit_proposal.amount_cents == 500_000
-    assert e.entry.decision["change"] == "deceased"
+
+
+def test_a_member_reported_dead_says_they_are_alive(setup, sms_outbox):
+    c, (chair, treasurer, secretary, mary, john) = setup()
+    doc = SimpleUploadedFile("permit.jpg", b"\xff\xd8 permit", content_type="image/jpeg")
+    e = exits.record_death(c, secretary, mary, died_on=TODAY, next_of_kin_name="Paul",
+                           next_of_kin_phone="0712000000", document=doc)
+    exits.cancel(e, mary)  # "I am alive"
+    e.refresh_from_db()
+    mary.refresh_from_db()
+    assert e.state == "cancelled" and mary.state == "active"
+    assert LedgerEntry.objects.filter(member=mary, decision__change="death_report_cancelled",
+                                      decision__reported_by=secretary.member_code).exists()
+    assert any("but is alive" in text for _, text in sms_outbox)
+
+
+def test_a_member_who_uses_the_app_is_not_settled_as_dead(setup):
+    from datetime import timedelta
+    from unittest import mock
+
+    c, (chair, treasurer, secretary, mary, john) = setup()
+    doc = SimpleUploadedFile("permit.jpg", b"\xff\xd8 permit", content_type="image/jpeg")
+    e = exits.record_death(c, secretary, mary, died_on=TODAY, next_of_kin_name="Paul",
+                           next_of_kin_phone="0712000000", document=doc)
+    exits.confirm_death(e, chair)
+    mary.user.last_app_at = timezone.now() + timedelta(minutes=5)
+    mary.user.save(update_fields=["last_app_at"])
+    later = timezone.localdate() + timedelta(days=exits.DEATH_OBJECTION_DAYS)
+    with mock.patch("django.utils.timezone.localdate", return_value=later):
+        exits.settle_due(c)
+    e.refresh_from_db()
+    mary.refresh_from_db()
+    assert e.state == "cancelled" and mary.state == "active"
 
 
 def test_exits_through_the_api(api, setup, sms_outbox):
@@ -157,4 +208,40 @@ def test_exits_through_the_api(api, setup, sms_outbox):
                  {"died_on": TODAY.isoformat(), "next_of_kin_name": "Ann",
                   "next_of_kin_phone": "0711000000", "document": doc}, format="multipart")
     assert r.status_code == 201, r.content
-    assert Membership.objects.get(pk=john.pk).state == "deceased"
+    assert Membership.objects.get(pk=john.pk).state == "active"  # reported, not yet settled
+    api.force_authenticate(chair.user)
+    r = api.post(f"/api/v1/exits/{r.json()['id']}/confirm-death/", format="json")
+    assert r.status_code == 200 and r.json()["confirmed"] is True
+
+
+def test_a_rule_change_during_notice_never_applies_to_the_leaving_member(setup, sms_outbox):
+    """Protected (2026-10-20): the deduction is the one shown the day notice was given."""
+    from unittest import mock
+
+    from apps.rules.models import RuleVersion, rules_hash
+
+    c, (chair, treasurer, secretary, mary, john) = setup(deduction_pct=0, notice_days=30)
+    ch = exits.start_leave(mary)
+    e = exits.leave(mary, challenge_id=ch.id, sms_code=_code(sms_outbox))
+    assert e.quote["deduction_pct"] == 0
+    # The majority raises the deduction while Mary serves her notice.
+    rules = copy.deepcopy(template_for("merry_go_round"))
+    rules["exit"].update(deduction_pct=10, notice_days=30)
+    RuleVersion.objects.filter(chama=c).update(state=RuleVersion.State.SUPERSEDED)
+    RuleVersion.objects.create(chama=c, version_no=2, rules=rules, schema_version=1,
+                               template="merry_go_round@1", effective_from=TODAY,
+                               hash=rules_hash(rules), state=RuleVersion.State.IN_FORCE)
+    with mock.patch("django.utils.timezone.localdate", return_value=e.exit_on):
+        exits.settle_due(c)
+    e.refresh_from_db()
+    assert e.quote["deduction_pct"] == 0 and e.quote["deduction_cents"] == 0
+
+
+def test_the_exit_deduction_can_never_be_more_than_ten_percent():
+    from apps.rules import validation
+
+    rules = copy.deepcopy(template_for("merry_go_round"))
+    rules["exit"]["deduction_pct"] = 50
+    with pytest.raises(validation.RulesInvalid):
+        validation.validate(rules)
+

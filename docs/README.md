@@ -38,6 +38,7 @@ owns.
 - [Loans](flows/loans.md): behind the loans flag; quote, guarantors by SMS code, approval as money out, interest on due dates, arrears and default.
 - [Meetings](flows/meetings.md): schedule, reminders, apologies, QR check-in, absence and lateness fines, minutes sealed after a week.
 - [Changing the rules](flows/rule-changes.md): propose, 14 days' notice, members' vote, new version from the 1st of next month.
+- [Protections](flows/protections.md): five members minimum, small-group unanimity, a second official to confirm a death, "I am alive", withdrawals the members must accept, disputes that take money.
 
 ## Modules
 

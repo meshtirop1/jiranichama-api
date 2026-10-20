@@ -27,6 +27,10 @@ from .models import Ballot, Turnout, Vote, VoteSmsNumber
 
 DEFAULTS = {"quorum_pct": 50, "pass_pct": 50, "secret": False}
 
+# Below this many eligible voters a vote passes only if every one of them says yes: in a
+# tiny group a "majority" is one or two people (owner decision 2026-10-20).
+MIN_VOTERS = 5
+
 
 def settings_from(rules: dict) -> dict:
     return {**DEFAULTS, **(rules.get("votes") or {})}
@@ -34,7 +38,7 @@ def settings_from(rules: dict) -> dict:
 
 def open_vote(chama: Chama, *, subject: str, question: str, rules: dict, closes_at,
               exclude: list | None = None, quorum_pct: int | None = None,
-              pass_pct: int | None = None) -> Vote:
+              pass_pct: int | None = None, over_all: bool = False) -> Vote:
     s = settings_from(rules)
     if quorum_pct is not None:
         s["quorum_pct"] = quorum_pct
@@ -45,7 +49,8 @@ def open_vote(chama: Chama, *, subject: str, question: str, rules: dict, closes_
         .values_list("id", flat=True)]
     vote = Vote.objects.create(chama=chama, subject=subject, question=question[:300],
                                quorum_pct=s["quorum_pct"], pass_pct=s["pass_pct"],
-                               secret=s["secret"], eligible=len(eligible),
+                               secret=s["secret"], over_all=over_all,
+                               eligible=len(eligible),
                                eligible_ids=eligible, closes_at=closes_at)
     transaction.on_commit(lambda: sms_invites(vote.pk))
     return vote
@@ -231,12 +236,19 @@ def _close(vote: Vote) -> Vote:
     yes = vote.ballots.filter(choice=Ballot.Choice.YES).count()
     no = vote.ballots.filter(choice=Ballot.Choice.NO).count()
     cast = yes + no
-    if cast < quorum_needed(vote):
+    small = vote.eligible < MIN_VOTERS
+    if small:
+        # A tiny group decides together: everyone eligible must say yes.
+        result = Vote.State.PASSED if yes == vote.eligible else (
+            Vote.State.LAPSED if cast < vote.eligible and no == 0 else Vote.State.FAILED)
+    elif cast < quorum_needed(vote):
         result = Vote.State.LAPSED
-    elif yes * 100 > vote.pass_pct * cast:
+    elif yes * 100 > vote.pass_pct * (vote.eligible if vote.over_all else cast):
         result = Vote.State.PASSED
     else:
         result = Vote.State.FAILED
+    # A tie never changes anything: it is recorded as a tie so everyone sees why.
+    tied = result == Vote.State.FAILED and yes == no and cast > 0
     voters = sorted(Turnout.objects.filter(vote=vote)
                     .values_list("membership__member_code", flat=True))
     entry = ledger.append(
@@ -244,6 +256,7 @@ def _close(vote: Vote) -> Vote:
         decision={"subject": vote.subject, "question": vote.question, "result": result,
                   "yes": yes, "no": no, "eligible": vote.eligible,
                   "quorum_pct": vote.quorum_pct, "pass_pct": vote.pass_pct,
+                  "over_all": vote.over_all, "unanimous_needed": small, "tied": tied,
                   "secret": vote.secret, "voted": voters})
     vote.state, vote.yes, vote.no, vote.result_entry = result, yes, no, entry
     vote.save(update_fields=["state", "yes", "no", "result_entry"])
@@ -256,6 +269,10 @@ def _tell_subject(vote: Vote) -> None:
         from apps.payouts.services import on_vote_closed
 
         on_vote_closed(vote)
+    elif vote.subject.startswith("payouts.debit:"):
+        from apps.payouts.services import on_debit_vote_closed
+
+        on_debit_vote_closed(vote)
     elif vote.subject.startswith("referrals.referral:"):
         from apps.referrals.services import on_vote_closed as referral_vote_closed
 

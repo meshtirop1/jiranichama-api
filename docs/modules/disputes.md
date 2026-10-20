@@ -14,3 +14,8 @@ now counts in a member's contributions (as credit when it has no period).
 
 Other apps call in: `reconciliation.not_me` raises a `payment` dispute, and
 `payouts` refuses approvals and "paid" while `open_on_proposal`.
+
+## Protections (2026-10-20)
+
+Some of this changed so that a few people cannot use the rules against one member. See
+[protections](../flows/protections.md).

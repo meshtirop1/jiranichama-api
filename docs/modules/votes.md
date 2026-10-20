@@ -13,3 +13,8 @@ Members' votes. See [Members' votes](../flows/votes.md).
   `/votes/{id}/signing-payload/`, `/votes/{id}/signed-ballots/`.
 - `VoteSmsNumber` and `sms_invites`/`cast_sms_reply`: the vote by SMS for members without a
   phone key ("Reply YES 4821"). See [SMS commands](../flows/sms-commands.md).
+
+## Protections (2026-10-20)
+
+Some of this changed so that a few people cannot use the rules against one member. See
+[protections](../flows/protections.md).

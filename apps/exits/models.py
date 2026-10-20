@@ -44,3 +44,19 @@ class Exit(models.Model):
 
     class Meta:
         db_table = "exits_exit"
+
+
+class DeathConfirmation(models.Model):
+    """A second official confirming a reported death. The official who reported it cannot
+    confirm it, and nothing is settled without one (protection plan 2026-10-20)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    exit = models.ForeignKey(Exit, on_delete=models.PROTECT, related_name="confirmations")
+    by = models.ForeignKey(Membership, on_delete=models.PROTECT, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "exits_deathconfirmation"
+        constraints = [models.UniqueConstraint(fields=["exit", "by"],
+                                               name="death_confirmed_once_per_official")]
+

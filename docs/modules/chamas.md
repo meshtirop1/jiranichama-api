@@ -14,3 +14,8 @@
   "not found", so membership is not revealed.
 
 All of these are history: referenced with `PROTECT` and never deleted.
+
+## Protections (2026-10-20)
+
+Some of this changed so that a few people cannot use the rules against one member. See
+[protections](../flows/protections.md).

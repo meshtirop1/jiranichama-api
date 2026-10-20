@@ -54,3 +54,8 @@ notifications alongside the SMS, and turning a breach into a dispute (5.14).
 When the chama's bank is read through its API, the check uses the feed's balance whenever
 it is at least as recent as the last statement (`bank_source: bank_api`). See
 [bank feeds](bank-feeds.md).
+
+## Protections (2026-10-20)
+
+Some of this changed so that a few people cannot use the rules against one member. See
+[protections](protections.md).

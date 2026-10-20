@@ -27,6 +27,9 @@ class Vote(models.Model):
     quorum_pct = models.PositiveSmallIntegerField()
     pass_pct = models.PositiveSmallIntegerField()
     secret = models.BooleanField(default=False)
+    # Rule changes: "pass" means that share of everyone eligible said yes, not only of those
+    # who voted, so a few members cannot change the rules for everyone (2026-10-20).
+    over_all = models.BooleanField(default=False)
     eligible = models.PositiveIntegerField()
     # Who may vote, decided when it opens (members, not the person being paid).
     eligible_ids = models.JSONField(default=list)

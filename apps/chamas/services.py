@@ -416,12 +416,18 @@ def adoption_status(chama: Chama) -> dict:
     pct = chama.draft_rules.get("adoption", {}).get("members_share_pct", 51)
     needed = -(-pct * len(founding) // 100)  # ceiling
     return {"founding": len(founding), "confirmed": len(adopted), "needed": needed,
-            "officials_waiting": officials_waiting}
+            "officials_waiting": officials_waiting, "min_members": MIN_MEMBERS}
+
+
+# A real chama: at least this many founding members before it can go active (owner
+# decision 2026-10-20), so two or three phones cannot form one.
+MIN_MEMBERS = 5
 
 
 def adoption_reached(chama: Chama) -> bool:
     s = adoption_status(chama)
-    return s["founding"] > 0 and not s["officials_waiting"] and s["confirmed"] >= s["needed"]
+    return (s["founding"] >= MIN_MEMBERS and not s["officials_waiting"]
+            and s["confirmed"] >= s["needed"])
 
 
 def _activate(chama: Chama) -> None:
