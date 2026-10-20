@@ -25,3 +25,7 @@ they never use the member app's SMS sign-in for the console.
 
 `authentication.AppJWTAuthentication` is the API's JWT authentication; it also notes
 `User.last_app_at` (at most hourly), which decides who gets SMS receipts.
+
+## Profile for Settings (2026-10-20)
+
+`/auth/me/` also returns `kyc_status` (`not_started` until the Smile ID check is switched on; later `pending`, `verified` or `failed`) and `date_joined`. The app's Settings tab shows both. See [registration](../flows/registration.md).

@@ -82,6 +82,13 @@ class ProfileSerializer(serializers.Serializer):
     language = serializers.ChoiceField(choices=countries.LANGUAGE_CHOICES, required=False)
     country = serializers.ChoiceField(choices=_OPEN, required=False)
     has_pin = serializers.BooleanField(read_only=True)
+    date_joined = serializers.DateTimeField(read_only=True)
+    # The ID check (Smile ID, paid by the chama) is not switched on yet: everyone is
+    # "not_started" until it is. The app shows the status in Settings.
+    kyc_status = serializers.SerializerMethodField()
+
+    def get_kyc_status(self, user) -> str:
+        return getattr(user, "kyc_status", "") or "not_started"
 
 
 class LogoutSerializer(serializers.Serializer):

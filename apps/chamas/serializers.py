@@ -37,6 +37,8 @@ class ChamaSerializer(serializers.ModelSerializer):
     bank_account = serializers.SerializerMethodField()
     loans_on = serializers.SerializerMethodField(
         help_text="Loans are switched on for this chama and its rules have a loans section.")
+    registered = serializers.SerializerMethodField(
+        help_text="The chama has told JiraniChama its government registration certificate.")
 
     class Meta:
         model = Chama
@@ -44,7 +46,7 @@ class ChamaSerializer(serializers.ModelSerializer):
                   "currency",
                   "expected_members", "meets", "created_at", "setup_expires_at",
                   "activated_at", "my_role", "my_member_code", "i_am_founder", "statement_inbox",
-                  "bank_account", "loans_on"]
+                  "bank_account", "loans_on", "registered"]
 
     def _mine(self, obj):
         return self.context.get("memberships", {}).get(obj.id)
@@ -63,6 +65,10 @@ class ChamaSerializer(serializers.ModelSerializer):
         from apps.loans.services import enabled
 
         return enabled(obj) is not None
+
+    def get_registered(self, obj) -> bool:
+        p = getattr(obj, "registration_progress", None)
+        return bool(p and p.certificate_no)
 
     def get_i_am_founder(self, obj) -> bool:
         m = self._mine(obj)
