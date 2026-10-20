@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "apps.console",
     "apps.registration",
     "apps.identity",
+    "apps.billing",
 ]
 
 MIDDLEWARE = [
@@ -257,6 +258,8 @@ CELERY_BEAT_SCHEDULE = {
                          "schedule": crontab(minute=15)},
     "expire-stale-setups": {"task": "apps.chamas.tasks.expire_setups",
                             "schedule": crontab(hour=2, minute=0)},
+    "issue-monthly-bills": {"task": "apps.billing.tasks.issue_monthly_bills",
+                            "schedule": crontab(day_of_month=1, hour=3, minute=0)},
     "anchor-nightly": {"task": "apps.ledger.tasks.anchor_nightly",
                        "schedule": crontab(hour=0, minute=30)},
     "verify-chains-nightly": {
@@ -314,3 +317,7 @@ SMILE_ID_API_KEY = env("SMILE_ID_API_KEY", default="")
 SMILE_ID_PRODUCTION = env.bool("SMILE_ID_PRODUCTION", default=False)
 KYC_ENFORCED = env.bool("KYC_ENFORCED", default=False)
 KYC_PRICE_USD_CENTS = env.int("KYC_PRICE_USD_CENTS", default=0)
+
+# Where chamas pay JiraniChama's monthly bill (an M-Pesa paybill). Empty until set up.
+BILLING_PAYBILL = env("BILLING_PAYBILL", default="")
+BILLING_ACCOUNT_PREFIX = env("BILLING_ACCOUNT_PREFIX", default="JC")

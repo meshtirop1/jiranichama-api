@@ -43,6 +43,7 @@ owns.
 - [Trusting the records](flows/trust.md): the endorsed platform key chain, members countersigning the chain, the public .ots proof, and the public lot for elections tied twice.
 - [Bank protections](flows/bank-protections.md): the bank mandate confirmed by a second official, statements sealed on the chain, no skipped periods, uploads that must match the bank feed, a harder M-Pesa callback.
 - [ID checks and privacy](flows/identity.md): Smile ID checks paid by the chama (off until configured), one person one ID, rule P.3, encrypted next of kin, no full numbers in vote SMS, staff need a support grant.
+- [JiraniChama's monthly bill](flows/billing.md): USD 0.10 per active member, first 3 months and chamas of 5 or fewer free, one bill per chama, ID checks added.
 
 ## Modules
 
@@ -70,6 +71,7 @@ owns.
 - [exits](modules/exits.md): leaving and deaths.
 - [registration](modules/registration.md): government registration guides, filled-in papers, checklist.
 - [identity](modules/identity.md): ID checks through Smile ID, one person one ID.
+- [billing](modules/billing.md): the monthly bill.
 
 ## Operations
 
