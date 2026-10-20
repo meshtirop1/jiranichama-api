@@ -5,6 +5,13 @@
 # JiraniSoko Docker stack or any other site. See docs/operations/test-server.md.
 set -euo pipefail
 
+# The "code" step below rewrites this file (git reset). Bash reads a script as it runs,
+# so run from a copy, or a half-old, half-new script runs.
+if [ -z "${JC_SETUP_COPY:-}" ]; then
+  cp "$0" /tmp/jc-setup.sh
+  JC_SETUP_COPY=1 exec bash /tmp/jc-setup.sh "$@"
+fi
+
 APP=/home/deploy/sites/jiranichama
 DATA=/home/deploy/sites/jiranichama-data
 HOST=${JC_HOST:-jiranichama.167-233-160-177.sslip.io}
