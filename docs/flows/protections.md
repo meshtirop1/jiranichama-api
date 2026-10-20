@@ -65,6 +65,7 @@ taking part and two-thirds agreeing.
 
 ## Not yet
 
-Bank mandate record, statements on the chain and Smile ID KYC follow in later PRs (see the
+Smile ID KYC follows in a later PR. The bank mandate and statements on the chain are in
+[bank protections](bank-protections.md), (see the
 protection plan of 2026-10-20). The pinned platform key, member countersigning and the
 public lot for tied elections are in [trusting the records](trust.md).

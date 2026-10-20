@@ -23,3 +23,7 @@ Money out: proposals, approvals, matching debits, unapproved debits. See
 
 Some of this changed so that a few people cannot use the rules against one member. See
 [protections](../flows/protections.md).
+
+## Bank protections (2026-10-20)
+
+See [bank protections](../flows/bank-protections.md).

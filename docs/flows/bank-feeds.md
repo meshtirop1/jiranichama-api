@@ -45,3 +45,7 @@ The request and response shapes follow the Jenga v3 documentation but have **not
 checked against a live account**. Run one UAT pull with real credentials
 (`JENGA_BASE_URL`, default the UAT host) before switching a chama's feed on. Other banks
 are added as they grant access.
+
+## Bank protections (2026-10-20)
+
+See [bank protections](bank-protections.md).

@@ -23,3 +23,7 @@ Some of this changed so that a few people cannot use the rules against one membe
 ## Registered (2026-10-20)
 
 The chama JSON carries `registered`: true once an official has entered the government certificate number. The app uses it to stop the "register your chama" reminder. See [registration](../flows/registration.md).
+
+## Bank protections (2026-10-20)
+
+See [bank protections](../flows/bank-protections.md).

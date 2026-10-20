@@ -28,6 +28,7 @@ class SigningChallenge(models.Model):
         DECIDE_DISPUTE = "decide_dispute"
         APPROVE_DEVICE = "approve_device"
         LEAVE_CHAMA = "leave_chama"
+        CONFIRM_MANDATE = "confirm_mandate"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,

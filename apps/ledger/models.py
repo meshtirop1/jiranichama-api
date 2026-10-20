@@ -38,6 +38,8 @@ class EntryType(models.TextChoices):
     DEVICE_REGISTERED = "device_registered"
     ROLE_CHANGED = "role_changed"
     SEAL = "seal"
+    STATEMENT_ACCEPTED = "statement_accepted"
+    BANK_MANDATE = "bank_mandate"
 
 
 class LedgerEntry(models.Model):

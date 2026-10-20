@@ -37,6 +37,8 @@ class ChamaSerializer(serializers.ModelSerializer):
     bank_account = serializers.SerializerMethodField()
     loans_on = serializers.SerializerMethodField(
         help_text="Loans are switched on for this chama and its rules have a loans section.")
+    mandate_safe = serializers.SerializerMethodField(
+        help_text="A confirmed bank mandate requires at least two signatures.")
     registered = serializers.SerializerMethodField(
         help_text="The chama has told JiraniChama its government registration certificate.")
 
@@ -46,7 +48,7 @@ class ChamaSerializer(serializers.ModelSerializer):
                   "currency",
                   "expected_members", "meets", "created_at", "setup_expires_at",
                   "activated_at", "my_role", "my_member_code", "i_am_founder", "statement_inbox",
-                  "bank_account", "loans_on", "registered"]
+                  "bank_account", "loans_on", "registered", "mandate_safe"]
 
     def _mine(self, obj):
         return self.context.get("memberships", {}).get(obj.id)
@@ -65,6 +67,12 @@ class ChamaSerializer(serializers.ModelSerializer):
         from apps.loans.services import enabled
 
         return enabled(obj) is not None
+
+    def get_mandate_safe(self, obj) -> bool:
+        from .mandate import MIN_SIGNERS, current
+
+        m = current(obj)
+        return bool(m and m.min_signers >= MIN_SIGNERS)
 
     def get_registered(self, obj) -> bool:
         p = getattr(obj, "registration_progress", None)

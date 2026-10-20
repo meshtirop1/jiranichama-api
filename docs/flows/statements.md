@@ -86,3 +86,7 @@ PDF parsing, typing in a whole statement's totals when the bank's format is unkn
 and bank feeds arrive in later PRs. An overdue statement brings
 [reminders](statement-reminders.md). Each accepted statement is
 followed by a [reconciliation](reconciliation.md).
+
+## Bank protections (2026-10-20)
+
+See [bank protections](bank-protections.md).

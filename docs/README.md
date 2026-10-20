@@ -41,6 +41,7 @@ owns.
 - [Protections](flows/protections.md): five members minimum, small-group unanimity, a second official to confirm a death, "I am alive", withdrawals the members must accept, disputes that take money.
 - [Registering a chama](flows/registration.md): each country's law, office, steps and fee; the papers JiraniChama fills in; the officials' checklist and the reminder.
 - [Trusting the records](flows/trust.md): the endorsed platform key chain, members countersigning the chain, the public .ots proof, and the public lot for elections tied twice.
+- [Bank protections](flows/bank-protections.md): the bank mandate confirmed by a second official, statements sealed on the chain, no skipped periods, uploads that must match the bank feed, a harder M-Pesa callback.
 
 ## Modules
 
