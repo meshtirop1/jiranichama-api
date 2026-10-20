@@ -89,6 +89,9 @@ def start_enable(chama: Chama, by: Membership) -> SigningChallenge:
 
     # The real lock is at the bank: two must sign there too (protection plan 2026-10-20).
     require_safe_mandate(chama)
+    from apps.identity.services import require_officials_verified
+
+    require_officials_verified(chama)
     action = ("SWITCH ON money out: payouts approved in JiraniChama" if by.user.language != "sw"
               else "KUWASHA malipo: malipo yanayoidhinishwa ndani ya JiraniChama")
     return signing.issue(user=by.user, purpose=SigningChallenge.Purpose.ENABLE_MONEY_OUT,
@@ -218,7 +221,9 @@ def propose(chama: Chama, by: Membership, *, kind: str, amount_cents: int, purpo
         # officials' approvals, with the same deadline. The payee does not vote.
         from apps.votes import services as votes
 
-        to = p.payee_name + (f", {p.payee_account}" if p.payee_account else "")
+        # The question goes out by SMS to every member: only the last digits of the
+        # payee's phone or account (privacy, 2026-10-20).
+        to = p.payee_name + (f", ending {p.payee_account[-4:]}" if p.payee_account else "")
         votes.open_vote(chama, subject=f"payouts.proposal:{p.id}",
                         question=f"Pay {to} {_kes(p.amount_cents, chama)} for {p.purpose}?",
                         rules=version.rules, closes_at=p.deadline_at,

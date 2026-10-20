@@ -64,3 +64,7 @@ meetings and attendance. (SMS replies from basic phones: see [SMS commands](sms-
 
 Some of this changed so that a few people cannot use the rules against one member. See
 [protections](protections.md).
+
+## ID checks and privacy (2026-10-20)
+
+See [ID checks and privacy](identity.md).

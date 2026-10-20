@@ -76,7 +76,7 @@ HISTORY_MODELS = {
 OUR_APPS = {"core", "flags", "accounts", "notify", "chamas", "ledger", "staff", "devices",
             "rules", "fines", "contributions", "feeds", "reconciliation", "documents",
             "payouts", "votes", "meetings", "loans", "disputes", "elections", "exits",
-            "investments", "referrals"}
+            "investments", "referrals", "registration", "identity"}
 
 
 def _label(model) -> str:

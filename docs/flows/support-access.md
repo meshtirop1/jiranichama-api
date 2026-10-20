@@ -18,3 +18,7 @@ By default JiraniChama staff cannot see any chama's records.
 `GET /chamas/{id}/support/` lists the chama's recent grants for every member.
 
 States: `requested` → `active` → `expired` or `revoked`.
+
+## ID checks and privacy (2026-10-20)
+
+See [ID checks and privacy](identity.md).

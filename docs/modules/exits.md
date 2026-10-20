@@ -19,3 +19,7 @@ reading the chama.
 
 Some of this changed so that a few people cannot use the rules against one member. See
 [protections](../flows/protections.md).
+
+## ID checks and privacy (2026-10-20)
+
+See [ID checks and privacy](../flows/identity.md).
