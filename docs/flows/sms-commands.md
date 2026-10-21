@@ -71,3 +71,9 @@ member when the rules ask for one (Phase 3).
 Where loans are switched on, `LOAN` (or `MKOPO`) answers what is owed on the member's
 loan, what is due now and the next instalment. Elsewhere it answers that loans are not
 offered.
+
+## More ways to vote (2026-10-21)
+
+`ABSTAIN 4821` (`NAJIZUIA 4821`) takes part without voting for or against. In a poll the
+reply is the option's number then the vote's: `2 4821`. A number that is not one of the
+options gets "That choice is not in this vote." See [votes](votes.md#richer-voting-2026-10-21).

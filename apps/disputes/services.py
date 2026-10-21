@@ -42,7 +42,9 @@ def _rules(chama: Chama) -> dict:
     return settings_from(version_at(chama, timezone.localdate()).rules)
 
 
-def _name(m: Membership) -> str:
+def _name(m: Membership | None) -> str:
+    if m is None:
+        return "JiraniChama"
     return m.user.display_name or m.member_code
 
 
@@ -118,6 +120,27 @@ def raise_dispute(chama: Chama, by: Membership, *, subject_type: str, subject_id
     d = Dispute.objects.create(
         chama=chama, raised_by=by, subject_type=subject_type, subject_id=subject_id,
         reason=reason, text=text[:4000], officials_only=officials_only,
+        involved=sorted(str(i) for i in involved),
+        respond_until=timezone.now() + timedelta(hours=s["response_hours"]))
+    transaction.on_commit(lambda: _tell_involved(d.pk))
+    return d
+
+
+def raise_automatic(chama: Chama, *, subject_type: str, subject_id, reason: str, text: str
+                    ) -> Dispute:
+    """A dispute JiraniChama opens by itself (automatic chasing, 2026-10-21): money that
+    left the bank with no approval and no explanation. The bank signatories are involved
+    (they are the ones who can withdraw), or the officials when no mandate is on record."""
+    from apps.chamas.models import BankMandate
+
+    s = _rules(chama)
+    mandate = (BankMandate.objects.filter(chama=chama, state=BankMandate.State.CONFIRMED)
+               .order_by("-confirmed_at").first())
+    involved = (set(mandate.signatories.values_list("id", flat=True)) if mandate
+                else set(_officials(chama).values_list("id", flat=True)))
+    d = Dispute.objects.create(
+        chama=chama, raised_by=None, automatic=True, subject_type=subject_type,
+        subject_id=subject_id, reason=reason, text=text[:4000],
         involved=sorted(str(i) for i in involved),
         respond_until=timezone.now() + timedelta(hours=s["response_hours"]))
     transaction.on_commit(lambda: _tell_involved(d.pk))
@@ -401,7 +424,8 @@ def _apply(d: Dispute) -> None:
     """Write the outcome as entries. Called with the dispute locked."""
     rules_version = version_at(d.chama, timezone.localdate())
     base = {"dispute_id": str(d.id), "outcome": d.outcome, "text": d.outcome_text,
-            "raised_by": d.raised_by.member_code, "subject": d.subject_type,
+            "raised_by": (d.raised_by.member_code if d.raised_by
+                          else "automatic"), "subject": d.subject_type,
             "subject_id": str(d.subject_id) if d.subject_id else None}
     if d.outcome == Dispute.Outcome.REVERSAL:
         target = LedgerEntry.objects.get(chama=d.chama, pk=d.subject_id)

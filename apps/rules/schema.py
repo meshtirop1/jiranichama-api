@@ -128,10 +128,28 @@ SCHEMA_V1 = _obj(
             "cooling_days": {**_int, "minimum": 0, "maximum": 365},
         }),
         # Members' votes (5.11). Optional: missing means half must vote, more than half yes.
+        # allow_change: members may change their vote until it closes; motion_seconders:
+        # how many other members second a member's motion before it goes to a vote.
         "votes": _obj(["quorum_pct", "pass_pct", "secret"], {
             "quorum_pct": {**_int, "minimum": 10, "maximum": 100},
             "pass_pct": {**_int, "minimum": 50, "maximum": 90},
             "secret": {"type": "boolean"},
+            "allow_change": {"type": "boolean"},
+            "motion_seconders": {**_int, "minimum": 0, "maximum": 10},
+        }),
+        # Payment reminders (rule 3.7, 2026-10-21). Optional; defaults in
+        # automation.reminders.DEFAULTS. days_before 0 turns the early reminder off.
+        "reminders": _obj(["days_before", "on_due_day", "after_grace"], {
+            "days_before": {**_int, "minimum": 0, "maximum": 10},
+            "on_due_day": {"type": "boolean"},
+            "after_grace": {"type": "boolean"},
+        }),
+        # Year-end share-out (rule 13.1, 2026-10-21). Optional; defaults in
+        # shareout.services.DEFAULTS.
+        "shareout": _obj(["return_savings", "keep_pct", "weight"], {
+            "return_savings": {"type": "boolean"},
+            "keep_pct": {**_int, "minimum": 0, "maximum": 50},
+            "weight": {"enum": ["savings", "savings_months"]},
         }),
         # Merry-go-round turns (5.6). Optional: other chama types have no rotation.
         "rotation": _obj(["order", "arrears"], {

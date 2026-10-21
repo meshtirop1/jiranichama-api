@@ -43,7 +43,10 @@ class Dispute(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     chama = models.ForeignKey(Chama, on_delete=models.PROTECT, related_name="disputes")
-    raised_by = models.ForeignKey(Membership, on_delete=models.PROTECT, related_name="+")
+    # Empty when JiraniChama raised it by itself (a withdrawal nobody explained, 2026-10-21).
+    raised_by = models.ForeignKey(Membership, on_delete=models.PROTECT, null=True, blank=True,
+                                  related_name="+")
+    automatic = models.BooleanField(default=False)
     subject_type = models.CharField(max_length=10, choices=Subject.choices)
     subject_id = models.UUIDField(null=True, blank=True)
     reason = models.CharField(max_length=14, choices=Reason.choices)

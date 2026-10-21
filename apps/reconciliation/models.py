@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 
@@ -15,6 +17,7 @@ class Match(models.Model):
         TREASURER = "treasurer"
         NOT_ME = "not_me"
         CASH = "cash"
+        PAYER_LINK = "payer_link"  # a phone the member said pays for them (2026-10-21)
 
     bank_txn = models.ForeignKey(BankTransaction, on_delete=models.PROTECT,
                                  related_name="matches")
@@ -101,3 +104,40 @@ class StatementReminder(models.Model):
         db_table = "reconciliation_statement_reminder"
         constraints = [models.UniqueConstraint(fields=["chama", "due_on", "level"],
                                                name="one_reminder_per_level")]
+
+
+class PayerLink(models.Model):
+    """A phone number that pays for a member who is not its owner: "my husband pays from
+    his phone" (smart matching, 2026-10-21). Payments from this number then count for this
+    member without the treasurer.
+
+    It starts as ``suggested`` when the treasurer assigns such a payment, and counts only
+    once the member says yes (``confirmed``); the member or an official can end it
+    (``ended``). One live link per number per chama. Only ``state`` and when it changed
+    move."""
+
+    class State(models.TextChoices):
+        SUGGESTED = "suggested"
+        CONFIRMED = "confirmed"
+        DECLINED = "declined"
+        ENDED = "ended"
+
+    LIVE = (State.SUGGESTED, State.CONFIRMED)
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    chama = models.ForeignKey("chamas.Chama", on_delete=models.PROTECT, related_name="+")
+    membership = models.ForeignKey(Membership, on_delete=models.PROTECT,
+                                   related_name="payer_links")
+    phone_hash = models.CharField(max_length=80)
+    phone_hint = models.CharField(max_length=24, blank=True, default="")
+    from_txn = models.ForeignKey(BankTransaction, on_delete=models.PROTECT, null=True,
+                                 blank=True, related_name="+")
+    state = models.CharField(max_length=10, choices=State.choices, default=State.SUGGESTED)
+    changed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    MUTABLE = ["state", "changed_at"]
+
+    class Meta:
+        db_table = "reconciliation_payer_link"
+        indexes = [models.Index(fields=["chama", "phone_hash"])]

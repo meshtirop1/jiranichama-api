@@ -18,3 +18,16 @@ Members' votes. See [Members' votes](../flows/votes.md).
 
 Some of this changed so that a few people cannot use the rules against one member. See
 [protections](../flows/protections.md).
+
+## Richer voting (2026-10-21)
+
+- `Vote` has `kind` (`yes_no` or `choice`), `options`, `details`, `allow_change`,
+  `raised_by`, and the tally `abstain`, `option_counts`, `winner`.
+- `Ballot` has `round`: a changed vote is a new ballot; `latest_ballots` keeps each voter's
+  highest round.
+- `Motion` and `MotionSecond`: members' motions and their seconds (`raise_motion`,
+  `second`, `withdraw_motion`, `expire_motions` hourly with `close_due_votes`).
+- `VoteComment`: members' words on an open vote (`comment`).
+- `app_invites`: every eligible member gets a notice when a vote opens.
+- Views: `/chamas/{id}/motions/`, `/motions/{id}/second/`, `/motions/{id}/withdraw/`,
+  `/votes/{id}/comments/`. See [votes](../flows/votes.md#richer-voting-2026-10-21).

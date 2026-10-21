@@ -71,3 +71,10 @@ is dropped, plus `withdrawn` and `escalated_outside`.
 
 Some of this changed so that a few people cannot use the rules against one member. See
 [protections](protections.md).
+
+## Disputes JiraniChama opens by itself (2026-10-21)
+
+Money that left the bank with no approval and no explanation for 72 hours becomes a dispute
+with no member as the raiser (`automatic: true`, shown as "JiraniChama"). The bank
+signatories on the confirmed mandate are involved, or the officials when there is none.
+See [automation](automation.md).

@@ -168,6 +168,10 @@ class DarajaChannel(models.Model):
                              editable=False)
     active = models.BooleanField(default=True)
     registered_at = models.DateTimeField(null=True, blank=True)
+    # The Lipa na M-Pesa Online passkey Safaricom gives the shortcode's owner, stored
+    # encrypted. With it members can tap "Pay now" and get the M-Pesa PIN prompt
+    # (2026-10-21). Without it they pay the usual way.
+    stk_passkey_enc = models.BinaryField(null=True, blank=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -175,6 +179,53 @@ class DarajaChannel(models.Model):
 
     def __str__(self):
         return f"{self.kind} {self.shortcode} ({self.chama})"
+
+    @property
+    def can_prompt(self) -> bool:
+        return bool(self.active and self.stk_passkey_enc)
+
+    def set_stk_passkey(self, raw: str) -> None:
+        self.stk_passkey_enc = encrypt(raw.strip())
+
+    def stk_passkey(self) -> str:
+        return decrypt(bytes(self.stk_passkey_enc)) if self.stk_passkey_enc else ""
+
+
+class StkRequest(models.Model):
+    """A "Pay now" prompt sent to a member's phone (Lipa na M-Pesa Online). The money goes
+    from the member's M-Pesa straight to the chama's own paybill or till; we only ask
+    Safaricom to show the prompt. When Safaricom reports it paid, the payment is recorded
+    like any M-Pesa payment, for the member who asked. Only ``state`` and the result
+    fields change."""
+
+    class State(models.TextChoices):
+        SENT = "sent"          # the prompt is on the member's phone
+        PAID = "paid"
+        FAILED = "failed"      # cancelled, wrong PIN, not enough money, timed out
+        REFUSED = "refused"    # Safaricom did not send the prompt
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    chama = models.ForeignKey(Chama, on_delete=models.PROTECT, related_name="+")
+    channel = models.ForeignKey(DarajaChannel, on_delete=models.PROTECT, related_name="+")
+    membership = models.ForeignKey("chamas.Membership", on_delete=models.PROTECT,
+                                   related_name="+")
+    amount_cents = models.BigIntegerField()
+    phone_hint = models.CharField(max_length=24)
+    checkout_request_id = models.CharField(max_length=80, blank=True, default="",
+                                           db_index=True)
+    state = models.CharField(max_length=8, choices=State.choices, default=State.SENT)
+    result_code = models.CharField(max_length=12, blank=True, default="")
+    result_text = models.CharField(max_length=200, blank=True, default="")
+    receipt = models.CharField(max_length=20, blank=True, default="")
+    bank_txn = models.ForeignKey(BankTransaction, on_delete=models.PROTECT, null=True,
+                                 blank=True, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    MUTABLE = ["state", "checkout_request_id", "result_code", "result_text", "receipt",
+               "bank_txn_id"]
+
+    class Meta:
+        db_table = "feeds_stk_request"
 
 
 class BankFeed(models.Model):

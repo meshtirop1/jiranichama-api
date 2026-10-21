@@ -173,9 +173,11 @@ def _rules_check(chama: Chama, *, amount_cents: int, payee: Membership | None, t
 def propose(chama: Chama, by: Membership, *, kind: str, amount_cents: int, purpose: str,
             payee: Membership | None = None, payee_name: str = "",
             payee_account: str = "", allow_arrears: bool = False,
-            deduct_cents: int = 0) -> Proposal:
+            deduct_cents: int = 0, members_voted: bool = False) -> Proposal:
     """``allow_arrears`` and ``deduct_cents`` are for a merry-go-round turn paid less what
-    the member owes (rule 8.2 "deduct"); see rotation.propose_next."""
+    the member owes (rule 8.2 "deduct"); see rotation.propose_next. ``members_voted`` is
+    for payments the members already voted on as a whole (a share-out): the officials
+    still approve each one, but no second members' vote opens for it."""
     _money_out(chama)
     if open_breaches(chama) and kind != Proposal.Kind.SETTLEMENT:
         raise Problem("breach_open", "Money left the bank without approval. Nothing can be "
@@ -210,7 +212,8 @@ def propose(chama: Chama, by: Membership, *, kind: str, amount_cents: int, purpo
         chama=chama, kind=kind, amount_cents=amount_cents, payee_membership=payee,
         payee_name=payee_name, payee_account=(payee_account or "").strip()[:120],
         purpose=purpose, proposed_by=by, rule_version_id=version.id,
-        needs_officials=tier["officials"], needs_vote=tier["member_vote"],
+        needs_officials=tier["officials"],
+        needs_vote=tier["member_vote"] and not members_voted,
         refusal=refusal or {}, deduct_cents=deduct_cents,
         deadline_at=None if refusal else
         now + timedelta(hours=version.rules["approvals"]["deadline_hours"]),
@@ -516,6 +519,11 @@ def _write_payout(p: Proposal, txn: BankTransaction, extra: dict | None = None):
 
         loan = Loan.objects.filter(proposal=p).first()
         extra = {**(extra or {}), "loan_id": str(loan.id) if loan else None}
+    from apps.shareout.services import paid_extra
+
+    shared = paid_extra(p)  # a share-out payment: the savings it gives back
+    if shared:
+        extra = {**(extra or {}), **shared}
     entry = ledger.append(
         chama=p.chama, type="loan_disbursed" if p.kind == Proposal.Kind.LOAN else "payout",
         source="proposal", source_id=p.id,
@@ -549,6 +557,10 @@ def _write_payout(p: Proposal, txn: BankTransaction, extra: dict | None = None):
         from apps.exits.services import on_paid as exit_paid
 
         exit_paid(p)
+    if shared:
+        from apps.shareout.services import on_paid as shareout_paid
+
+        shareout_paid(p)
     return entry
 
 

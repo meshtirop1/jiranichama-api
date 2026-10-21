@@ -10,7 +10,8 @@ from apps.core.idempotency import idempotent
 from apps.core.problems import Problem
 from apps.feeds.models import BankTransaction
 
-from . import services
+from . import matching, services
+from .models import PayerLink
 
 
 class BankTransactionSerializer(serializers.ModelSerializer):
@@ -40,10 +41,16 @@ class UnmatchedView(APIView):
     @extend_schema(responses=BankTransactionSerializer(many=True))
     def get(self, request, pk):
         chama, _ = chama_for(request, pk)
-        txns = chama.bank_transactions.filter(
+        txns = list(chama.bank_transactions.filter(
             state=BankTransaction.State.UNMATCHED,
-            direction=BankTransaction.Direction.CREDIT).order_by("value_date", "created_at")
-        return Response(BankTransactionSerializer(txns, many=True).data)
+            direction=BankTransaction.Direction.CREDIT).order_by("value_date", "created_at"))
+        out = BankTransactionSerializer(txns, many=True).data
+        # Likely members, with their reasons, for the treasurer to confirm with one tap
+        # (smart matching, 2026-10-21).
+        for row, txn in zip(out, txns, strict=True):
+            row["suggestions"] = [{**s, "reason_text": matching.reason_text(s)}
+                                  for s in matching.suggest(txn)]
+        return Response(out)
 
 
 def _txn_for(request, pk) -> tuple[BankTransaction, Membership]:
@@ -109,3 +116,48 @@ class ReconciliationView(APIView):
 
         chama, _ = chama_for(request, pk)
         return Response(summary(chama))
+
+
+class PayerLinksView(APIView):
+    """Numbers that pay for members (smart matching). A member sees their own; officials
+    see every one in the chama."""
+
+    @extend_schema(responses=serializers.DictField())
+    def get(self, request, pk):
+        chama, me = chama_for(request, pk)
+        qs = PayerLink.objects.filter(chama=chama).select_related("membership__user",
+                                                                  "from_txn")
+        if not me.is_official:
+            qs = qs.filter(membership=me)
+        return Response({"links": [matching.as_dict(x) for x in qs.order_by("-created_at")]})
+
+
+class PayerLinkAnswerSerializer(serializers.Serializer):
+    yes = serializers.BooleanField()
+
+
+def _link_for(request, pk) -> tuple[PayerLink, Membership]:
+    link = (PayerLink.objects.select_related("chama", "membership__user", "from_txn")
+            .filter(pk=pk).first())
+    if link is None:
+        raise Problem("not_found", "Not found.", status.HTTP_404_NOT_FOUND)
+    return link, require_member(request.user, link.chama)
+
+
+class PayerLinkAnswerView(APIView):
+    """The member says whether payments from that number should count for them."""
+
+    @extend_schema(request=PayerLinkAnswerSerializer, responses=serializers.DictField())
+    def post(self, request, pk):
+        link, me = _link_for(request, pk)
+        s = PayerLinkAnswerSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        return Response(matching.as_dict(matching.answer(link, me,
+                                                         yes=s.validated_data["yes"])))
+
+
+class PayerLinkEndView(APIView):
+    @extend_schema(request=None, responses=serializers.DictField())
+    def post(self, request, pk):
+        link, me = _link_for(request, pk)
+        return Response(matching.as_dict(matching.end(link, me)))

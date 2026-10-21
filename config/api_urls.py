@@ -1,5 +1,6 @@
 from django.urls import include, path
 
+from apps.automation import views as automation
 from apps.billing import views as billing
 from apps.chamas import mandate_views as mandates
 from apps.chamas import views as chamas
@@ -24,6 +25,7 @@ from apps.referrals import views as referrals
 from apps.registration import views as registration
 from apps.reports import views as reports
 from apps.rules import views as rules
+from apps.shareout import views as shareout
 from apps.staff import support_views as support
 from apps.votes import views as votes
 
@@ -164,4 +166,21 @@ urlpatterns = [
     path("chamas/<uuid:pk>/unapproved-debits/", payouts.UnapprovedListView.as_view()),
     path("unapproved-debits/<uuid:pk>/link/", payouts.UnapprovedLinkView.as_view()),
     path("unapproved-debits/<uuid:pk>/explain/", payouts.UnapprovedExplainView.as_view()),
+    # The chama runs itself (2026-10-21): notices, paying, smart matching, share-out,
+    # members' motions and comments on votes.
+    path("me/notices/", automation.NoticesView.as_view()),
+    path("me/notices/read/", automation.NoticesReadView.as_view()),
+    path("chamas/<uuid:pk>/pay/", automation.PayView.as_view()),
+    path("pay-requests/<uuid:pk>/", automation.PayStatusView.as_view()),
+    path("bills/<uuid:pk>/propose/", automation.BillProposeView.as_view()),
+    path("chamas/<uuid:pk>/payer-links/", recon.PayerLinksView.as_view()),
+    path("payer-links/<uuid:pk>/answer/", recon.PayerLinkAnswerView.as_view()),
+    path("payer-links/<uuid:pk>/end/", recon.PayerLinkEndView.as_view()),
+    path("chamas/<uuid:pk>/shareouts/", shareout.ShareOutListView.as_view()),
+    path("shareouts/<uuid:pk>/", shareout.ShareOutDetailView.as_view()),
+    path("shareouts/<uuid:pk>/<str:action>/", shareout.ShareOutActionView.as_view()),
+    path("chamas/<uuid:pk>/motions/", votes.MotionListView.as_view()),
+    path("motions/<uuid:pk>/second/", votes.MotionSecondView.as_view()),
+    path("motions/<uuid:pk>/withdraw/", votes.MotionWithdrawView.as_view()),
+    path("votes/<uuid:pk>/comments/", votes.CommentListView.as_view()),
 ]

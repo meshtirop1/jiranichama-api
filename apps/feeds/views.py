@@ -201,4 +201,8 @@ class DarajaHook(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
         if step == "confirmation" and isinstance(request.data, dict):
             daraja.receive(channel, request.data)
+        elif step == "stk" and isinstance(request.data, dict):
+            from . import stk
+
+            stk.receive_callback(channel, request.data)
         return Response(daraja.ACCEPT)

@@ -40,6 +40,8 @@ class EntryType(models.TextChoices):
     SEAL = "seal"
     STATEMENT_ACCEPTED = "statement_accepted"
     BANK_MANDATE = "bank_mandate"
+    SHAREOUT_APPROVED = "shareout_approved"
+    SHAREOUT = "shareout"  # a share-out settled in the books (nothing for the bank to pay)
 
 
 class LedgerEntry(models.Model):

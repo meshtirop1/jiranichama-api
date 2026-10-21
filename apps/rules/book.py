@@ -124,9 +124,11 @@ def _render_en(r: dict) -> list[Clause]:
         Clause("P.4", "Records are never changed. A mistake is fixed by a new, visible "
                       "correction."),
     ]
-    out[-4:-4] = (_rotation_en(r.get("rotation")) + _votes_en(r.get("votes"))
+    out[-4:-4] = (_reminders_en(r.get("reminders")) + _rotation_en(r.get("rotation"))
+                  + _votes_en(r.get("votes"))
                   + _changes_en(r.get("rule_changes")) + _meetings_en(r.get("meetings"))
                   + _loans_en(r.get("loans")) + _disputes_en(r.get("disputes"))
+                  + _shareout_en(r.get("shareout"))
                   + _elections_en(r.get("elections")) + _exit_en(r.get("exit")))
     return out
 
@@ -341,22 +343,105 @@ def _changes_sw(c: dict | None) -> list[Clause]:
 
 
 def _votes_en(v: dict | None) -> list[Clause]:
-    v = {"quorum_pct": 50, "pass_pct": 50, "secret": False, **(v or {})}
+    v = {"quorum_pct": 50, "pass_pct": 50, "secret": False, "allow_change": False,
+         "motion_seconders": 2, **(v or {})}
     how = "in secret: who voted is shown, not how" if v["secret"] else "openly"
+    change = (" Members may change their vote until it closes." if v["allow_change"]
+              else " The first vote a member casts counts.")
+    n = v["motion_seconders"]
+    second = (f"once {_plural(n, 'other member')} second it" if n else "at once")
     return [Clause("9.1", f"A members' vote counts if at least {v['quorum_pct']}% of the "
                           f"members who may vote take part, and passes with more than "
                           f"{v['pass_pct']}% of the votes cast. Members vote {how}. The "
-                          "person a vote is about does not vote on it.")]
+                          "person a vote is about does not vote on it."),
+            Clause("9.2", "A member may abstain: it counts as taking part, not for or "
+                          "against." + change + " Any member may raise a motion, a yes or "
+                          f"no question or a choice between options, and it goes to a vote "
+                          f"{second}. In a choice, the option with the most votes wins; a "
+                          "tie decides nothing.")]
 
 
 def _votes_sw(v: dict | None) -> list[Clause]:
-    v = {"quorum_pct": 50, "pass_pct": 50, "secret": False, **(v or {})}
+    v = {"quorum_pct": 50, "pass_pct": 50, "secret": False, "allow_change": False,
+         "motion_seconders": 2, **(v or {})}
     how = ("kwa siri: wanaopiga kura wanaonyeshwa, si jinsi walivyopiga" if v["secret"]
            else "wazi")
+    change = (" Mwanachama anaweza kubadilisha kura yake hadi kura ifungwe."
+              if v["allow_change"] else " Kura ya kwanza ya mwanachama ndiyo inahesabiwa.")
+    n = v["motion_seconders"]
+    second = (f"wanachama wengine {n} wakiiunga mkono" if n else "mara moja")
     return [Clause("9.1", f"Kura ya wanachama inahesabiwa angalau asilimia {v['quorum_pct']} "
                           f"ya wanaoruhusiwa kupiga kura wakishiriki, na inapita kwa zaidi ya "
                           f"asilimia {v['pass_pct']} ya kura zilizopigwa. Wanachama wanapiga "
-                          f"kura {how}. Mhusika wa kura hapigi kura hiyo.")]
+                          f"kura {how}. Mhusika wa kura hapigi kura hiyo."),
+            Clause("9.2", "Mwanachama anaweza kujizuia: inahesabiwa kama kushiriki, si "
+                          "kukubali wala kukataa." + change + " Mwanachama yeyote anaweza "
+                          "kuleta hoja, swali la ndiyo au hapana au chaguo kati ya machaguo, "
+                          f"nayo inapigiwa kura {second}. Katika chaguo, lenye kura nyingi "
+                          "zaidi linashinda; sare haiamui kitu.")]
+
+
+def _reminders_en(r: dict | None) -> list[Clause]:
+    if not r:
+        return []
+    when = []
+    if r["days_before"]:
+        when.append(f"{_plural(r['days_before'], 'day')} before the due date")
+    if r["on_due_day"]:
+        when.append("on the due date")
+    if r["after_grace"]:
+        when.append("the day after the grace period, if still unpaid")
+    if not when:
+        return [Clause("3.7", "JiraniChama sends no payment reminders.")]
+    return [Clause("3.7", "JiraniChama reminds each member who still owes "
+                          + _join(when, "en") + ", with the amount and their member code.")]
+
+
+def _reminders_sw(r: dict | None) -> list[Clause]:
+    if not r:
+        return []
+    when = []
+    if r["days_before"]:
+        when.append(f"siku {r['days_before']} kabla ya tarehe ya malipo")
+    if r["on_due_day"]:
+        when.append("siku ya malipo")
+    if r["after_grace"]:
+        when.append("siku baada ya muda wa neema, kama bado hajalipa")
+    if not when:
+        return [Clause("3.7", "JiraniChama haitumi makumbusho ya malipo.")]
+    return [Clause("3.7", "JiraniChama inamkumbusha kila mwanachama anayedaiwa "
+                          + _join(when, "sw") + ", pamoja na kiasi na namba yake ya "
+                          "mwanachama.")]
+
+
+def _shareout_en(x: dict | None) -> list[Clause]:
+    if not x:
+        return []
+    back = ("each member gets their savings back and" if x["return_savings"]
+            else "savings stay in the chama, and each member gets")
+    by = ("their savings" if x["weight"] == "savings"
+          else "their savings and how many months they were held")
+    keep = (f" {x['keep_pct']}% of the earnings is kept as a reserve." if x["keep_pct"]
+            else "")
+    return [Clause("13.1", f"At the end of a cycle, if the members vote for it, {back} a "
+                           f"share of what the chama earned (fines, interest and income, "
+                           f"less bank charges), shared by {by}.{keep} Unpaid fines and loans "
+                           "are taken off first.")]
+
+
+def _shareout_sw(x: dict | None) -> list[Clause]:
+    if not x:
+        return []
+    back = ("kila mwanachama anarudishiwa akiba yake na" if x["return_savings"]
+            else "akiba inabaki kwenye chama, na kila mwanachama anapata")
+    by = ("akiba yake" if x["weight"] == "savings"
+          else "akiba yake na miezi ilivyokaa")
+    keep = (f" Asilimia {x['keep_pct']} ya mapato inawekwa akiba ya chama." if x["keep_pct"]
+            else "")
+    return [Clause("13.1", f"Mwisho wa mzunguko, wanachama wakikubali kwa kura, {back} sehemu "
+                           f"ya mapato ya chama (faini, riba na mapato, toa makato ya benki), "
+                           f"kwa kadiri ya {by}.{keep} Faini na mikopo isiyolipwa "
+                           "hukatwa kwanza.")]
 
 
 def _rotation_en(rot: dict | None) -> list[Clause]:
@@ -466,8 +551,10 @@ def _render_sw(r: dict) -> list[Clause]:
         Clause("P.4", "Kumbukumbu hazibadilishwi kamwe. Kosa linarekebishwa kwa marekebisho "
                       "mapya yanayoonekana."),
     ]
-    out[-4:-4] = (_rotation_sw(r.get("rotation")) + _votes_sw(r.get("votes"))
+    out[-4:-4] = (_reminders_sw(r.get("reminders")) + _rotation_sw(r.get("rotation"))
+                  + _votes_sw(r.get("votes"))
                   + _changes_sw(r.get("rule_changes")) + _meetings_sw(r.get("meetings"))
                   + _loans_sw(r.get("loans")) + _disputes_sw(r.get("disputes"))
+                  + _shareout_sw(r.get("shareout"))
                   + _elections_sw(r.get("elections")) + _exit_sw(r.get("exit")))
     return out

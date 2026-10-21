@@ -62,3 +62,9 @@ of "unmatched"), so a payment made today never shows as a gap.
 ## Bank protections (2026-10-20)
 
 See [bank protections](bank-protections.md).
+
+## Pay now (2026-10-21)
+
+With the shortcode's Lipa na M-Pesa Online passkey, members can also tap Pay now in the
+app and get the M-Pesa PIN prompt. Safaricom's answer is stored as a C2B confirmation, so
+everything above (matching, no double counting) applies. See [automation](automation.md#pay-now-lipa-na-m-pesa-online-feedsstkpy).

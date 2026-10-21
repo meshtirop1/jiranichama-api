@@ -89,6 +89,18 @@ def open_fines(membership: Membership) -> list[engine.OpenFine]:
             if f.outstanding_cents > 0]
 
 
+def shared_out_cents(membership: Membership) -> int:
+    """Savings already given back in a share-out (on the payout entry, or on the
+    ``shareout`` entry when the bank paid nothing). They are no longer the member's
+    savings, so they are never paid twice (exit, the next share-out)."""
+    total = 0
+    for d in (LedgerEntry.objects.filter(member=membership, type__in=("payout", "shareout"),
+                                         decision__has_key="savings_out_cents")
+              .values_list("decision", flat=True)):
+        total += int(d.get("savings_out_cents") or 0)
+    return total
+
+
 @dataclass
 class Position:
     contributed_cents: int
@@ -118,7 +130,8 @@ def position(membership: Membership, on: date, *, timeline: list | None = None) 
                                           state=CashReceipt.State.MEMBER_CONFIRMED)
                .aggregate(t=Sum("amount_cents"))["t"] or 0)
     return Position(
-        contributed_cents=sum(v for k, v in paid.items() if k is not None) + opening,
+        contributed_cents=sum(v for k, v in paid.items() if k is not None) + opening
+        - shared_out_cents(membership),
         opening_cents=opening,
         pending_cash_cents=pending,
         arrears_cents=arrears,
