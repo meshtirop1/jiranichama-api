@@ -12,7 +12,6 @@ from apps.chamas.models import Membership
 from apps.fines.models import Fine
 from apps.ledger.models import LedgerEntry
 from apps.rules import calendar, engine
-from apps.rules.models import version_at
 
 ADVANCE_MONTHS = 12
 
@@ -40,11 +39,31 @@ def member_first_period(membership: Membership, rules: dict) -> str | None:
     return calendar.first_period(membership.joined_on, rules)
 
 
-def dues(membership: Membership, on: date) -> list[engine.Due]:
+def rule_timeline(chama) -> list:
+    """Every rule version that has taken effect, newest first: one query, then each
+    month's rules are picked in memory (was one query per month)."""
+    from apps.rules.models import RuleVersion
+
+    return list(RuleVersion.objects.filter(chama=chama)
+                .exclude(state=RuleVersion.State.SCHEDULED)
+                .order_by("-effective_from", "-version_no"))
+
+
+def _version_on(timeline: list, on: date):
+    for v in timeline:
+        if v.effective_from <= on:
+            return v
+    return None
+
+
+def dues(membership: Membership, on: date, *, timeline: list | None = None,
+         paid: dict | None = None) -> list[engine.Due]:
     """Every period from the member's first one to ADVANCE_MONTHS past ``on``, with what
     is still outstanding under the rules in force at each period's due date."""
     chama = membership.chama
-    rules_now = version_at(chama, on)
+    if timeline is None:
+        timeline = rule_timeline(chama)
+    rules_now = _version_on(timeline, on)
     if rules_now is None:
         return []
     first = member_first_period(membership, rules_now.rules)
@@ -53,10 +72,11 @@ def dues(membership: Membership, on: date) -> list[engine.Due]:
     last = calendar.period_of(on)
     for _ in range(ADVANCE_MONTHS):
         last = calendar.next_period(last)
-    paid = paid_by_period(membership)
+    if paid is None:
+        paid = paid_by_period(membership)
     out = []
     for p in calendar.periods(first, last):
-        version = version_at(chama, calendar.due_date(p, rules_now.rules)) or rules_now
+        version = _version_on(timeline, calendar.due_date(p, rules_now.rules)) or rules_now
         amount = version.rules["contributions"]["amount_cents"]
         out.append(engine.Due(p, max(amount - paid.get(p, 0), 0)))
     return out
@@ -84,9 +104,9 @@ class Position:
         return self.__dict__.copy()
 
 
-def position(membership: Membership, on: date) -> Position:
+def position(membership: Membership, on: date, *, timeline: list | None = None) -> Position:
     paid = paid_by_period(membership)
-    owed = dues(membership, on)
+    owed = dues(membership, on, timeline=timeline, paid=paid)
     current = calendar.period_of(on)
     arrears = sum(d.outstanding_cents for d in owed if d.period < current)
     upcoming = [d for d in owed if d.period >= current and d.outstanding_cents > 0]
