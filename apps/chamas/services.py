@@ -23,6 +23,7 @@ from apps.devices.models import SigningChallenge
 from apps.ledger import services as ledger
 from apps.rules import validation
 from apps.rules.models import RuleVersion, rules_hash
+from apps.rules.packs import pack_for
 from apps.rules.templates import TEMPLATE_VERSION, template_for
 
 from .models import (
@@ -95,7 +96,8 @@ def create_chama(*, founder, name: str, type: str, founder_role: str,
         name=name.strip(), type=type, member_code_prefix=_new_prefix(),
         country=place.code, currency=currency,
         expected_members=expected_members, meets=meets, created_by=founder,
-        draft_rules=template_for(type, currency), draft_template=f"{type}@{TEMPLATE_VERSION}",
+        draft_rules=template_for(type, currency, place.code),
+        draft_template=f"{type}@{TEMPLATE_VERSION}",
         setup_expires_at=timezone.now() + timedelta(days=SETUP_DAYS),
     )
     digits = chama.member_code_prefix.split("-")[1]
@@ -145,7 +147,7 @@ def active_bank_account(chama: Chama) -> BankAccount | None:
 def set_draft_rules(chama: Chama, rules: dict) -> dict:
     chama = _lock(chama)
     _require_setup(chama)
-    validation.validate(rules)
+    validation.validate(rules, chama.country)
     chama.draft_rules = rules
     chama.save(update_fields=["draft_rules"])
     return rules
@@ -236,6 +238,7 @@ def confirm_accept(code: str, user, *, challenge_id, sms_code: str) -> Membershi
         if inv.state != Invite.State.PENDING:
             raise Problem("invite_invalid", "This invite is not valid.",
                           status.HTTP_404_NOT_FOUND)
+        require_room(chama)
         if inv.role in OFFICIAL_ROLES and Membership.objects.filter(
                 chama=chama, role=inv.role, state=Membership.State.ACTIVE).exists():
             raise Problem("role_taken", "Someone already holds this office.",
@@ -306,6 +309,7 @@ def accept_by_sms(code: str, e164: str) -> Membership:
                                          else "en")
     with transaction.atomic():
         chama = _lock(inv.chama)
+        require_room(chama)
         inv = Invite.objects.select_for_update().get(pk=inv.pk)
         if inv.state != Invite.State.PENDING or inv.expires_at <= timezone.now():
             raise Problem("invite_invalid", "This invite is not valid.",
@@ -368,7 +372,7 @@ def submit_for_adoption(chama: Chama) -> Chama:
     if active_bank_account(chama) is None:
         raise Problem("bank_account_missing", "Add the chama's bank account first.",
                       status.HTTP_409_CONFLICT)
-    validation.validate(chama.draft_rules)
+    validation.validate(chama.draft_rules, chama.country)
     chama.state = Chama.State.AWAITING_OFFICIALS
     chama.save(update_fields=["state"])
     _open_adoption_if_ready(chama)
@@ -416,7 +420,8 @@ def adoption_status(chama: Chama) -> dict:
     pct = chama.draft_rules.get("adoption", {}).get("members_share_pct", 51)
     needed = -(-pct * len(founding) // 100)  # ceiling
     return {"founding": len(founding), "confirmed": len(adopted), "needed": needed,
-            "officials_waiting": officials_waiting, "min_members": MIN_MEMBERS}
+            "officials_waiting": officials_waiting, "min_members": min_members(chama),
+            "max_members": pack_for(chama.country).max_members}
 
 
 # A real chama: at least this many founding members before it can go active (owner
@@ -424,9 +429,26 @@ def adoption_status(chama: Chama) -> dict:
 MIN_MEMBERS = 5
 
 
+def min_members(chama: Chama) -> int:
+    """Our floor, or the country's law if it asks for more (rules.packs)."""
+    return max(MIN_MEMBERS, pack_for(chama.country).min_members)
+
+
+def require_room(chama: Chama) -> None:
+    """The country's largest group size (Uganda 30, Tanzania 50): nobody joins past it."""
+    top = pack_for(chama.country).max_members
+    if top is None:
+        return
+    n = Membership.objects.filter(chama=chama).exclude(
+        state__in=[Membership.State.EXITED, Membership.State.DECEASED]).count()
+    if n >= top:
+        raise Problem("chama_full", f"The law here allows at most {top} members in a group.",
+                      status.HTTP_409_CONFLICT, max_members=top)
+
+
 def adoption_reached(chama: Chama) -> bool:
     s = adoption_status(chama)
-    return (s["founding"] >= MIN_MEMBERS and not s["officials_waiting"]
+    return (s["founding"] >= min_members(chama) and not s["officials_waiting"]
             and s["confirmed"] >= s["needed"])
 
 
@@ -434,7 +456,7 @@ def _activate(chama: Chama) -> None:
     """Called with the chama locked. Freezes the rules into version 1 and writes the
     opening facts to the ledger."""
     today = _today()
-    rules = validation.validate(chama.draft_rules)
+    rules = validation.validate(chama.draft_rules, chama.country)
     version = RuleVersion.objects.create(
         chama=chama, version_no=1, rules=rules, schema_version=rules["schema_version"],
         template=chama.draft_template, effective_from=today, hash=rules_hash(rules),

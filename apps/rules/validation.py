@@ -32,18 +32,24 @@ class RulesInvalid(ValueError):
         self.errors = errors
 
 
-def check(rules: dict) -> list[RuleError]:
+def check(rules: dict, country: str | None = None) -> list[RuleError]:
+    """Schema, cross-field rules and, given a country, what its law forbids (rules.packs)."""
     errors = [
         RuleError("/".join(str(p) for p in e.absolute_path) or "(root)", e.message)
         for e in sorted(_validator.iter_errors(rules), key=lambda e: list(e.absolute_path))
     ]
     if errors:
         return errors
-    return _cross_field(rules)
+    errors = _cross_field(rules)
+    if country:
+        from .packs import rule_errors
+
+        errors += rule_errors(rules, country)
+    return errors
 
 
-def validate(rules: dict) -> dict:
-    errors = check(rules)
+def validate(rules: dict, country: str | None = None) -> dict:
+    errors = check(rules, country)
     if errors:
         raise RulesInvalid(errors)
     return rules

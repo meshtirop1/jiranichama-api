@@ -106,3 +106,7 @@ as `{30, 0, 0}`. Clause 16.1.
 
 Some of this changed so that a few people cannot use the rules against one member. See
 [protections](../flows/protections.md).
+
+## Country rule packs (2026-10-21)
+
+`packs.py` holds each country's pack: size limits, rule settings the law forbids (checked by `validation.check(rules, country)`), warnings and duties. `templates.fit_country` makes starting rules lawful, and `compliance(chama)` feeds `/chamas/{id}/country-rules/`. See [countries](../flows/countries.md).

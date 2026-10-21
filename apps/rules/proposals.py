@@ -89,7 +89,7 @@ def propose(chama: Chama, by: Membership, *, rules: dict, reason: str) -> RulePr
     today = timezone.localdate()
     current = version_at(chama, today)
     try:
-        validation.validate(rules)
+        validation.validate(rules, chama.country)
     except validation.RulesInvalid as exc:
         raise Problem("rules_invalid", "Some settings contradict each other or are out of "
                                        "range.", errors=[e.as_dict() for e in exc.errors]
