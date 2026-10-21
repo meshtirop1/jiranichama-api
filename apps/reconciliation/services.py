@@ -1,7 +1,8 @@
 """From a bank credit to a recorded contribution (5.3).
 
 Matching: the member code in the reference or narration, then the payer's phone if it
-belongs to exactly one member of this chama, otherwise the treasurer's unmatched queue.
+belongs to exactly one member of this chama, then a number a member confirmed pays for
+them (matching.py), otherwise the treasurer's unmatched queue, with suggestions.
 Amount and timing hints are shown to the treasurer but never decide on their own.
 """
 
@@ -50,6 +51,12 @@ def find_member(chama: Chama, text: str, payer_phone_hash: str = ""
                                                state__in=current)[:2])
         if len(found) == 1:
             return found[0], Match.Method.PHONE
+    # A number the member confirmed pays for them (smart matching, 2026-10-21).
+    from .matching import linked_member
+
+    member = linked_member(chama, hashes)
+    if member is not None:
+        return member, Match.Method.PAYER_LINK
     return None, None
 
 
@@ -176,8 +183,12 @@ def assign(txn: BankTransaction, member: Membership, *, by: Membership, reason: 
                       status.HTTP_403_FORBIDDEN)
     if not (reason or "").strip():
         raise Problem("reason_required", "Say why this payment belongs to this member.")
-    return record(txn, member, method=Match.Method.TREASURER, decided_by=by.user,
-                  reason=reason.strip())
+    entries = record(txn, member, method=Match.Method.TREASURER, decided_by=by.user,
+                     reason=reason.strip())
+    from .matching import learn_from_assignment
+
+    learn_from_assignment(txn, member)
+    return entries
 
 
 @transaction.atomic

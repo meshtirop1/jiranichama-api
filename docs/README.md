@@ -19,7 +19,7 @@ owns.
 - [Merry-go-round rotation](flows/rotation.md): the checkable draw, whose turn is next, arrears.
 - [Phone signing keys](flows/device-keys.md): fingerprint approvals, attestation, nonces.
 - [Daily reconciliation](flows/reconciliation.md): bank vs records each morning, gaps, breach after 7 days.
-- [Members' votes](flows/votes.md): votes on large payouts, by phone key or SMS code, secret if the rules say.
+- [Members' votes](flows/votes.md): votes on large payouts, by phone key or SMS code, secret if the rules say; abstaining, changing a vote, polls, members' motions with seconders, comments.
 - [Overdue bank statements](flows/statement-reminders.md): treasurer, then officials, then every member.
 - [M-Pesa paybill](flows/paybill.md): Daraja C2B, matched the same minute, never counted twice.
 - [SMS commands](flows/sms-commands.md): BAL, DUE, FINES, RULES, VERIFY and YES/NO votes from basic phones.
@@ -44,6 +44,8 @@ owns.
 - [Bank protections](flows/bank-protections.md): the bank mandate confirmed by a second official, statements sealed on the chain, no skipped periods, uploads that must match the bank feed, a harder M-Pesa callback.
 - [ID checks and privacy](flows/identity.md): Smile ID checks paid by the chama (off until configured), one person one ID, rule P.3, encrypted next of kin, no full numbers in vote SMS, staff need a support grant.
 - [JiraniChama's monthly bill](flows/billing.md): USD 0.10 per active member, first 3 months and chamas of 5 or fewer free, one bill per chama, ID checks added.
+- [The chama runs itself](flows/automation.md): notices (app first, SMS for basic phones), automatic chasing and the automatic dispute, payment reminders, Pay now (M-Pesa prompt), the monthly pack on the 1st.
+- [Year-end share-out](flows/shareout.md): savings back and a share of the earnings, worked out from the ledger, voted on, paid through money out, never paid twice.
 
 ## Modules
 
@@ -72,6 +74,8 @@ owns.
 - [registration](modules/registration.md): government registration guides, filled-in papers, checklist.
 - [identity](modules/identity.md): ID checks through Smile ID, one person one ID.
 - [billing](modules/billing.md): the monthly bill.
+- [automation](modules/automation.md): notices, chasing, reminders, the monthly pack.
+- [shareout](modules/shareout.md): the year-end share-out.
 
 ## Operations
 

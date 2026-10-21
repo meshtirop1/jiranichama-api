@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     "apps.registration",
     "apps.identity",
     "apps.billing",
+    "apps.automation",
+    "apps.shareout",
 ]
 
 MIDDLEWARE = [
@@ -213,6 +215,7 @@ SPECTACULAR_SETTINGS = {
         "IncomeKindEnum": "apps.investments.services.INCOME_KIND_CHOICES",
         "AppLanguageEnum": "apps.core.countries.LANGUAGE_CHOICES",
         "TranslatedLanguageEnum": "apps.core.countries.TRANSLATED_CHOICES",
+        "VoteKindEnum": "apps.votes.models.Vote.Kind",
     },
 }
 
@@ -260,6 +263,13 @@ CELERY_BEAT_SCHEDULE = {
                             "schedule": crontab(hour=2, minute=0)},
     "issue-monthly-bills": {"task": "apps.billing.tasks.issue_monthly_bills",
                             "schedule": crontab(day_of_month=1, hour=3, minute=0)},
+    # The chama runs itself (2026-10-21).
+    "chase-hourly": {"task": "apps.automation.tasks.chase_hourly",
+                     "schedule": crontab(minute=25)},
+    "morning-reminders": {"task": "apps.automation.tasks.morning",
+                          "schedule": crontab(hour=8, minute=0)},
+    "monthly-pack": {"task": "apps.automation.tasks.monthly_pack",
+                     "schedule": crontab(day_of_month=1, hour=5, minute=0)},
     "anchor-nightly": {"task": "apps.ledger.tasks.anchor_nightly",
                        "schedule": crontab(hour=0, minute=30)},
     "verify-chains-nightly": {

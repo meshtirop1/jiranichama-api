@@ -68,3 +68,39 @@ Some of this changed so that a few people cannot use the rules against one membe
 ## ID checks and privacy (2026-10-20)
 
 See [ID checks and privacy](identity.md).
+
+## Richer voting (2026-10-21)
+
+The owner said the voting system was "too basic". It now has:
+
+- **Abstain.** A member may abstain: it counts as taking part (quorum), never for or
+  against. In a small group (fewer than five), everyone must still say yes, so an
+  abstention there means the vote does not pass.
+- **Changing a vote.** Where the vote allows it (`allow_change`), a member may change their
+  vote until it closes. Each change is a new ballot with the next `round`, and the highest
+  round counts. Who voted stays one row, and secret ballots still carry no time.
+  - Votes other flows open follow the rules' `votes.allow_change` (default off: the first
+    vote counts).
+  - Members' motions and share-outs always allow changing.
+- **Polls.** A vote of kind `choice` has two to six options. A ballot is the option's number
+  ("1" to "6") or `abstain`. The one option with the most votes wins once the quorum is
+  reached; a tie at the top decides nothing (`tied: true`). The result entry records the
+  options, the count for each and the winner.
+- **Members' motions.** Any active member raises a motion (`POST /chamas/{id}/motions/`): a
+  question, why, yes/no or a poll, and how many days the vote runs (1 to 14). It goes to a
+  vote once `votes.motion_seconders` other members (default 2) second it
+  (`POST /motions/{id}/second/`).
+  - The raiser cannot second their own motion.
+  - Officials cannot block it.
+  - One member may have two motions waiting for seconds at a time.
+  - A motion not seconded within a week expires. The raiser may withdraw it while it waits.
+  - A motion's result is the chama's recorded decision. Money still moves only through money
+    out, and the rules change only by a rule change.
+- **Comments.** Members write their view on an open vote (`/votes/{id}/comments/`), for
+  everyone to read before voting. Comments are insert only.
+- **Reminders.** Every eligible member sees a new vote in the app's notices, and members
+  who have not voted hear again a day before it closes (see [automation](automation.md)).
+- **From basic phones.** `ABSTAIN 4821` (`NAJIZUIA`), and for a poll the option's number
+  then the vote's number: `2 4821`. The invitation SMS lists the options with the replies.
+
+The rule book says all this in clause 9.2.

@@ -9,6 +9,8 @@ A member texts a word to the chama shortcode and gets the answer by SMS:
     RULES / KANUNI     the contribution, due day and late fine
     VERIFY <code> / HAKIKI <code>   check a receipt (8 characters) or a statement (10)
     YES <n> / NDIYO <n>, NO <n> / HAPANA <n>   vote, with the number from the vote SMS
+    ABSTAIN <n> / NAJIZUIA <n>                 take part without voting for or against
+    1 <n>, 2 <n> ...                           a poll: the option's number, then the vote's
     HELP / MSAADA      the list
 
 Read-only except votes. The sender is known by their number (hashed); numbers we do not
@@ -38,6 +40,7 @@ WORDS = {
     "VERIFY": "verify", "HAKIKI": "verify",
     "YES": "yes", "NDIYO": "yes", "NDIO": "yes",
     "NO": "no", "HAPANA": "no",
+    "ABSTAIN": "abstain", "NAJIZUIA": "abstain",
     "HELP": "help", "MSAADA": "help",
 }
 
@@ -192,11 +195,16 @@ def _vote(user, choice: str, arg: str, sw: bool) -> str:
             "vote_closed": ("Kura hii imefungwa.", "This vote has closed."),
             "use_device_key": ("Piga kura kwenye programu kwa alama ya kidole.",
                                "Vote in the app with your fingerprint."),
+            "choice_invalid": ("Chaguo hilo halipo kwenye kura hii.",
+                               "That choice is not in this vote."),
         }
         sw_text, en_text = reasons.get(p.problem_code, (
             "Nambari ya kura haijulikani.", "That vote number is not known."))
         return sw_text if sw else en_text
-    word = ("NDIYO" if choice == "yes" else "HAPANA") if sw else choice.upper()
+    from apps.votes.services import choice_word
+
+    word = choice_word(vote, choice if choice in ("yes", "no", "abstain")
+                       else str(int(choice)), "sw" if sw else "en")
     return (f"Kura yako {word} imepokelewa: {vote.question}" if sw else
             f"Your vote {word} is recorded: {vote.question}")
 
@@ -208,7 +216,7 @@ def _help(sw: bool) -> str:
 
 
 SW_WORDS = {"SALIO", "DENI", "FAINI", "MKOPO", "KANUNI", "HAKIKI", "NDIYO", "NDIO", "HAPANA",
-            "MSAADA"}
+            "NAJIZUIA", "MSAADA"}
 
 
 def answer(user: User, text: str) -> tuple[str, str]:
@@ -217,6 +225,8 @@ def answer(user: User, text: str) -> tuple[str, str]:
     first = words[0].upper() if words else ""
     arg = words[1] if len(words) > 1 else ""
     command = WORDS.get(first, "help")
+    if first.isdigit() and len(first) == 1 and arg.strip():
+        command = "option"  # "2 4821": option 2 in a poll
     # Answer in the language of the word they used; otherwise their own language.
     sw = first in SW_WORDS or (first not in WORDS and user.language == "sw")
     if command == "bal":
@@ -231,8 +241,10 @@ def answer(user: User, text: str) -> tuple[str, str]:
         reply = _loan(user, sw)
     elif command == "verify":
         reply = _verify(user, arg, sw)
-    elif command in ("yes", "no"):
+    elif command in ("yes", "no", "abstain"):
         reply = _vote(user, command, arg, sw)
+    elif command == "option":
+        reply = _vote(user, first, arg, user.language == "sw")
     else:
         reply = _help(sw)
     if not reply:

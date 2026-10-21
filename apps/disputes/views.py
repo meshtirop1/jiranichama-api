@@ -15,7 +15,9 @@ from . import services
 from .models import Dispute, DisputeMessage
 
 
-def _name(m: Membership) -> str:
+def _name(m: Membership | None) -> str:
+    if m is None:
+        return "JiraniChama"
     return m.user.display_name or m.member_code
 
 
@@ -45,7 +47,8 @@ class DisputeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Dispute
-        fields = ["id", "raised_by", "mine", "subject_type", "subject_id", "reason", "text",
+        fields = ["id", "raised_by", "automatic", "mine", "subject_type", "subject_id", "reason",
+                  "text",
                   "officials_only", "involved_names", "i_am_involved", "respond_until",
                   "state", "round", "outcome", "outcome_text", "outcome_member",
                   "outcome_cents", "vote_id", "decided_by", "agreed", "officials_needed",

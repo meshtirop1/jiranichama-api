@@ -80,3 +80,27 @@ the payment's first receipt code, which VERIFY checks by SMS. `User.last_app_at`
 noted by the API's authentication at most once an hour. An arrears deduction from a
 merry-go-round turn sends no separate receipt. Push notifications for app users come
 later.
+
+## Smart matching (2026-10-21)
+
+Fewer payments wait for the treasurer (`reconciliation/matching.py`):
+
+1. **Learned payers.** When the treasurer assigns a payment from a number that is not a
+   member's own (a husband's, a child's, a shop's), the member is asked once in the app:
+   "should payments from that number always count for you?". If they say yes (a
+   `PayerLink`, `confirmed`), the next payments from that number match by themselves, after
+   the member code and the member's own phone (`Match.Method.PAYER_LINK`).
+   - The member, or an official, can end it at any time (`/payer-links/{id}/end/`).
+   - A member's own phone is never a payer for someone else.
+   - A number has at most one live link per chama.
+2. **Suggestions.** Each payment still waiting comes with up to three likely members in
+   `GET /chamas/{id}/unmatched/` (`suggestions`), each with its reasons:
+   - a member code typed with a slip (one digit wrong, missing, extra or two swapped);
+   - the payer's name;
+   - a number that paid for them before;
+   - their usual amount.
+
+   The treasurer confirms with one tap. The reason is written with the assignment.
+
+A suggestion never records a payment on its own. Only a real member code, the member's own
+phone or a confirmed payer counts automatically.

@@ -57,9 +57,35 @@ class DarajaChannelAdmin(AuditedModelAdmin):
     """A chama's own paybill or till. Add it once the chama has authorised it, then use
     "Register with Safaricom" so payments reach us within seconds."""
 
-    list_display = ("shortcode", "kind", "chama", "active", "registered_at")
-    fields = ("chama", "shortcode", "kind", "active")
+    list_display = ("shortcode", "kind", "chama", "active", "registered_at", "pay_now")
     actions = ["register_with_safaricom"]
+
+    class Form(forms.ModelForm):
+        """The Lipa na M-Pesa Online passkey is typed in and stored encrypted; it is never
+        shown again. Leave it empty to keep the one already set."""
+
+        stk_passkey = forms.CharField(required=False, widget=forms.PasswordInput,
+                                      label="Pay now passkey",
+                                      help_text="From Safaricom, for the shortcode's owner.")
+
+        class Meta:
+            model = DarajaChannel
+            fields = ("chama", "shortcode", "kind", "active")
+
+        def save(self, commit=True):
+            channel = super().save(commit=False)
+            if self.cleaned_data.get("stk_passkey"):
+                channel.set_stk_passkey(self.cleaned_data["stk_passkey"])
+            if commit:
+                channel.save()
+            return channel
+
+    form = Form
+    fields = ("chama", "shortcode", "kind", "active", "stk_passkey")
+
+    @admin.display(boolean=True, description="Pay now")
+    def pay_now(self, obj):
+        return obj.can_prompt
 
     @admin.action(description="Register with Safaricom (C2B callback URLs)")
     def register_with_safaricom(self, request, queryset):
