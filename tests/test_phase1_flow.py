@@ -96,7 +96,7 @@ def active(api, people, sms_outbox, settings):
         assert data["state"] == "awaiting_adoption"
     assert data["adoption"] == {"founding": 5, "confirmed": 2, "needed": 3,
                                 "officials_waiting": [data["adoption"]["officials_waiting"][0]],
-                                "min_members": 5}
+                                "min_members": 5, "max_members": None}
     data = _confirm_two_step(api, f"/api/v1/chamas/{chama_id}/adopt/", people["secretary"],
                              sms_outbox)
     assert data["state"] == "active"

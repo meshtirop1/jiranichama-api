@@ -73,3 +73,35 @@ matters most here, because it is the group's legal constitution.
 `GET /api/v1/countries/` is public. It lists the countries (code, name, dialling code,
 currency, languages, banks, open or not) and the languages (marking which are translated),
 for the sign-up pickers.
+
+## Country rule packs (2026-10-21)
+
+The law of the chama's country sits under its own rule book (`apps/rules/packs.py`).
+Officials can be stricter, never weaker.
+
+- **Blocked rule settings.** `validation.validate(rules, country)` refuses these when the
+  rules are set during setup, at activation, or in a rule change:
+  - Uganda: simple (flat) interest only, and no penalty that grows a loan on default.
+  - Somalia: no loan interest; use a fixed service fee instead.
+  - Burundi: loans repaid within 3 months.
+- **Warnings, not blocks.** Ethiopia warns above 12% a year and South Sudan above 15%,
+  because their legal basis is unconfirmed.
+- **Group size:**
+  - **Smallest:** a chama goes active only with at least our floor of 5 founding
+    members, or the country's own minimum if higher: Uganda and Tanzania 10, Burundi 10.
+  - **Largest:** joining past the country's maximum is refused (`chama_full`): Uganda
+    30, Tanzania 50, Burundi 29.
+  - `adoption-status` returns `min_members` and `max_members`.
+- **Starting templates already follow the law.** `template_for(type, currency, country)`
+  bends the loan settings when the chama is created.
+- **Duties** are listed for every member at `GET /chamas/{id}/country-rules/` (en/sw),
+  each marked done, to do, or a problem. Examples:
+  - Uganda: two money counters, 60% women on a mixed committee, a yearly share-out,
+    re-registering after half the members change.
+  - Tanzania: registering, "Community Microfinance Group" in the name, a quarterly
+    report, an internal-control person, credit-data consent.
+
+  Registration duties show as done once the chama has entered its certificate number.
+
+The findings are from the countries plan (public law and regulators' guidelines). They
+are guidance, not legal advice.

@@ -1,5 +1,6 @@
 """Rule changes in the app (5.10)."""
 
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -87,3 +88,16 @@ class RuleProposalWithdrawView(APIView):
         proposals.withdraw(p, me)
         return Response(RuleProposalSerializer(_proposals().get(pk=p.pk)).data)
 
+
+
+class CountryRulesView(APIView):
+    """What the chama's country asks of it (rules.packs): group size, rules the law
+    forbids, and duties, with whether each looks done. Every member sees it."""
+
+    @extend_schema(responses=OpenApiTypes.OBJECT)
+    def get(self, request, pk):
+        from .packs import compliance
+
+        chama, _ = chama_for(request, pk)
+        lang = request.query_params.get("lang") or request.user.language
+        return Response(compliance(chama, lang))

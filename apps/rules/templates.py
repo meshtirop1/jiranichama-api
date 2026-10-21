@@ -76,13 +76,33 @@ TEMPLATES: dict[str, dict] = {
 }
 
 
-def template_for(chama_type: str, currency: str = "KES") -> dict:
+def template_for(chama_type: str, currency: str = "KES", country: str | None = None) -> dict:
     """The starting rules for a type of chama, with amounts in ``currency``: the Kenyan
     figures scaled by a rough rate and rounded, so a Ugandan chama starts at UGX 28,000 a
-    month rather than UGX 1,000. Officials set their own amounts during setup."""
+    month rather than UGX 1,000. Officials set their own amounts during setup. Given a
+    country, the start already follows its law (rules.packs)."""
     rules = copy.deepcopy(TEMPLATES[chama_type])
     rate = countries.KES_RATE.get(currency, 1)
-    return rules if rate == 1 else _scale(rules, rate)
+    rules = rules if rate == 1 else _scale(rules, rate)
+    return fit_country(rules, country) if country else rules
+
+
+def fit_country(rules: dict, country: str) -> dict:
+    """Bend a starting rule book to what the country's law requires."""
+    from .packs import pack_for
+
+    p = pack_for(country)
+    loans = rules.get("loans")
+    if loans:
+        if p.simple_interest_only:
+            loans["interest"] = "flat"
+        if p.no_penalty_on_default:
+            loans["late_penalty_cents"] = 0
+        if p.no_interest:
+            loans["monthly_rate_bp"] = 0
+        if p.max_term_months:
+            loans["max_term_months"] = min(loans["max_term_months"], p.max_term_months)
+    return rules
 
 
 def _nice(cents: int, rate: float) -> int:
