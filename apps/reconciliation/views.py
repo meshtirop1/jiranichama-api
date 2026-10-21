@@ -1,3 +1,4 @@
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -122,7 +123,7 @@ class PayerLinksView(APIView):
     """Numbers that pay for members (smart matching). A member sees their own; officials
     see every one in the chama."""
 
-    @extend_schema(responses=serializers.DictField())
+    @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request, pk):
         chama, me = chama_for(request, pk)
         qs = PayerLink.objects.filter(chama=chama).select_related("membership__user",
@@ -147,7 +148,7 @@ def _link_for(request, pk) -> tuple[PayerLink, Membership]:
 class PayerLinkAnswerView(APIView):
     """The member says whether payments from that number should count for them."""
 
-    @extend_schema(request=PayerLinkAnswerSerializer, responses=serializers.DictField())
+    @extend_schema(request=PayerLinkAnswerSerializer, responses=OpenApiTypes.OBJECT)
     def post(self, request, pk):
         link, me = _link_for(request, pk)
         s = PayerLinkAnswerSerializer(data=request.data)
@@ -157,7 +158,7 @@ class PayerLinkAnswerView(APIView):
 
 
 class PayerLinkEndView(APIView):
-    @extend_schema(request=None, responses=serializers.DictField())
+    @extend_schema(request=None, responses=OpenApiTypes.OBJECT)
     def post(self, request, pk):
         link, me = _link_for(request, pk)
         return Response(matching.as_dict(matching.end(link, me)))

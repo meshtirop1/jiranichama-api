@@ -215,6 +215,7 @@ SPECTACULAR_SETTINGS = {
         "IncomeKindEnum": "apps.investments.services.INCOME_KIND_CHOICES",
         "AppLanguageEnum": "apps.core.countries.LANGUAGE_CHOICES",
         "TranslatedLanguageEnum": "apps.core.countries.TRANSLATED_CHOICES",
+        "VoteKindEnum": "apps.votes.models.Vote.Kind",
     },
 }
 
