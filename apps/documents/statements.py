@@ -121,11 +121,14 @@ def chama_statement(chama: Chama, start: date, end: date) -> dict:
                .select_related("user").order_by("member_code"))
     rows, sums = [], {"contributed_cents": 0, "savings_cents": 0, "arrears_cents": 0,
                       "fines_cents": 0, "pending_cash_cents": 0}
+    from apps.contributions.projections import rule_timeline
+
+    timeline = rule_timeline(chama)  # shared by every member's position
     for m in members:
         if not m.is_current:
             continue
         in_range = _member_lines(m, start, end)[1]["contributed_cents"]
-        p = position(m, today)
+        p = position(m, today, timeline=timeline)
         row = {"code": m.member_code, "name": _name(m), "role": m.role,
                "contributed_cents": in_range, "savings_cents": p.contributed_cents,
                "arrears_cents": p.arrears_cents, "fines_cents": p.fines_cents,

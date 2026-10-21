@@ -10,3 +10,4 @@ media/
 .coverage
 htmlcov/
 .dev-sms.log
+.idea/

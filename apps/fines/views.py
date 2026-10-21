@@ -24,13 +24,13 @@ class WaiverSerializer(serializers.ModelSerializer):
                   "deadline_at", "approvals", "i_can_decide", "created_at"]
 
     def get_approvals(self, w) -> int:
-        return w.decisions.filter(decision="approve").count()
+        return sum(1 for d in w.decisions.all() if d.decision == "approve")
 
     def get_i_can_decide(self, w) -> bool:
         me = self.context.get("me")
         return (bool(me) and w.state == Waiver.State.REQUESTED
                 and waivers.deciders(w).filter(pk=me.pk).exists()
-                and not w.decisions.filter(membership=me).exists())
+                and not any(d.membership_id == me.id for d in w.decisions.all()))
 
 
 class FineSerializer(serializers.ModelSerializer):
@@ -57,12 +57,20 @@ class FineSerializer(serializers.ModelSerializer):
 
     @extend_schema(responses=WaiverSerializer(allow_null=True))
     def get_waiver(self, f) -> dict | None:
-        w = f.waivers.order_by("-created_at").first()
+        # Prefetched newest first by _fines(): no query per fine.
+        ws = list(f.waivers.all())
+        w = ws[0] if ws else None
         return WaiverSerializer(w, context=self.context).data if w else None
 
 
 def _fines():
-    return Fine.objects.select_related("membership__user", "raised_entry", "chama")
+    from django.db.models import Prefetch
+
+    from .models import Waiver
+
+    return (Fine.objects.select_related("membership__user", "raised_entry", "chama")
+            .prefetch_related(Prefetch("waivers", queryset=Waiver.objects.order_by(
+                "-created_at").prefetch_related("decisions"))))
 
 
 class FineListView(APIView):
