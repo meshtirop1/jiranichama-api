@@ -76,6 +76,7 @@ owns.
 ## Operations
 
 - [Database roles](operations/database-roles.md)
+- [Efficiency](operations/efficiency.md): gzip, query counts per endpoint, what is still slow
 
 ## Where we are
 
